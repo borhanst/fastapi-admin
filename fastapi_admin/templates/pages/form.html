@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}{{ "Edit" if item else "Create" }} {{ model.verbose_name }} - Admin{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+    <a href="/admin/{{ model.table_name }}/" class="text-blue-500 hover:underline">&larr; Back to {{ model.verbose_name_plural }}</a>
+</div>
+
+<h1 class="text-2xl font-bold mb-6">
+    {{ "Edit" if item else "Create" }} {{ model.verbose_name }}
+</h1>
+
+<form method="post" class="bg-white rounded shadow p-6 max-w-2xl">
+    {% for widget in widgets %}
+    <div class="mb-4">
+        <label for="{{ widget.name }}" class="block text-sm font-medium text-gray-700 mb-1">
+            {{ widget.label }}
+            {% if widget.required %}<span class="text-red-500">*</span>{% endif %}
+        </label>
+        
+        {{ widget.render() }}
+        
+        {% if widget.help_text %}
+        <p class="mt-1 text-sm text-gray-500">{{ widget.help_text }}</p>
+        {% endif %}
+        
+        {% if widget.error %}
+        <p class="mt-1 text-sm text-red-500">{{ widget.error }}</p>
+        {% endif %}
+    </div>
+    {% endfor %}
+
+    <div class="mt-6 flex gap-2">
+        <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+            {{ "Update" if item else "Create" }}
+        </button>
+        <a href="/admin/{{ model.table_name }}/" class="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400">
+            Cancel
+        </a>
+    </div>
+</form>
+{% endblock %}

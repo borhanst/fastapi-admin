@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Admin{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.13.3/dist/cdn.min.js"></script>
+    {% block head %}{% endblock %}
+</head>
+<body class="bg-gray-100">
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        <aside class="w-64 bg-gray-800 text-white">
+            <div class="p-4">
+                <h1 class="text-xl font-bold">Admin</h1>
+            </div>
+            <nav class="mt-4">
+                {% block sidebar %}
+                <a href="/admin" class="block px-4 py-2 hover:bg-gray-700">Dashboard</a>
+                {% for model in registered_models %}
+                <a href="/admin/{{ model.table_name }}/" class="block px-4 py-2 hover:bg-gray-700">
+                    {{ model.verbose_name_plural }}
+                </a>
+                {% endfor %}
+                {% endblock %}
+            </nav>
+        </aside>
+
+        <!-- Main content -->
+        <main class="flex-1 overflow-auto">
+            <div class="p-6">
+                {% block content %}{% endblock %}
+            </div>
+        </main>
+    </div>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

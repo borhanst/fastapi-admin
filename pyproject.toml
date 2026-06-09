@@ -1,0 +1,39 @@
+[project]
+name = "fastapi-admin"
+version = "0.1.0"
+description = "Drop-in admin panel for FastAPI + SQLAlchemy apps"
+readme = "AGENT.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+dependencies = [
+    "fastapi>=0.115.0",
+    "sqlalchemy>=2.0.0",
+    "jinja2>=3.1.0",
+    "python-multipart>=0.0.9",
+    "itsdangerous>=2.2.0",
+    "bcrypt>=4.0.0",
+    "aiosqlite>=0.20.0",
+    "uvicorn>=0.49.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+    "httpx>=0.27.0",
+    "ruff>=0.5.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
