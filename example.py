@@ -1,7 +1,11 @@
 """Example usage of FastAPI Admin with multiple models and configurations."""
 
+import os
+import secrets
 from contextlib import asynccontextmanager
+from pathlib import Path
 
+import bcrypt
 from fastapi import FastAPI
 from sqlalchemy import (
     Boolean,
@@ -12,12 +16,17 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
+    select,
 )
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import DeclarativeBase, relationship, sessionmaker
 from sqlalchemy.sql import func
 
 from fastapi_admin import Admin, ModelAdmin
+from fastapi_admin.auth.backend import BuiltinAuthBackend
+from fastapi_admin.auth.models import AdminUser
+from fastapi_admin.audit.models import AuditLog  # noqa: F401 — ensure table is created
+from fastapi_admin.models import Base as AdminBase
 
 # ============================================================================
 # SQLAlchemy Models
@@ -199,30 +208,99 @@ class OrderAdmin(ModelAdmin):
 # ============================================================================
 
 # Database configuration
-DATABASE_URL = "sqlite+aiosqlite:///./example.db"
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./example.db")
+SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key-change-in-production")
+
 engine = create_async_engine(DATABASE_URL, echo=False)
 async_session_maker = sessionmaker(
     engine, class_=AsyncSession, expire_on_commit=False
 )
 
 
+async def seed_demo_data(session: AsyncSession) -> None:
+    """Insert demo data if tables are empty."""
+    result = await session.execute(select(Category).limit(1))
+    if result.scalars().first() is not None:
+        return
+
+    electronics = Category(name="Electronics", description="Gadgets and devices")
+    clothing = Category(name="Clothing", description="Apparel and accessories")
+    session.add_all([electronics, clothing])
+    await session.flush()
+
+    products = [
+        Product(name="Laptop", description="15-inch laptop", price=999.99, stock=50, category=electronics, is_active=True),
+        Product(name="Headphones", description="Noise-cancelling", price=199.99, stock=200, category=electronics, is_active=True),
+        Product(name="T-Shirt", description="Cotton tee", price=29.99, stock=500, category=clothing, is_active=True),
+        Product(name="Jeans", description="Slim fit denim", price=79.99, stock=150, category=clothing, is_active=False),
+    ]
+    session.add_all(products)
+    await session.flush()
+
+    user1 = User(email="alice@example.com", full_name="Alice Johnson", is_active=True)
+    user2 = User(email="bob@example.com", full_name="Bob Smith", is_active=True)
+    session.add_all([user1, user2])
+    await session.flush()
+
+    order1 = Order(user=user1, status="completed", total_amount=1199.98)
+    order2 = Order(user=user2, status="pending", total_amount=29.99)
+    session.add_all([order1, order2])
+    await session.flush()
+
+    session.add_all([
+        OrderItem(order=order1, product=products[0], quantity=1, price=999.99),
+        OrderItem(order=order1, product=products[1], quantity=1, price=199.99),
+        OrderItem(order=order2, product=products[2], quantity=1, price=29.99),
+    ])
+    await session.commit()
+    print("Seeded demo data.")
+
+
+async def seed_admin_user(session: AsyncSession) -> None:
+    """Create a default superadmin if none exists."""
+    result = await session.execute(select(AdminUser).limit(1))
+    if result.scalars().first() is not None:
+        return
+
+    hashed = bcrypt.hashpw(b"admin", bcrypt.gensalt()).decode()
+    admin_user = AdminUser(
+        email="admin@example.com",
+        hashed_password=hashed,
+        full_name="Admin",
+        is_superuser=True,
+        is_active=True,
+    )
+    session.add(admin_user)
+    await session.commit()
+    print("Created default admin user: admin@example.com / admin")
+
+
 # Lifespan context manager for FastAPI startup/shutdown
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Handle startup and shutdown events."""
-    # Startup
-    print("🚀 Starting FastAPI Admin Example...")
-    # Note: Database tables are created via Alembic migrations
-    # Just initialize admin
+    print("Starting FastAPI Admin Example...")
+
+    # Create all tables (user models + admin internals)
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+        await conn.run_sync(AdminBase.metadata.create_all)
+    print("Database tables ready.")
+
+    # Seed demo data
+    async with async_session_maker() as session:
+        await seed_demo_data(session)
+        await seed_admin_user(session)
+
+    # Initialize admin
     await admin.setup(app)
-    print("✅ FastAPI Admin initialized successfully!")
+    print("FastAPI Admin initialized successfully!")
 
     yield
 
     # Shutdown
-    print("🛑 Shutting down...")
+    print("Shutting down...")
     await engine.dispose()
-    print("✅ Shutdown complete!")
 
 
 # Create FastAPI app
@@ -238,13 +316,15 @@ app = FastAPI(
 admin = Admin(
     app=app,
     engine=engine,
-    base=Base,  # Pass user's DeclarativeBase
+    base=Base,
     title="My Admin Panel",
     logo_url=None,
     primary_color="#3b82f6",
     admin_path="/admin",
     dark_mode_default=False,
     per_page_default=25,
+    secret_key=SECRET_KEY,
+    auth_backend=BuiltinAuthBackend(),
 )
 
 
@@ -286,8 +366,12 @@ async def health():
 #
 # Then visit:
 #   Admin Panel: http://localhost:8000/admin
-#   API Docs: http://localhost:8000/docs
-#   Health: http://localhost:8000/health
+#   API Docs:   http://localhost:8000/docs
+#   Health:     http://localhost:8000/health
+#
+# Default admin login:
+#   Email:    admin@example.com
+#   Password: admin
 
 
 if __name__ == "__main__":

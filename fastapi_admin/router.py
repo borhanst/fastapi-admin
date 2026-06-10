@@ -1,34 +1,107 @@
-"""Auto-route generation per registered model."""
+"""Auto-route generation per registered model with RBAC."""
 
 from __future__ import annotations
 
-from fastapi import FastAPI
+from typing import Any
 
-from fastapi_admin.registry import AdminRegistry
-from fastapi_admin.views import create_model_router
+from fastapi import APIRouter, Depends, HTTPException, Request
+
+from fastapi_admin.registry import RegisteredModel
+from fastapi_admin.views import (
+    create_form_factory,
+    create_submit_factory,
+    edit_form_factory,
+    edit_submit_factory,
+    delete_factory,
+    bulk_factory,
+    search_factory,
+    list_view_factory,
+)
+from fastapi_admin.auth.dependencies import require_permission
 
 
-def register_admin_routes(app: FastAPI, prefix: str = "/admin") -> None:
-    """Register all admin routes with the FastAPI app."""
-    registry = AdminRegistry()
+def build_model_router(registered: RegisteredModel) -> APIRouter:
+    router = APIRouter(prefix=f"/{registered.table_name}")
 
-    # Auto-discover any unregistered models
-    registry.auto_discover()
+    router.add_api_route(
+        "/",
+        list_view_factory(registered),
+        methods=["GET"],
+        dependencies=[Depends(require_permission(registered.table_name, "view"))],
+    )
+    router.add_api_route(
+        "/create",
+        create_form_factory(registered),
+        methods=["GET"],
+        dependencies=[Depends(require_permission(registered.table_name, "create"))],
+    )
+    router.add_api_route(
+        "/create",
+        create_submit_factory(registered),
+        methods=["POST"],
+        dependencies=[Depends(require_permission(registered.table_name, "create"))],
+    )
+    router.add_api_route(
+        "/{id}",
+        edit_form_factory(registered),
+        methods=["GET"],
+        dependencies=[Depends(require_permission(registered.table_name, "edit"))],
+    )
+    router.add_api_route(
+        "/{id}",
+        edit_submit_factory(registered),
+        methods=["POST"],
+        dependencies=[Depends(require_permission(registered.table_name, "edit"))],
+    )
+    router.add_api_route(
+        "/{id}/delete",
+        delete_factory(registered),
+        methods=["POST"],
+        dependencies=[Depends(require_permission(registered.table_name, "delete"))],
+    )
+    router.add_api_route(
+        "/search",
+        search_factory(registered),
+        methods=["GET"],
+        dependencies=[Depends(require_permission(registered.table_name, "view"))],
+    )
+    router.add_api_route(
+        "/bulk",
+        bulk_factory(registered),
+        methods=["POST"],
+        dependencies=[Depends(require_permission(registered.table_name, "edit"))],
+    )
 
-    # Create routes for each registered model
-    for registered in registry.all():
-        model_router = create_model_router(registered)
-        app.include_router(model_router, prefix=prefix)
+    @router.post("/validate-field")
+    async def validate_field_endpoint(request: Request):
+        templates = request.app.state.admin_jinja_env
+        form = await request.form()
+        field_name = form.get("field_name")
+        raw_value = form.get(field_name)
 
-    # Dashboard route
-    @app.get(prefix, tags=["admin"])
-    async def admin_dashboard():
-        from fastapi.responses import HTMLResponse
-
-        models_html = "".join(
-            f'<li><a href="{prefix}/{m.table_name}/">{m.verbose_name_plural}</a></li>'
-            for m in registry.all()
+        field_meta = next(
+            (f for f in registered.form_fields if f.name == field_name), None
         )
-        return HTMLResponse(
-            f"<h1>Admin Dashboard</h1><ul>{models_html or '<li>No models registered</li>'}</ul>"
-        )
+        if field_meta is None:
+            raise HTTPException(status_code=422, detail="Field not found")
+
+        widget = registered.get_widget(field_name)
+        parsed = widget.parse(raw_value)
+        errors = widget.validate(parsed, field_meta)
+
+        validator_fn = getattr(registered.admin, f"validate_{field_name}", None)
+        if validator_fn and not errors:
+            err = validator_fn(parsed, obj=None)
+            if err:
+                errors = [err]
+
+        return templates.TemplateResponse("partials/field_wrapper.html", {
+            "request": request,
+            "field": field_meta,
+            "value": raw_value,
+            "errors": errors,
+            "widget_macro": widget.macro_name,
+            "model_name": registered.table_name,
+        })
+
+    return router

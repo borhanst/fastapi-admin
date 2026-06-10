@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block title %}{% if role %}Edit Role{% else %}Create Role{% endif %}{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+    <a href="{{ request.app.state.admin_config.admin_path }}/roles" 
+       class="text-primary-600 hover:text-primary-900">&larr; Back to Roles</a>
+    <h1 class="text-2xl font-bold text-gray-900 mt-2">{% if role %}Edit Role{% else %}Create Role{% endif %}</h1>
+    {% if role %}
+    <p class="text-gray-600 mt-1">Editing: <strong>{{ role.name }}</strong></p>
+    {% endif %}
+</div>
+
+<form method="post">
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+        <div class="space-y-4">
+            <div>
+                <label for="role_name" class="block text-sm font-medium text-gray-700 mb-1">Role Name</label>
+                <input type="text" id="role_name" name="role_name" required
+                       value="{% if role %}{{ role.name }}{% endif %}"
+                       class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
+            </div>
+            <div>
+                <label for="description" class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                <textarea id="description" name="description" rows="2"
+                          class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">{% if role %}{{ role.description or '' }}{% endif %}</textarea>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Model Permissions</h2>
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Model</th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">View</th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Create</th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Edit</th>
+                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Delete</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Field Permissions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+                {% for model in models %}
+                {% set table_name = model.table_name %}
+                {% set perm = permissions.get(table_name) %}
+                {% set f_perms = field_permissions.get(table_name, {}) %}
+                <tr class="hover:bg-gray-50">
+                    <td class="px-4 py-3 text-sm font-medium text-gray-900">{{ model.verbose_name_plural }}</td>
+                    <td class="px-4 py-3 text-center">
+                        <input type="checkbox" name="perm[{{ table_name }}][view]" {% if perm and perm.can_view %}checked{% endif %}>
+                    </td>
+                    <td class="px-4 py-3 text-center">
+                        <input type="checkbox" name="perm[{{ table_name }}][create]" {% if perm and perm.can_create %}checked{% endif %}>
+                    </td>
+                    <td class="px-4 py-3 text-center">
+                        <input type="checkbox" name="perm[{{ table_name }}][edit]" {% if perm and perm.can_edit %}checked{% endif %}>
+                    </td>
+                    <td class="px-4 py-3 text-center">
+                        <input type="checkbox" name="perm[{{ table_name }}][delete]" {% if perm and perm.can_delete %}checked{% endif %}>
+                    </td>
+                    <td class="px-4 py-3 text-sm">
+                        <details class="text-left">
+                            <summary class="cursor-pointer text-primary-600 hover:text-primary-900">Configure</summary>
+                            <div class="mt-2 space-y-1">
+                                {% for field in model.form_fields %}
+                                {% set field_key = field.name %}
+                                {% set fp = f_perms.get(field_key) %}
+                                <div class="flex items-center space-x-2">
+                                    <span class="text-xs text-gray-700 w-24">{{ field.label or field.name }}</span>
+                                    <label class="inline-flex items-center">
+                                        <input type="checkbox" name="field_perm[{{ table_name }}][{{ field_key }}][view]" {% if fp and fp.can_view %}checked{% endif %}>
+                                        <span class="ml-1 text-xs text-gray-600">View</span>
+                                    </label>
+                                    <label class="inline-flex items-center">
+                                        <input type="checkbox" name="field_perm[{{ table_name }}][{{ field_key }}][edit]" {% if fp and fp.can_edit %}checked{% endif %}>
+                                        <span class="ml-1 text-xs text-gray-600">Edit</span>
+                                    </label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </details>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="flex justify-end space-x-2">
+        <a href="{{ request.app.state.admin_config.admin_path }}/roles" 
+           class="px-4 py-2 border border-gray-300 rounded-md text-sm text-gray-700 hover:bg-gray-50">
+            Cancel
+        </a>
+        <button type="submit" 
+                class="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500">
+            Save Role
+        </button>

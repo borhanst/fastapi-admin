@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{{ title | default("Admin") }}{% endblock %}</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="/static/css/variables.css">
+  <link rel="stylesheet" href="/static/css/admin.css">
+
+  <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+  <style>
+    :root {
+      --color-primary-500: {{ admin_config.primary_color | default('#6366f1') }};
+      --color-primary-600: {{ admin_config.primary_color_dark | default('#4f46e5') }};
+    }
+  </style>
+
+  {% block head_extra %}{% endblock %}
+
+  {% for css_url in extra_css | default([]) %}
+  <link rel="stylesheet" href="{{ css_url }}">
+  {% endfor %}
+  {% for js_url in extra_js | default([]) %}
+  <script src="{{ js_url }}"></script>
+  {% endfor %}
+</head>
+<body class="bg-[var(--color-gray-50)] text-[var(--color-gray-900)] font-sans antialiased"
+      x-data="{ sidebarOpen: true }"
+      x-init="$watch('sidebarOpen', val => document.documentElement.style.setProperty('--sidebar-collapsed', val ? '0' : '1'))">
+
+  <div id="loading-bar" class="htmx-indicator fixed top-0 left-0 w-full h-1 bg-[var(--color-primary-500)] z-[9999]"></div>
+
+  {% include "partials/flash_messages.html" %}
+
+  <div class="flex min-h-screen">
+    {% include "partials/sidebar.html" %}
+
+    <div class="flex-1 flex flex-col" style="margin-left: var(--sidebar-width);">
+      {% include "partials/topbar.html" %}
+
+      <main class="flex-1 p-6 pt-[calc(var(--topbar-height)+1.5rem)]" style="max-width: var(--content-max-width);">
+        {% block content %}{% endblock %}
+      </main>
+    </div>
+  </div>
+
+  <script src="/static/js/htmx-config.js"></script>
+  <script src="/static/js/admin.js"></script>
+</body>
+</html>

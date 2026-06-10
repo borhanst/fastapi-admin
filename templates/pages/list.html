@@ -1,0 +1,159 @@
+{# pages/list.html — model list view with HTMX #}
+{% extends "base.html" %}
+
+{% block title %}{{ registered.verbose_name_plural }} — {{ title | default("Admin") }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+  <div class="flex items-center justify-between">
+    <h1 class="text-2xl font-bold text-[var(--color-gray-900)]">{{ registered.verbose_name_plural }}</h1>
+    {% if permissions.can_create %}
+    <a href="{{ admin_path | default('/admin') }}/{{ registered.table_name }}/create"
+       class="btn-primary px-4 py-2 rounded-lg bg-[var(--color-primary-600)] text-white text-sm font-medium hover:bg-[var(--color-primary-500)] transition-colors">
+      + New {{ registered.verbose_name }}
+    </a>
+    {% endif %}
+  </div>
+
+  <div class="bg-white rounded-xl border border-[var(--color-gray-200)]">
+    <div class="px-6 py-4 border-b border-[var(--color-gray-200)]">
+      <div class="flex flex-col sm:flex-row sm:items-center gap-4">
+        <div class="flex-1">
+          <div class="relative">
+            <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--color-gray-400)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <use href="/static/icons/heroicons.svg#magnifying-glass"/>
+            </svg>
+            <input type="text" name="search" value="{{ search | default('') }}"
+                   placeholder="Search {{ registered.verbose_name_plural | lower }}..."
+                   hx-get="{{ admin_path | default('/admin') }}/{{ registered.table_name }}/"
+                   hx-trigger="keyup changed delay:300ms"
+                   hx-target="#table-wrapper"
+                   hx-include="[name='search']"
+                   class="form-input w-full pl-10 pr-4 py-2 rounded-lg border border-[var(--color-gray-300)] bg-white text-[var(--color-gray-900)] focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)] transition-colors">
+          </div>
+        </div>
+
+        {% if registered.admin.list_filter %}
+        <div class="flex items-center gap-2">
+          {% for filter_field in registered.admin.list_filter %}
+          <select name="{{ filter_field }}"
+                  hx-get="{{ admin_path | default('/admin') }}/{{ registered.table_name }}/"
+                  hx-trigger="change"
+                  hx-target="#table-wrapper"
+                  class="form-select px-3 py-2 rounded-lg border border-[var(--color-gray-300)] bg-white text-[var(--color-gray-900)] focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)] transition-colors text-sm">
+            <option value="">All {{ filter_field }}</option>
+          </select>
+          {% endfor %}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div id="table-wrapper" class="overflow-x-auto">
+      <table class="table-wrapper w-full">
+        <thead>
+          <tr class="border-b border-[var(--color-gray-200)]">
+            {% if permissions.can_delete %}
+            <th class="px-6 py-3 text-left">
+              <input type="checkbox" id="select-all" class="rounded border-[var(--color-gray-300)] text-[var(--color-primary-600)] focus:ring-[var(--color-primary-500)]">
+            </th>
+            {% endif %}
+            {% for col in registered.columns %}
+            {% if not col.primary_key or registered.columns | length > 1 %}
+            <th class="px-6 py-3 text-left text-xs font-semibold text-[var(--color-gray-500)] uppercase tracking-wider">
+              <a href="?ordering={% if ordering == col.name %}-{% endif %}{{ col.name }}"
+                 class="flex items-center gap-1 hover:text-[var(--color-gray-900)] transition-colors">
+                {{ col.name | replace('_', ' ') | title }}
+                {% if ordering == col.name %}
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <use href="/static/icons/heroicons.svg#chevron-right"/>
+                </svg>
+                {% elif ordering == '-' ~ col.name %}
+                <svg class="w-4 h-4 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <use href="/static/icons/heroicons.svg#chevron-right"/>
+                </svg>
+                {% endif %}
+              </a>
+            </th>
+            {% endif %}
+            {% endfor %}
+            <th class="px-6 py-3 text-right text-xs font-semibold text-[var(--color-gray-500)] uppercase tracking-wider">
+              Actions
+            </th>
+          </tr>
+        </thead>
+        <tbody id="table-body" class="divide-y divide-[var(--color-gray-100)]">
+          {% if objects %}
+          {% for obj in objects %}
+          <tr class="hover:bg-[var(--color-gray-50)] transition-colors">
+            {% if permissions.can_delete %}
+            <td class="px-6 py-4">
+              <input type="checkbox" name="ids[]" value="{{ obj.id }}"
+                     class="rounded border-[var(--color-gray-300)] text-[var(--color-primary-600)] focus:ring-[var(--color-primary-500)]">
+            </td>
+            {% endif %}
+            {% for col in registered.columns %}
+            {% if not col.primary_key or registered.columns | length > 1 %}
+            <td class="px-6 py-4 text-sm text-[var(--color-gray-900)]">
+              {{ attr(obj, col.name) | default('-') }}
+            </td>
+            {% endif %}
+            {% endfor %}
+            <td class="px-6 py-4 text-right text-sm space-x-2">
+              {% if permissions.can_edit %}
+              <a href="{{ admin_path | default('/admin') }}/{{ registered.table_name }}/{{ obj.id }}"
+                 class="text-[var(--color-primary-600)] hover:text-[var(--color-primary-500)] font-medium transition-colors">
+                Edit
+              </a>
+              {% endif %}
+              {% if permissions.can_delete %}
+              <button hx-confirm="Are you sure you want to delete this {{ registered.verbose_name | lower }}?"
+                      hx-delete="{{ admin_path | default('/admin') }}/{{ registered.table_name }}/{{ obj.id }}"
+                      hx-target="closest tr"
+                      hx-swap="outerHTML"
+                      class="text-[var(--color-danger)] hover:text-red-700 font-medium transition-colors">
+                Delete
+              </button>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+          {% else %}
+          <tr>
+            <td colspan="{{ registered.columns | length + 2 }}" class="px-6 py-12 text-center">
+              <svg class="w-12 h-12 mx-auto text-[var(--color-gray-400)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <use href="/static/icons/heroicons.svg#document-text"/>
+              </svg>
+              <p class="mt-4 text-sm text-[var(--color-gray-500)]">No {{ registered.verbose_name_plural | lower }} found</p>
+              {% if permissions.can_create %}
+              <a href="{{ admin_path | default('/admin') }}/{{ registered.table_name }}/create"
+                 class="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[var(--color-primary-600)] text-white text-sm font-medium hover:bg-[var(--color-primary-500)] transition-colors">
+                + Create your first {{ registered.verbose_name | lower }}
+              </a>
+              {% endif %}
+            </td>
+          </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+
+    {% if permissions.can_delete %}
+    <div class="px-6 py-3 border-t border-[var(--color-gray-200)] flex items-center gap-4">
+      <span class="text-sm text-[var(--color-gray-500)]">With selected:</span>
+      <button type="submit" form="bulk-form"
+              class="px-3 py-1.5 rounded-lg border border-[var(--color-gray-300)] text-sm text-[var(--color-gray-700)] hover:bg-[var(--color-gray-50)] transition-colors">
+        Delete Selected
+      </button>
+    </div>
+    {% endif %}
+
+    {% from "partials/pagination.html" import render_pagination %}
+    {{ render_pagination(page, total_pages, total_items, per_page) }}
+  </div>
+</div>
+
+{% if permissions.can_delete %}
+<form id="bulk-form" method="post" action="{{ admin_path | default('/admin') }}/{{ registered.table_name }}/bulk" style="display: none;"></form>
+{% endif %}
+{% endblock %}

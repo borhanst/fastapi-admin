@@ -9,6 +9,7 @@ from fastapi_admin.inspection import ColumnMeta, RelationMeta, inspect_model
 
 if TYPE_CHECKING:
     from fastapi_admin.views import ModelAdmin
+    from fastapi_admin.widgets.base import Widget
 
 
 @dataclass
@@ -16,7 +17,7 @@ class RegisteredModel:
     """Central dataclass holding a registered model and its admin config."""
 
     model: type
-    admin: ModelAdmin
+    admin: "ModelAdmin"
     table_name: str
     verbose_name: str
     verbose_name_plural: str
@@ -24,12 +25,55 @@ class RegisteredModel:
     relationships: list[RelationMeta] = field(default_factory=list)
     pk_field: str = "id"
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         # Find primary key
         for col in self.columns:
             if col.primary_key:
                 self.pk_field = col.name
                 break
+
+    @property
+    def form_fields(self) -> list[Any]:
+        return self.admin.get_form_fields(
+            columns=self.columns,
+            relationships=self.relationships,
+        )
+
+    @property
+    def list_fields(self) -> list[str]:
+        if self.admin.list_display:
+            valid = {c.name for c in self.columns}
+            return [f for f in self.admin.list_display if f in valid]
+        return [c.name for c in self.columns if not c.primary_key]
+
+    def get_widget(self, field_name: str) -> "Widget":
+        from fastapi_admin.widgets.registry import widget_registry
+        from fastapi_admin.inspection import auto_label
+        from fastapi_admin.widgets.relation import (
+            RelationPickerWidget,
+            MultiRelationWidget,
+        )
+
+        col = next((c for c in self.columns if c.name == field_name), None)
+        rel = next((r for r in self.relationships if r.name == field_name), None)
+        if col is not None:
+            return widget_registry.resolve(col)
+        if rel is not None:
+            related_verbose = auto_label(
+                rel.target_model.__tablename__
+            )
+            if rel.direction == "MANYTOONE" or not rel.uselist:
+                return RelationPickerWidget(
+                    related_table=rel.target_model.__tablename__,
+                    related_verbose=related_verbose,
+                )
+            return MultiRelationWidget(
+                related_table=rel.target_model.__tablename__,
+                related_verbose=related_verbose,
+            )
+        return widget_registry.resolve(  # type: ignore[arg-type]
+            type("_Col", (), {"type": type(None), "name": field_name})()
+        )
 
 
 class AdminRegistry:
@@ -44,29 +88,27 @@ class AdminRegistry:
             cls._instance._models = {}
         return cls._instance
 
-    def register(self, model: type, admin_class: type[ModelAdmin] | None = None) -> RegisteredModel:
+    def register(
+        self,
+        model: type,
+        admin_class: type[ModelAdmin] | None = None,
+    ) -> RegisteredModel:
         """Register a model with the admin."""
         from fastapi_admin.views import ModelAdmin
 
-        # Validate model is a SQLAlchemy mapped class
         if not hasattr(model, "__tablename__"):
-            raise ValueError(f"{model.__name__} is not a SQLAlchemy model (no __tablename__)")
+            raise ValueError(
+                f"{model.__name__} is not a SQLAlchemy model (no __tablename__)"
+            )
 
-        # Create admin config
-        if admin_class is None:
-            admin = ModelAdmin()
-        else:
-            admin = admin_class()
-
-        # Inspect the model
+        admin = admin_class() if admin_class else ModelAdmin()
         columns, relationships = inspect_model(model)
 
-        # Generate verbose names
         table_name = model.__tablename__
         verbose_name = admin.verbose_name or table_name.replace("_", " ").title()
         if admin.verbose_name_plural:
             verbose_name_plural = admin.verbose_name_plural
-        elif verbose_name.endswith("y") and verbose_name[-2:].lower()[0] not in "aeiou":
+        elif verbose_name.endswith("y") and len(verbose_name) > 1 and verbose_name[-2].lower() not in "aeiou":
             verbose_name_plural = f"{verbose_name[:-1]}ies"
         else:
             verbose_name_plural = f"{verbose_name}s"
@@ -96,17 +138,16 @@ class AdminRegistry:
         """Scan all subclasses of DeclarativeBase and register unregistered ones."""
         from sqlalchemy.orm import DeclarativeBase
 
-        discovered = []
-        seen_classes: set[type] = set()
+        discovered: list[RegisteredModel] = []
+        seen: set[type] = set()
         for subclass in _all_declarative_subclasses(DeclarativeBase):
             if hasattr(subclass, "registry"):
                 for mapper in subclass.registry.mappers:
                     cls = mapper.class_
-                    if cls not in seen_classes:
-                        seen_classes.add(cls)
+                    if cls not in seen:
+                        seen.add(cls)
                         if hasattr(cls, "__tablename__") and cls.__tablename__ not in self._models:
-                            registered = self.register(cls)
-                            discovered.append(registered)
+                            discovered.append(self.register(cls))
         return discovered
 
     def clear(self) -> None:

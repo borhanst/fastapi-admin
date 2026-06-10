@@ -1,0 +1,60 @@
+{# partials/topbar.html — top navigation bar #}
+<header class="topbar fixed top-0 right-0 h-16 bg-white border-b border-[var(--color-gray-200)] flex items-center justify-between px-6 z-30 transition-all duration-300"
+        style="left: var(--sidebar-width);"
+        x-bind:style="collapsed ? 'left: 4rem' : 'left: var(--sidebar-width)'">
+  <div class="flex items-center gap-4">
+    <nav class="flex items-center gap-2 text-sm text-[var(--color-gray-500)]">
+      <a href="{{ admin_path | default('/admin') }}/" class="hover:text-[var(--color-primary-600)] transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <use href="/static/icons/heroicons.svg#home"/>
+        </svg>
+      </a>
+      {% block breadcrumb %}
+      <span class="text-[var(--color-gray-400)]">/</span>
+      <span class="text-[var(--color-gray-900)] font-medium">{{ title | default("Dashboard") }}</span>
+      {% endblock %}
+    </nav>
+  </div>
+
+  <div class="flex items-center gap-3">
+    <button @click="$store.theme.toggle()"
+            class="p-2 rounded-lg text-[var(--color-gray-500)] hover:bg-[var(--color-gray-100)] hover:text-[var(--color-gray-900)] transition-colors"
+            title="Toggle dark mode">
+      <svg class="w-5 h-5" x-show="!$store.theme.dark" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <use href="/static/icons/heroicons.svg#moon"/>
+      </svg>
+      <svg class="w-5 h-5" x-show="$store.theme.dark" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="display: none;">
+        <use href="/static/icons/heroicons.svg#sun"/>
+      </svg>
+    </button>
+
+    <div class="relative" x-data="{ open: false }">
+      <button @click="open = !open" @click.outside="open = false"
+              class="flex items-center gap-2 p-2 rounded-lg hover:bg-[var(--color-gray-100)] transition-colors">
+        <div class="w-8 h-8 rounded-full bg-[var(--color-primary-600)] flex items-center justify-center text-white text-sm font-medium">
+          {{ admin_user.full_name[0] | upper if admin_user and admin_user.full_name else "A" }}
+        </div>
+        <span class="text-sm font-medium text-[var(--color-gray-700)] hidden sm:inline">{{ admin_user.full_name | default("Admin") }}</span>
+        <svg class="w-4 h-4 text-[var(--color-gray-500)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <use href="/static/icons/heroicons.svg#chevron-right"/>
+        </svg>
+      </button>
+
+      <div x-show="open" x-transition:enter="transition ease-out duration-100"
+           x-transition:enter-start="opacity-0 scale-95" x-transition:enter-end="opacity-100 scale-100"
+           x-transition:leave="transition ease-in duration-75"
+           x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95"
+           class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-[var(--color-gray-200)] py-1 z-50"
+           style="display: none;">
+        <div class="px-4 py-2 border-b border-[var(--color-gray-100)]">
+          <div class="text-sm font-medium text-[var(--color-gray-900)]">{{ admin_user.full_name | default("Admin") }}</div>
+          <div class="text-xs text-[var(--color-gray-500)]">{{ admin_user.email | default("") }}</div>
+        </div>
+        <a href="{{ admin_path | default('/admin') }}/logout"
+           class="block px-4 py-2 text-sm text-[var(--color-gray-700)] hover:bg-[var(--color-gray-100)] transition-colors">
+          Sign out
+        </a>
+      </div>
+    </div>
+  </div>
+</header>

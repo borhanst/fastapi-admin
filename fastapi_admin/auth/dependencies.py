@@ -5,7 +5,8 @@ from __future__ import annotations
 from typing import Any
 
 from fastapi import Depends, HTTPException, Request
-from sqlalchemy.orm import Session
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session, sessionmaker
 
 from fastapi_admin.auth.protocol import AdminUserProtocol
 from fastapi_admin.auth.session import SignedCookieSessionBackend
@@ -29,17 +30,35 @@ def _get_session_backend(request: Request) -> SignedCookieSessionBackend:
     return backend
 
 
-def _get_db_session(request: Request) -> Session:
-    """Yield a SQLAlchemy session from the engine stored in app.state.
+def _get_sync_engine(request: Request):
+    """Get or create a sync engine from the async engine in app.state."""
+    from sqlalchemy.ext.asyncio import AsyncEngine
 
-    The engine is wired during ``Admin.setup()``.
-    """
-    engine = getattr(request.app.state, "admin_engine", None)
-    if engine is None:
+    async_engine = getattr(request.app.state, "admin_engine", None)
+    if async_engine is None:
         raise HTTPException(
             status_code=500,
             detail="Admin database engine not initialised.",
         )
+
+    # If it's already a sync engine, use it directly
+    if not isinstance(async_engine, AsyncEngine):
+        return async_engine
+
+    # Extract the URL and create a sync engine
+    sync_url = str(async_engine.url).replace("+aiosqlite", "").replace("+asyncpg", "").replace("+asyncmy", "")
+    if not hasattr(request.app.state, "_admin_sync_engine"):
+        request.app.state._admin_sync_engine = create_engine(sync_url, echo=False)
+    return request.app.state._admin_sync_engine
+
+
+def _get_db_session(request: Request) -> Session:
+    """Yield a synchronous SQLAlchemy session.
+
+    Works with both sync and async engines by creating a sync engine
+    from the async URL when needed.
+    """
+    engine = _get_sync_engine(request)
     session = Session(bind=engine)
     try:
         yield session  # type: ignore[misc]

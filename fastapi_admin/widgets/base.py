@@ -22,7 +22,7 @@ class Widget:
         """Variables injected into the Jinja2 macro."""
         return {
             "field": field,
-            "value": value,
+            "value": value if value is not None else "",
             "id": f"field-{field.name}",
             "name": field.name,
         }

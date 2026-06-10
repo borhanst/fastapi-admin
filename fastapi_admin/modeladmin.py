@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from fastapi_admin.types import ExtraField, FieldMeta
+
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
 
@@ -26,6 +28,10 @@ class ModelAdmin:
     fields: list[str] | None = None
     exclude: list[str] | None = None
     readonly_fields: list[str] | None = None
+    formfield_overrides: dict[str, Any] = {}
+    extra_fields: list[ExtraField] = []
+    fieldsets: list[Any] = []  # FieldsetSpec accepted but not strictly enforced here
+    field_placeholders: dict[str, str] = {}  # {field_name: placeholder_text}
 
     # Labels and display
     verbose_name: str | None = None
@@ -40,6 +46,9 @@ class ModelAdmin:
             or getattr(obj, "title", None)
             or f"#{getattr(obj, 'id', '?')}"
         )
+
+    def get_model(self) -> Any:
+        return self.model
 
     # ── Query hooks ──────────────────────────────────────────────────
 
@@ -90,6 +99,80 @@ class ModelAdmin:
         with a user-facing message to abort the operation.
         """
         return data
+
+    # ── Form field helper ───────────────────────────────────────────
+
+    def get_form_fields(
+        self,
+        obj: Any = None,
+        request: Any = None,
+        columns: list[Any] | None = None,
+        relationships: list[Any] | None = None,
+    ) -> list[FieldMeta]:
+        """Return ordered list of FieldMeta objects for the create/edit form."""
+        from fastapi_admin.inspection import auto_label, is_required
+
+        columns = columns or []
+        relationships = relationships or []
+        form_fields: list[FieldMeta] = []
+
+        raw = []
+        if self.fields is not None:
+            names = set(self.fields)
+            raw = [c for c in columns if c.name in names and not c.primary_key] + [
+                r for r in relationships if r.name in names and r.direction in ("MANYTOONE", "MANYTOMANY")
+            ]
+        else:
+            raw = [c for c in columns if not c.primary_key] + [
+                r for r in relationships if r.direction in ("MANYTOONE", "MANYTOMANY")
+            ]
+            if self.exclude:
+                raw = [x for x in raw if x.name not in self.exclude]
+
+        for item in raw:
+            name = item.name
+            readonly = name in (self.readonly_fields or [])
+            required = is_required(item) if hasattr(item, "nullable") else False
+            label = auto_label(name)
+            placeholder = self.field_placeholders.get(name, f"Enter {label.lower()}...")
+            form_fields.append(
+                FieldMeta(
+                    name=name,
+                    label=label,
+                    required=required,
+                    readonly=readonly,
+                    placeholder=placeholder,
+                )
+            )
+
+        for extra in self.extra_fields:
+            form_fields.append(
+                FieldMeta(
+                    name=extra.name,
+                    label=extra.label or auto_label(extra.name),
+                    required=extra.required,
+                    readonly=True,
+                    extra={"extra_field": True, "widget": extra.widget},
+                )
+            )
+
+        # Respect fieldsets ordering if defined
+        if self.fieldsets:
+            ordered: list[FieldMeta] = []
+            seen: set[str] = set()
+            for fs in self.fieldsets:
+                for fname in fs.fields:
+                    for fm in form_fields:
+                        if fm.name == fname and fname not in seen:
+                            ordered.append(fm)
+                            seen.add(fname)
+                            break
+            for fm in form_fields:
+                if fm.name not in seen:
+                    ordered.append(fm)
+            return ordered
+
+        return form_fields
 
     # ── Permission helpers ───────────────────────────────────────────
 

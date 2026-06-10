@@ -5,8 +5,12 @@ from fastapi_admin.exceptions import ConfigError
 from fastapi_admin.registry import AdminRegistry, RegisteredModel
 from fastapi_admin.types import (
     ColumnMeta,
+    ExtraField,
     FieldMeta,
+    FieldRenderContext,
+    FieldsetContext,
     FieldsetSpec,
+    FormContext,
     PermissionSet,
     RelationMeta,
     SeedRole,
@@ -25,5 +29,9 @@ __all__ = [
     "PermissionSet",
     "FieldsetSpec",
     "SeedRole",
+    "ExtraField",
+    "FieldRenderContext",
+    "FieldsetContext",
+    "FormContext",
 ]
 __version__ = "0.1.0"

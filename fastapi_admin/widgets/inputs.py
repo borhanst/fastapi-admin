@@ -190,3 +190,67 @@ class ReadOnlyWidget(Widget):
 
 class HiddenWidget(Widget):
     macro_name = "hidden"
+
+
+class FileUploadWidget(Widget):
+    """File upload widget — stores file via StorageBackend, saves path string."""
+
+    macro_name = "file_upload"
+
+    def __init__(
+        self,
+        max_size_mb: float | None = None,
+        accept: str | None = None,
+    ) -> None:
+        self.max_size_mb = max_size_mb
+        self.accept = accept  # e.g. ".pdf,.docx" or "application/pdf"
+
+    def render_context(self, field: FieldMeta, value: Any) -> dict:
+        ctx = super().render_context(field, value)
+        ctx["max_size_mb"] = self.max_size_mb
+        ctx["accept"] = self.accept
+        ctx["current_file"] = value if value else ""
+        return ctx
+
+    def parse(self, raw: Any) -> Any:
+        """Raw form data — the actual UploadFile handling happens in the
+        form submit factory because ``UploadFile`` objects need async read."""
+        if raw is None or raw == "":
+            return None
+        return raw
+
+    def validate(self, value: Any, field: FieldMeta) -> list[str]:
+        errors = super().validate(value, field)
+        # Size validation happens at save time in the form submit factory
+        # because reading the file requires async I/O.
+        return errors
+
+
+class ImageUploadWidget(Widget):
+    """Image upload widget — like FileUploadWidget but restricted to images."""
+
+    macro_name = "image_upload"
+
+    def __init__(
+        self,
+        max_size_mb: float | None = None,
+        accept: str = "image/*",
+    ) -> None:
+        self.max_size_mb = max_size_mb
+        self.accept = accept
+
+    def render_context(self, field: FieldMeta, value: Any) -> dict:
+        ctx = super().render_context(field, value)
+        ctx["max_size_mb"] = self.max_size_mb
+        ctx["accept"] = self.accept
+        ctx["current_file"] = value if value else ""
+        return ctx
+
+    def parse(self, raw: Any) -> Any:
+        if raw is None or raw == "":
+            return None
+        return raw
+
+    def validate(self, value: Any, field: FieldMeta) -> list[str]:
+        errors = super().validate(value, field)
+        return errors

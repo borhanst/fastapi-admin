@@ -45,6 +45,11 @@ class AuthBackend(ABC):
         """Load user by PK. Return ``None`` if not found or inactive."""
         ...
 
+    async def on_logout(self, user_id: int | str | None = None) -> None:
+        """Called after a user logs out. Override to perform cleanup."""
+        # Default implementation does nothing
+        return None
+
 
 class BuiltinAuthBackend(AuthBackend):
     """Default backend that works with the built-in ``AdminUser`` model."""
@@ -69,3 +74,7 @@ class BuiltinAuthBackend(AuthBackend):
             .filter_by(id=user_id, is_active=True)
             .first()
         )
+
+    async def on_logout(self, user_id: int | str | None = None) -> None:
+        """No-op for built-in backend."""
+        return None

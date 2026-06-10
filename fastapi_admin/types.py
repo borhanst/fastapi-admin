@@ -76,3 +76,43 @@ class SeedRole:
     name: str
     description: str = ""
     permissions: dict[str, dict[str, bool]] = field(default_factory=dict)
+
+
+@dataclass
+class FieldRenderContext:
+    meta: FieldMeta
+    widget_macro: str
+    widget_context: dict = field(default_factory=dict)
+    errors: list[str] = field(default_factory=list)
+
+
+@dataclass
+class FieldsetContext:
+    title: str | None = None
+    collapsed: bool = False
+    fields: list[FieldRenderContext] = field(default_factory=list)
+
+
+@dataclass
+class FormContext:
+    model_name: str
+    verbose_name: str
+    is_create: bool
+    obj: Any = None
+    fieldsets: list[FieldsetContext] = field(default_factory=list)
+    errors: dict[str, list[str]] = field(default_factory=dict)
+    values: dict[str, Any] = field(default_factory=dict)
+    action_url: str = ""
+    list_url: str = ""
+    can_delete: bool = False
+    permissions: PermissionSet = field(default_factory=PermissionSet)
+    readonly: bool = False
+
+
+@dataclass
+class ExtraField:
+    name: str
+    label: str = ""
+    widget: Any = None
+    default: Any = None
+    required: bool = False

@@ -1,0 +1,92 @@
+{# pages/dashboard.html — dashboard with stats and recent activity #}
+{% extends "base.html" %}
+
+{% block title %}{{ title | default("Admin") }} — Dashboard{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+  <div class="flex items-center justify-between">
+    <h1 class="text-2xl font-bold text-[var(--color-gray-900)]">Dashboard</h1>
+    <div class="flex items-center gap-3">
+      {% for registered in registered_models %}
+      <a href="{{ admin_path | default('/admin') }}/{{ registered.table_name }}/create"
+         class="btn-primary px-4 py-2 rounded-lg bg-[var(--color-primary-600)] text-white text-sm font-medium hover:bg-[var(--color-primary-500)] transition-colors">
+        + New {{ registered.verbose_name }}
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+    {% for card in stat_cards %}
+    <a href="{{ card.url }}"
+       class="block p-6 bg-white rounded-xl border border-[var(--color-gray-200)] hover:shadow-md transition-shadow">
+      <div class="text-sm font-medium text-[var(--color-gray-500)]">{{ card.title }}</div>
+      <div class="mt-2 text-3xl font-bold text-[var(--color-gray-900)]">{{ card.count }}</div>
+    </a>
+    {% endfor %}
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div class="lg:col-span-2">
+      <div class="bg-white rounded-xl border border-[var(--color-gray-200)]">
+        <div class="px-6 py-4 border-b border-[var(--color-gray-200)]">
+          <h2 class="text-lg font-semibold text-[var(--color-gray-900)]">Recent Activity</h2>
+        </div>
+        <div class="divide-y divide-[var(--color-gray-100)]">
+          {% if recent_audit %}
+          {% for entry in recent_audit %}
+          <div class="px-6 py-4 flex items-center gap-4">
+            <div class="shrink-0">
+              {% if entry.action == 'CREATE' %}
+              <span class="badge badge-success inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Created</span>
+              {% elif entry.action == 'UPDATE' %}
+              <span class="badge badge-warning inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">Updated</span>
+              {% elif entry.action == 'DELETE' %}
+              <span class="badge badge-danger inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">Deleted</span>
+              {% endif %}
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="text-sm text-[var(--color-gray-900)]">
+                <span class="font-medium">{{ entry.user_email | default("System") }}</span>
+                {{ entry.action | lower }}d
+                <span class="font-medium">{{ entry.model_name }}</span>
+                <span class="text-[var(--color-gray-500)]">#{{ entry.object_id }}</span>
+              </div>
+              <div class="text-xs text-[var(--color-gray-500)] mt-1">{{ entry.timestamp }}</div>
+            </div>
+          </div>
+          {% endfor %}
+          {% else %}
+          <div class="px-6 py-12 text-center">
+            <svg class="w-12 h-12 mx-auto text-[var(--color-gray-400)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <use href="/static/icons/heroicons.svg#clock"/>
+            </svg>
+            <p class="mt-4 text-sm text-[var(--color-gray-500)]">No recent activity</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="bg-white rounded-xl border border-[var(--color-gray-200)]">
+        <div class="px-6 py-4 border-b border-[var(--color-gray-200)]">
+          <h2 class="text-lg font-semibold text-[var(--color-gray-900)]">Quick Actions</h2>
+        </div>
+        <div class="p-6 space-y-3">
+          {% for registered in registered_models %}
+          <a href="{{ admin_path | default('/admin') }}/{{ registered.table_name }}/"
+             class="flex items-center gap-3 p-3 rounded-lg hover:bg-[var(--color-gray-50)] transition-colors">
+            <svg class="w-5 h-5 text-[var(--color-primary-600)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <use href="/static/icons/heroicons.svg#{{ registered.admin.icon | default('document-text') }}"/>
+            </svg>
+            <span class="text-sm font-medium text-[var(--color-gray-700)]">{{ registered.verbose_name_plural }}</span>
+          </a>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

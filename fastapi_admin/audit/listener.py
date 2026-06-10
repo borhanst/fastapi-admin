@@ -1,182 +1,154 @@
-"""Audit listener — SQLAlchemy after_flush event listener for audit logging."""
+"""Audit listener — SQLAlchemy event listeners for audit logging."""
 
 from __future__ import annotations
 
-from datetime import datetime
 from typing import Any
 
 from sqlalchemy import event
 from sqlalchemy.orm import Session
 
+from fastapi_admin.audit.context import clear_audit_context, get_audit_context
+from fastapi_admin.audit.diff import compute_diff, snapshot
 from fastapi_admin.audit.models import AuditLog
 
 
-def compute_diff(old_values: dict[str, Any], new_values: dict[str, Any]) -> dict[str, Any]:
-    """Compute the diff between old and new values."""
-    diff = {}
-    all_keys = set(old_values.keys()) | set(new_values.keys())
-
-    for key in all_keys:
-        old_val = old_values.get(key)
-        new_val = new_values.get(key)
-        if old_val != new_val:
-            diff[key] = {"old": old_val, "new": new_val}
-
-    return diff
-
-
-def get_audit_context(session: Session) -> dict[str, Any]:
-    """Extract audit context (user info, IP, etc.) from the session."""
-    # This will be populated by middleware or explicit setting
-    return getattr(session, "_audit_context", {})
-
-
-def setup_audit_listener(session_factory: Any, exclude_tables: list[str] | None = None) -> None:
-    """Set up the SQLAlchemy event listener for audit logging.
-
+def is_registered_model(obj: Any, registry: Any) -> bool:
+    """Check if a model class is registered with the admin.
+    
     Args:
-        session_factory: The async session factory
-        exclude_tables: Tables to exclude from audit logging
+        obj: A SQLAlchemy model instance
+        registry: The AdminRegistry instance
+        
+    Returns:
+        True if the model is registered, False otherwise
     """
-    exclude = set(exclude_tables or [])
-    exclude.add(AuditLog.__table__.name)  # Never audit the audit log itself
+    if not hasattr(obj, "__tablename__"):
+        return False
+    table_name = getattr(obj, "__tablename__")
+    return registry.get(table_name) is not None
+
+
+def attach_audit_listener(session_factory: Any, registry: Any) -> None:
+    """Set up SQLAlchemy event listeners for audit logging.
+    
+    Args:
+        session_factory: The session factory (sync or async)
+        registry: The AdminRegistry instance
+    """
+    # We'll attach to the Session class (works for both sync and async)
+    @event.listens_for(Session, "before_flush")
+    def before_flush(session: Session, flush_context: Any, instances: Any) -> None:
+        """Before flush, snapshot the original state of dirty objects for UPDATE."""
+        # For each dirty object, take a snapshot and store it on the object
+        for obj in session.dirty:
+            if not is_registered_model(obj, registry):
+                continue
+            # Skip if it's the audit log itself
+            if obj.__tablename__ == AuditLog.__tablename__:
+                continue
+            # Snapshot the current state (from the database) as the "before" state
+            # We'll store it on the object for use in after_flush
+            obj._audit_before = snapshot(obj)
 
     @event.listens_for(Session, "after_flush")
     def after_flush(session: Session, flush_context: Any) -> None:
-        """Log all INSERT, UPDATE, DELETE operations after flush."""
-        context = get_audit_context(session)
+        """After flush, create audit log entries for CREATE, UPDATE, DELETE."""
+        # Get audit context from contextvar
+        context = get_audit_context()
         user_id = context.get("user_id")
-        username = context.get("username")
+        user_email = context.get("user_email")
         ip_address = context.get("ip_address")
         user_agent = context.get("user_agent")
 
         # Process new objects (INSERT)
         for obj in session.new:
-            table_name = obj.__tablename__
-            if table_name in exclude:
+            if not is_registered_model(obj, registry):
                 continue
-
-            # Get primary key
-            pk_value = getattr(obj, "id", None)
-            if pk_value is None:
-                for col in obj.__table__.primary_key.columns:
-                    pk_value = getattr(obj, col.key, None)
-                    break
-
-            # Get all column values
-            new_values = {}
-            for col in obj.__table__.columns:
-                val = getattr(obj, col.key, None)
-                # Convert non-serializable types
-                if hasattr(val, "isoformat"):
-                    val = val.isoformat()
-                elif hasattr(val, "hex"):
-                    val = str(val)
-                new_values[col.key] = val
-
+            if obj.__tablename__ == AuditLog.__tablename__:
+                continue
+            # Snapshot the object after flush (it should have its ID now)
+            after_snapshot = snapshot(obj)
             audit_entry = AuditLog(
-                table_name=table_name,
-                record_id=str(pk_value),
+                user_id=user_id,
+                user_email=user_email,
                 action="CREATE",
-                user_id=user_id,
-                username=username,
-                new_values=new_values,
+                model_name=obj.__class__.__name__,
+                table_name=obj.__tablename__,
+                object_id=str(getattr(obj, "id")),
+                object_repr=str(obj)[:255],  # Truncate if needed
+                changes=None,  # CREATE has no diff
+                full_snapshot=after_snapshot,
                 ip_address=ip_address,
                 user_agent=user_agent,
             )
             session.add(audit_entry)
 
-        # Process modified objects (UPDATE)
-        for obj, changes in session.dirty.items():
-            table_name = obj.__tablename__
-            if table_name in exclude:
+        # Process dirty objects (UPDATE)
+        for obj in session.dirty:
+            if not is_registered_model(obj, registry):
                 continue
-
-            # Get primary key
-            pk_value = getattr(obj, "id", None)
-            if pk_value is None:
-                for col in obj.__table__.primary_key.columns:
-                    pk_value = getattr(obj, col.key, None)
-                    break
-
-            # Compute old and new values for changed columns
-            old_values = {}
-            new_values = {}
-            for col_name in changes:
-                col = obj.__table__.columns.get(col_name)
-                if col is None:
-                    continue
-
-                # History has the committed state
-                history = session.identity_map.get(obj._sa_instance_state.key)
-                if history:
-                    old_val = getattr(history, col_name, None)
-                else:
-                    old_val = None
-
-                new_val = getattr(obj, col_name, None)
-
-                # Convert non-serializable types
-                if hasattr(old_val, "isoformat"):
-                    old_val = old_val.isoformat()
-                elif hasattr(old_val, "hex"):
-                    old_val = str(old_val)
-
-                if hasattr(new_val, "isoformat"):
-                    new_val = new_val.isoformat()
-                elif hasattr(new_val, "hex"):
-                    new_val = str(new_val)
-
-                old_values[col_name] = old_val
-                new_values[col_name] = new_val
-
-            diff = compute_diff(old_values, new_values)
-
+            if obj.__tablename__ == AuditLog.__tablename__:
+                continue
+            # Check if we have a before snapshot
+            if not hasattr(obj, "_audit_before"):
+                # This can happen if the object was made dirty in this session
+                # but we didn't have a chance to snapshot in before_flush (e.g., if it was
+                # added and then modified in the same flush). We'll skip for simplicity.
+                continue
+            before_snapshot = getattr(obj, "_audit_before")
+            after_snapshot = snapshot(obj)
+            diff = compute_diff(before_snapshot, after_snapshot)
+            # Skip if no changes (except maybe the audit fields? but we don't track those)
+            if not diff:
+                # Clean up the temporary attribute
+                del obj._audit_before
+                continue
             audit_entry = AuditLog(
-                table_name=table_name,
-                record_id=str(pk_value),
-                action="UPDATE",
                 user_id=user_id,
-                username=username,
-                old_values=old_values,
-                new_values=new_values,
-                diff=diff,
+                user_email=user_email,
+                action="UPDATE",
+                model_name=obj.__class__.__name__,
+                table_name=obj.__tablename__,
+                object_id=str(getattr(obj, "id")),
+                object_repr=str(obj)[:255],
+                changes=diff,  # The diff of changed fields
+                full_snapshot=after_snapshot,
                 ip_address=ip_address,
                 user_agent=user_agent,
             )
             session.add(audit_entry)
+            # Clean up the temporary attribute
+            del obj._audit_before
 
         # Process deleted objects (DELETE)
         for obj in session.deleted:
-            table_name = obj.__tablename__
-            if table_name in exclude:
+            if not is_registered_model(obj, registry):
                 continue
-
-            # Get primary key
-            pk_value = getattr(obj, "id", None)
-            if pk_value is None:
-                for col in obj.__table__.primary_key.columns:
-                    pk_value = getattr(obj, col.key, None)
-                    break
-
-            # Get all column values before deletion
-            old_values = {}
-            for col in obj.__table__.columns:
-                val = getattr(obj, col.key, None)
-                if hasattr(val, "isoformat"):
-                    val = val.isoformat()
-                elif hasattr(val, "hex"):
-                    val = str(val)
-                old_values[col.key] = val
-
+            if obj.__tablename__ == AuditLog.__tablename__:
+                continue
+            # Snapshot the object before it's gone
+            before_snapshot = snapshot(obj)
             audit_entry = AuditLog(
-                table_name=table_name,
-                record_id=str(pk_value),
-                action="DELETE",
                 user_id=user_id,
-                username=username,
-                old_values=old_values,
+                user_email=user_email,
+                action="DELETE",
+                model_name=obj.__class__.__name__,
+                table_name=obj.__tablename__,
+                object_id=str(getattr(obj, "id")),
+                object_repr=str(obj)[:255],
+                changes=None,  # DELETE has no diff
+                full_snapshot=before_snapshot,
                 ip_address=ip_address,
                 user_agent=user_agent,
             )
             session.add(audit_entry)
+
+    # We don't need to clear the context here because the middleware will do it.
+    # But we can add an event for after_commit or after_rollback to clear the context
+    # if we want to be safe. However, the middleware should clear it after the response.
+
+
+# We'll also provide a function to clear the audit context (used by middleware)
+def clear_audit_context_after_response() -> None:
+    """Clear the audit context (to be called after the response is sent)."""
+    clear_audit_context()

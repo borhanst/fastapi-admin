@@ -20,6 +20,7 @@ if TYPE_CHECKING:
     from sqlalchemy.engine import Engine
 
     from fastapi_admin.auth.backend import AuthBackend
+    from fastapi_admin.storage.base import StorageBackend
     from fastapi_admin.views import ModelAdmin
 
 
@@ -126,6 +127,9 @@ class Admin:
         seed_roles: list[SeedRole] | None = None,
         seed_roles_overwrite: bool = False,
         superuser_emails: list[str] | None = None,
+        # Storage
+        storage: StorageBackend | None = None,
+        uploads_url: str = "/uploads",
         # Behavior flags
         auto_discover: bool = True,
     ):
@@ -167,6 +171,10 @@ class Admin:
         )
         self.seed_roles_overwrite = seed_roles_overwrite
         self.superuser_emails = superuser_emails or []
+
+        # Storage
+        self.storage = storage
+        self.uploads_url = uploads_url
 
         # Flags
         self.auto_discover = auto_discover
@@ -314,6 +322,9 @@ class Admin:
         from sqlalchemy.ext.asyncio import AsyncEngine
 
         from fastapi_admin.models.base import Base as AdminBase
+        # Import models to register them with metadata
+        from fastapi_admin.auth import models as _auth_models  # noqa: F401
+        from fastapi_admin.audit import models as _audit_models  # noqa: F401
 
         if isinstance(self.engine, AsyncEngine):
             # Async engine - use run_sync
@@ -423,9 +434,16 @@ class Admin:
 
     def _wire_app_state(self, app: FastAPI) -> None:
         """Store backends and configuration on app.state."""
+        from sqlalchemy.ext.asyncio import AsyncSession
+
         app.state.admin_engine = self.engine
         app.state.admin_session_backend = self._session_backend
         app.state.admin_auth_backend = self.auth_backend
+        app.state.admin_storage = self.storage
+
+        # Async session for views (reused per-request via dependency)
+        app.state.admin_db_session = AsyncSession(self.engine, expire_on_commit=False)
+
         app.state.admin_config = {
             "title": self.title,
             "logo_url": self.logo_url,
@@ -441,22 +459,43 @@ class Admin:
             "admin_path": self.admin_path,
             "superuser_emails": self.superuser_emails,
         }
+        app.state.admin = self
 
     def _mount_static(self, app: FastAPI) -> None:
-        """Mount the static files directory."""
+        """Mount the static files directory and uploads directory.
+
+        Templates reference ``/static/...`` directly, so we mount at the
+        root ``/static`` path.  The ``{admin_path}/static`` alias is kept
+        for backwards compatibility.
+        """
         static_dir = Path(__file__).parent / "static"
         if static_dir.is_dir():
+            # Primary mount — matches template references (/static/...)
             app.mount(
-                f"{self.admin_path}/static",
+                "/static",
                 StaticFiles(directory=str(static_dir)),
                 name="admin_static",
             )
 
+        # Mount uploads directory if using LocalStorageBackend
+        from fastapi_admin.storage.local import LocalStorageBackend
+        if isinstance(self.storage, LocalStorageBackend):
+            self.storage.ensure_dir()
+            app.mount(
+                self.uploads_url,
+                StaticFiles(directory=str(self.storage.upload_dir)),
+                name="admin_uploads",
+            )
+
     def _init_jinja(self, app: FastAPI) -> None:
         """Initialise the Jinja2 template environment."""
+        from starlette.templating import Jinja2Templates
+
         templates_dir = Path(__file__).parent / "templates"
-        loader = FileSystemLoader(str(templates_dir))
-        self._jinja_env = Environment(loader=loader, autoescape=True)
+        self._jinja_env = Jinja2Templates(directory=str(templates_dir))
+        # Make registered_models and admin_path available in all templates
+        self._jinja_env.env.globals["registered_models"] = self.registry.all()
+        self._jinja_env.env.globals["admin_path"] = self.admin_path
         app.state.admin_jinja_env = self._jinja_env
 
     def _build_router(self, app: FastAPI) -> None:
@@ -464,23 +503,30 @@ class Admin:
         if self._router_built:
             return
 
-        from fastapi_admin.views import create_model_router
+        from fastapi_admin.router import build_model_router
+        from fastapi_admin.auth.router import router as auth_router
+        from fastapi_admin.views.audit import router as audit_router
+        from fastapi_admin.views.roles import router as roles_router
 
         for registered in self.registry.all():
-            model_router = create_model_router(registered)
+            model_router = build_model_router(registered)
             app.include_router(model_router, prefix=self.admin_path)
 
-        # Dashboard route
-        @app.get(self.admin_path, tags=["admin"])
-        async def admin_dashboard():
-            from fastapi.responses import HTMLResponse
+        # Auth routes (login/logout)
+        app.include_router(auth_router, prefix=self.admin_path)
 
-            models_html = "".join(
-                f'<li><a href="{self.admin_path}/{m.table_name}/">{m.verbose_name_plural}</a></li>'
-                for m in self.registry.all()
-            )
-            return HTMLResponse(
-                f"<h1>{self.title}</h1><ul>{models_html or '<li>No models registered</li>'}</ul>"
-            )
+        # Audit & role management routes
+        app.include_router(audit_router, prefix=self.admin_path)
+        app.include_router(roles_router, prefix=self.admin_path)
+
+        # Dashboard route
+        from fastapi_admin.views.dashboard import dashboard_view_factory
+        dashboard_view = dashboard_view_factory(self)
+        app.add_api_route(
+            self.admin_path,
+            dashboard_view,
+            methods=["GET"],
+            tags=["admin"],
+        )
 
         self._router_built = True

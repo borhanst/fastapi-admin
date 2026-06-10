@@ -37,6 +37,16 @@ class MultiRelationWidget(Widget):
 
     macro_name = "multi_relation"
 
+    def __init__(self, related_table: str = "", related_verbose: str = ""):
+        self.related_table = related_table
+        self.related_verbose = related_verbose
+
+    def render_context(self, field: FieldMeta, value: Any) -> dict:
+        ctx = super().render_context(field, value)
+        ctx["related_table"] = self.related_table
+        ctx["related_verbose"] = self.related_verbose
+        return ctx
+
     def parse(self, raw: str | list | None) -> list[str]:
         if raw is None:
             return []

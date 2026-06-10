@@ -1,18 +1,42 @@
 """WidgetRegistry — resolves which widget to use for a given ColumnMeta.
 
 Resolution order (fixed, cannot be short-circuited):
-  1. Exact field name pattern  →  e.g. "password" → PasswordWidget
-  2. FK column present         →  RelationPickerWidget
-  3. Enum type                 →  SelectWidget
-  4. SQLAlchemy type match     →  via _type_map dict
-  5. Fallback                  →  TextInputWidget
+  1. Exact field name pattern  ->  e.g. "password" -> PasswordWidget
+  2. FK column present         ->  RelationPickerWidget
+  3. Enum type                 ->  SelectWidget
+  4. SQLAlchemy type match     ->  via _type_map dict
+  5. Fallback                  ->  TextInputWidget
 """
 
 from __future__ import annotations
 
+from sqlalchemy import (
+    Boolean,
+    Date,
+    DateTime,
+    Float,
+    Integer,
+    LargeBinary,
+    Numeric,
+    String,
+    Text,
+    Time,
+    Uuid,
+)
+
 from fastapi_admin.types import ColumnMeta
 from fastapi_admin.widgets.base import Widget
-from fastapi_admin.widgets.inputs import TextInputWidget
+from fastapi_admin.widgets.inputs import (
+    DatePickerWidget,
+    DateTimePickerWidget,
+    FileUploadWidget,
+    JsonEditorWidget,
+    NumberInputWidget,
+    PasswordWidget,
+    TextInputWidget,
+    TextareaWidget,
+    ToggleWidget,
+)
 
 
 class WidgetRegistry:
@@ -32,18 +56,15 @@ class WidgetRegistry:
 
     def resolve(self, col: ColumnMeta) -> Widget:
         """Resolve which widget instance to use for a given column."""
-        # 1. Name patterns
         for pattern, widget_cls in self._name_patterns:
             if pattern in col.name.lower():
                 return widget_cls()
 
-        # 2. FK
         if col.foreign_keys:
             from fastapi_admin.widgets.relation import RelationPickerWidget
 
             return RelationPickerWidget()
 
-        # 3. Enum — check for Python enum.Enum type or SQLAlchemy Enum
         col_type = col.type
         if hasattr(col_type, "enums") and col_type.enums:
             choices = [(v, v.replace("_", " ").title()) for v in col_type.enums]
@@ -51,7 +72,6 @@ class WidgetRegistry:
 
             return SelectWidget(choices=choices)
 
-        # 4. Type hierarchy
         for sa_type, widget_cls in self._type_map.items():
             if isinstance(col_type, sa_type):
                 has_length = hasattr(col_type, "length") and col_type.length
@@ -59,5 +79,22 @@ class WidgetRegistry:
                     return TextInputWidget(maxlength=col_type.length)
                 return widget_cls()
 
-        # 5. Fallback
         return TextInputWidget()
+
+
+widget_registry = WidgetRegistry()
+
+widget_registry.register_type(String, TextInputWidget)
+widget_registry.register_type(Text, TextareaWidget)
+widget_registry.register_type(Integer, NumberInputWidget)
+widget_registry.register_type(Float, NumberInputWidget)
+widget_registry.register_type(Numeric, NumberInputWidget)
+widget_registry.register_type(Boolean, ToggleWidget)
+widget_registry.register_type(Date, DatePickerWidget)
+widget_registry.register_type(DateTime, DateTimePickerWidget)
+widget_registry.register_type(LargeBinary, FileUploadWidget)
+widget_registry.register_type(Uuid, TextInputWidget)
+
+widget_registry.register_name("password", PasswordWidget)
+widget_registry.register_name("secret", PasswordWidget)
+widget_registry.register_name("token", PasswordWidget)

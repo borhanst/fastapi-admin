@@ -6,7 +6,9 @@ from fastapi_admin.widgets.base import Widget
 from fastapi_admin.widgets.inputs import (
     DatePickerWidget,
     DateTimePickerWidget,
+    FileUploadWidget,
     HiddenWidget,
+    ImageUploadWidget,
     JsonEditorWidget,
     NumberInputWidget,
     PasswordWidget,
@@ -33,6 +35,8 @@ __all__ = [
     "PasswordWidget",
     "ReadOnlyWidget",
     "HiddenWidget",
+    "FileUploadWidget",
+    "ImageUploadWidget",
     "RelationPickerWidget",
     "MultiRelationWidget",
 ]
