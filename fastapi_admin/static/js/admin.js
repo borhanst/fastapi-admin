@@ -263,6 +263,25 @@ document.addEventListener('alpine:init', () => {
     },
   }));
 
+  /* ── Delete Confirm Modal ──────────────────────────────────────────────── */
+
+  Alpine.data('deleteConfirm', () => ({
+    open: false,
+
+    openModal() {
+      this.open = true
+    },
+
+    confirm() {
+      this.open = false
+      this.$nextTick(() => this.$refs.submitBtn.click())
+    },
+
+    cancel() {
+      this.open = false
+    },
+  }))
+
   /* ── JSON Editor ─────────────────────────────────────────────────────── */
 
   Alpine.data('jsonEditor', (textareaId) => ({
