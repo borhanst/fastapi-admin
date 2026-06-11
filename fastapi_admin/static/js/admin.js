@@ -1,5 +1,6 @@
 /* ═══════════════════════════════════════════════════════════════════════════
    FastAPI Admin — Alpine.js Stores & Components
+   Warm Editorial Brutalism
    ═══════════════════════════════════════════════════════════════════════════ */
 
 document.addEventListener('alpine:init', () => {
@@ -16,7 +17,7 @@ document.addEventListener('alpine:init', () => {
       } else {
         this.collapsed = defaultCollapsed
       }
-      if (this.$el && this.$el.querySelector('.nav-item-active')) {
+      if (this.$el && this.$el.querySelector('.active')) {
         this.collapsed = false
       }
     },
@@ -27,7 +28,7 @@ document.addEventListener('alpine:init', () => {
     },
   }))
 
-  /* ── Theme store (dark mode) ─────────────────────────────────────────── */
+  /* ── Theme store ─────────────────────────────────────────────────── */
 
   Alpine.store('theme', {
     dark: JSON.parse(localStorage.getItem('admin_dark_mode') ?? 'false'),
@@ -47,7 +48,7 @@ document.addEventListener('alpine:init', () => {
     },
   });
 
-  /* ── Relation Picker ─────────────────────────────────────────────────── */
+  /* ── Relation Picker ─────────────────────────────────────────────── */
 
   Alpine.data('relationPicker', (initialId, initialLabel, searchUrl) => ({
     selectedId: initialId || '',
@@ -88,7 +89,7 @@ document.addEventListener('alpine:init', () => {
     },
   }));
 
-  /* ── Multi-Relation ──────────────────────────────────────────────────── */
+  /* ── Multi-Relation ──────────────────────────────────────────────── */
 
   Alpine.data('multiRelation', (initialIds, searchUrl) => ({
     selectedIds: initialIds || [],
@@ -150,7 +151,7 @@ document.addEventListener('alpine:init', () => {
     },
   }));
 
-  /* ── Slug Widget ─────────────────────────────────────────────────────── */
+  /* ── Slug Widget ─────────────────────────────────────────────────── */
 
   Alpine.data('slugWidget', (sourceField, name) => ({
     slug: '',
@@ -195,7 +196,7 @@ document.addEventListener('alpine:init', () => {
     },
   }));
 
-  /* ── Image Upload ────────────────────────────────────────────────────── */
+  /* ── Image Upload ────────────────────────────────────────────────── */
 
   Alpine.data('imageUpload', (existingUrl) => ({
     existingUrl: existingUrl || '',
@@ -222,7 +223,7 @@ document.addEventListener('alpine:init', () => {
     },
   }));
 
-  /* ── File Upload ─────────────────────────────────────────────────────── */
+  /* ── File Upload ─────────────────────────────────────────────────── */
 
   Alpine.data('fileUpload', (existingUrl) => ({
     existingUrl: existingUrl || '',
@@ -244,7 +245,7 @@ document.addEventListener('alpine:init', () => {
     },
   }));
 
-  /* ── Tag Input ───────────────────────────────────────────────────────── */
+  /* ── Tag Input ───────────────────────────────────────────────────── */
 
   Alpine.data('tagInput', (initialTags) => ({
     tags: initialTags || [],
@@ -263,7 +264,7 @@ document.addEventListener('alpine:init', () => {
     },
   }));
 
-  /* ── Delete Confirm Modal ──────────────────────────────────────────────── */
+  /* ── Delete Confirm Modal ────────────────────────────────────────── */
 
   Alpine.data('deleteConfirm', () => ({
     open: false,
@@ -282,7 +283,7 @@ document.addEventListener('alpine:init', () => {
     },
   }))
 
-  /* ── JSON Editor ─────────────────────────────────────────────────────── */
+  /* ── JSON Editor ─────────────────────────────────────────────────── */
 
   Alpine.data('jsonEditor', (textareaId) => ({
     editor: null,
@@ -317,7 +318,7 @@ document.addEventListener('alpine:init', () => {
         fallback.value = textarea.value;
         fallback.className = 'form-input w-full';
         fallback.style.minHeight = '200px';
-        fallback.style.fontFamily = 'monospace';
+        fallback.style.fontFamily = 'var(--font-mono)';
         fallback.style.resize = 'vertical';
         container.appendChild(fallback);
         textarea.type = 'hidden';
@@ -326,3 +327,34 @@ document.addEventListener('alpine:init', () => {
   }));
 
 });
+
+/* ── HTMX Loading Bar ────────────────────────────────────────────── */
+
+(function() {
+  var loadingBar = document.getElementById('loading-bar');
+  if (!loadingBar) return;
+
+  document.addEventListener('htmx:beforeRequest', function(e) {
+    loadingBar.style.transform = 'scaleX(0.3)';
+    loadingBar.style.transition = 'transform 300ms cubic-bezier(0.16, 1, 0.3, 1)';
+  });
+
+  document.addEventListener('htmx:afterRequest', function(e) {
+    loadingBar.style.transform = 'scaleX(1)';
+    loadingBar.style.transition = 'transform 150ms cubic-bezier(0.4, 0, 1, 1)';
+    setTimeout(function() {
+      loadingBar.style.transform = 'scaleX(0)';
+    }, 150);
+  });
+
+  document.addEventListener('htmx:beforeSwap', function(e) {
+    loadingBar.style.transform = 'scaleX(0.7)';
+  });
+
+  document.addEventListener('htmx:afterSwap', function(e) {
+    loadingBar.style.transform = 'scaleX(1)';
+    setTimeout(function() {
+      loadingBar.style.transform = 'scaleX(0)';
+    }, 100);
+  });
+})();

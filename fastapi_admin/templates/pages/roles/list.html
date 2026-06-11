@@ -1,53 +1,67 @@
 {% extends "base.html" %}
 
-{% block title %}Role Management{% endblock %}
+{% block title %}Roles — Admin{% endblock %}
 
 {% block content %}
-<div class="mb-6 flex justify-between items-center">
-    <div>
-        <h1 class="text-2xl font-bold text-gray-900">Role Management</h1>
-        <p class="text-gray-600 mt-1">Manage user roles and permissions</p>
+<div class="page-header">
+    <div class="page-header__left">
+        <h1 class="page-header__title">Roles</h1>
+        <p class="page-header__subtitle">Manage user roles and permissions.</p>
     </div>
-    <a href="{{ request.app.state.admin_config.admin_path }}/roles/create" 
-       class="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500">
-        Create Role
-    </a>
+    <div class="page-header__actions">
+        <a href="{{ request.app.state.admin_config.admin_path }}/roles/create" class="btn btn-primary">
+            <svg width="15" height="15" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
+            New Role
+        </a>
+    </div>
 </div>
 
-<div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-    <table class="min-w-full divide-y divide-gray-200">
-        <thead class="bg-gray-50">
+<div class="table-container">
+    <table class="table-wrapper">
+        <thead>
             <tr>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Users</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                <th class="table__th">Name</th>
+                <th class="table__th">Description</th>
+                <th class="table__th">Users</th>
+                <th class="table__th table__th--actions"></th>
             </tr>
         </thead>
-        <tbody class="bg-white divide-y divide-gray-200">
+        <tbody>
             {% for data in roles %}
-            <tr class="hover:bg-gray-50">
-                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ data.role.name }}</td>
-                <td class="px-6 py-4 text-sm text-gray-700">{{ data.role.description or '—' }}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ data.user_count }}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm">
-                    <a href="{{ request.app.state.admin_config.admin_path }}/roles/{{ data.role.id }}" 
-                       class="text-primary-600 hover:text-primary-900 mr-3">Edit</a>
-                    <form method="post" action="{{ request.app.state.admin_config.admin_path }}/roles/{{ data.role.id }}/delete" 
-                          class="inline" onsubmit="return confirm('Are you sure you want to delete this role?');">
-                        <button type="submit" 
-                                class="text-red-600 hover:text-red-900"
-                                {% if data.user_count > 0 %}disabled{% endif %}>
-                            Delete
-                        </button>
-                    </form>
+            <tr>
+                <td class="table__cell" style="font-weight: var(--font-medium);">{{ data.role.name }}</td>
+                <td class="table__cell" style="color: var(--text-secondary);">{{ data.role.description or '—' }}</td>
+                <td class="table__cell table__cell--mono">{{ data.user_count }}</td>
+                <td class="table__cell table__cell--actions">
+                    <div class="table-actions">
+                        <a href="{{ request.app.state.admin_config.admin_path }}/roles/{{ data.role.id }}"
+                           class="table-action">Edit</a>
+                        <span class="table-actions__separator"></span>
+                        <form method="post" action="{{ request.app.state.admin_config.admin_path }}/roles/{{ data.role.id }}/delete"
+                              class="inline" onsubmit="return confirm('Are you sure you want to delete this role?');">
+                            <button type="submit"
+                                    class="table-action table-action--danger"
+                                    {% if data.user_count > 0 %}disabled{% endif %}>
+                                Delete
+                            </button>
+                        </form>
+                    </div>
                 </td>
             </tr>
             {% endfor %}
+
             {% if not roles %}
             <tr>
-                <td colspan="4" class="px-6 py-12 text-center text-sm text-gray-500">
-                    No roles found.
+                <td colspan="4">
+                    <div class="empty-state">
+                        <svg class="empty-state__icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+                        </svg>
+                        <h3 class="empty-state__title">No roles found</h3>
+                        <p class="empty-state__text">Create your first role to get started.</p>
+                    </div>
                 </td>
             </tr>
             {% endif %}

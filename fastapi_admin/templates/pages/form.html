@@ -1,31 +1,61 @@
 {% extends "base.html" %}
 {% from "macros/form_fields.html" import render_field %}
 
-{% block title %}{{ "Edit" if form_context.obj else "Create" }} {{ form_context.verbose_name }} - Admin{% endblock %}
+{% block title %}{{ "Edit" if form_context.obj else "Create" }} {{ form_context.verbose_name }} — Admin{% endblock %}
 
 {% block content %}
-<div class="mb-6">
-    <a href="/admin/{{ form_context.model_name }}/" class="text-blue-500 hover:underline">&larr; Back to {{ form_context.verbose_name }}</a>
+<a href="/admin/{{ form_context.model_name }}/" class="back-link">
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+    </svg>
+    Back to {{ form_context.verbose_name }}
+</a>
+
+<div class="page-header">
+    <div class="page-header__left">
+        <h1 class="page-header__title">
+            {{ "Edit" if form_context.obj else "Create" }} {{ form_context.verbose_name }}
+        </h1>
+        {% if form_context.obj %}
+        <p class="page-header__subtitle page-header__subtitle--mono">#{{ form_context.obj.id }}</p>
+        {% endif %}
+    </div>
 </div>
 
-<h1 class="text-2xl font-bold mb-6">
-    {{ "Edit" if form_context.obj else "Create" }} {{ form_context.verbose_name }}
-</h1>
+<form method="post" {% if form_context.action_url %}action="{{ form_context.action_url }}"{% endif %}>
+    <div style="display: flex; flex-direction: column; gap: var(--space-5); max-width: var(--form-max-width);">
+        {% for fs in form_context.fieldsets %}
+        <div class="fieldset">
+            {% if fs.title %}
+            <div class="fieldset__header">
+                <h3 class="fieldset__title">{{ fs.title }}</h3>
+            </div>
+            {% endif %}
+            <div class="fieldset__fields">
+                {% for f in fs.fields %}
+                {{ render_field(f, form_context.model_name) }}
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
 
-<form method="post" class="bg-white rounded shadow p-6 max-w-2xl" {% if form_context.action_url %}action="{{ form_context.action_url }}"{% endif %}>
-    {% for fs in form_context.fieldsets %}
-    {% for f in fs.fields %}
-    {{ render_field(f, form_context.model_name) }}
-    {% endfor %}
-    {% endfor %}
-
-    <div class="mt-6 flex gap-2">
-        <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
-            {{ "Update" if form_context.obj else "Create" }}
-        </button>
-        <a href="/admin/{{ form_context.model_name }}/" class="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400">
-            Cancel
-        </a>
+    <!-- Save bar -->
+    <div class="form-save-bar" style="margin: var(--space-8) calc(-1 * var(--content-padding)) 0; width: calc(100% + var(--content-padding) * 2);">
+        <div class="form-save-bar__left">
+            {% if form_context.obj %}
+            <button type="button" class="btn btn-danger btn-sm"
+                    onclick="if(confirm('Are you sure you want to delete this {{ form_context.verbose_name|lower }}?')) { window.location='/admin/{{ form_context.model_name }}/{{ form_context.obj.id }}/delete'; }">
+                Delete
+            </button>
+            {% endif %}
+        </div>
+        <div class="form-save-bar__right">
+            <a href="/admin/{{ form_context.model_name }}/" class="btn btn-ghost">Cancel</a>
+            <button type="submit" class="btn btn-primary">
+                {{ "Save" if form_context.obj else "Create" }} {{ form_context.verbose_name }}
+            </button>
+        </div>
     </div>
 </form>
 {% endblock %}

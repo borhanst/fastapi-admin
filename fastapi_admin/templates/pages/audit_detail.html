@@ -1,94 +1,100 @@
 {% extends "base.html" %}
 
-{% block title %}Audit Detail{% endblock %}
+{% block title %}Audit Entry #{{ entry.id }} — Admin{% endblock %}
 
 {% block content %}
-<div class="mb-6">
-    <a href="{{ request.app.state.admin_config.admin_path }}/audit" 
-       class="text-primary-600 hover:text-primary-900">&larr; Back to Audit Log</a>
-    <h1 class="text-2xl font-bold text-gray-900 mt-2">Audit Entry #{{ entry.id }}</h1>
+<a href="{{ request.app.state.admin_config.admin_path }}/audit" class="back-link">
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+    </svg>
+    Back to Audit Log
+</a>
+
+<div class="page-header">
+    <div class="page-header__left">
+        <h1 class="page-header__title">Audit Entry</h1>
+        <p class="page-header__subtitle page-header__subtitle--mono">#{{ entry.id }}</p>
+    </div>
 </div>
 
-<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-    <dl class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<!-- Entry details -->
+<div class="fieldset" style="margin-bottom: var(--space-5);">
+    <div class="fieldset__fields" style="grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));">
         <div>
-            <dt class="text-sm font-medium text-gray-500">Timestamp</dt>
-            <dd class="mt-1 text-sm text-gray-900">{{ entry.timestamp.strftime('%Y-%m-%d %H:%M:%S %Z') }}</dd>
+            <div style="font-size: var(--text-2xs); text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-secondary); margin-bottom: 4px;">Timestamp</div>
+            <div style="font-family: var(--font-mono); font-size: var(--text-sm); color: var(--mono-accent);">{{ entry.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</div>
         </div>
         <div>
-            <dt class="text-sm font-medium text-gray-500">Action</dt>
-            <dd class="mt-1">
-                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                    {% if entry.action == 'CREATE' %}bg-green-100 text-green-800
-                    {% elif entry.action == 'UPDATE' %}bg-blue-100 text-blue-800
-                    {% elif entry.action == 'DELETE' %}bg-red-100 text-red-800{% endif %}">
-                    {{ entry.action }}
-                </span>
-            </dd>
+            <div style="font-size: var(--text-2xs); text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-secondary); margin-bottom: 4px;">Action</div>
+            <span class="badge badge-{% if entry.action == 'CREATE' %}success{% elif entry.action == 'UPDATE' %}warning{% else %}danger{% endif %}">
+                {{ entry.action }}
+            </span>
         </div>
         <div>
-            <dt class="text-sm font-medium text-gray-500">Model</dt>
-            <dd class="mt-1 text-sm text-gray-900">{{ entry.model_name }}</dd>
+            <div style="font-size: var(--text-2xs); text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-secondary); margin-bottom: 4px;">Model</div>
+            <div style="font-family: var(--font-mono); font-size: var(--text-sm); color: var(--mono-accent);">{{ entry.model_name }}</div>
         </div>
         <div>
-            <dt class="text-sm font-medium text-gray-500">Object ID</dt>
-            <dd class="mt-1 text-sm text-gray-900">{{ entry.object_id }}</dd>
+            <div style="font-size: var(--text-2xs); text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-secondary); margin-bottom: 4px;">Object ID</div>
+            <div style="font-family: var(--font-mono); font-size: var(--text-sm); color: var(--mono-accent);">{{ entry.object_id }}</div>
         </div>
         <div>
-            <dt class="text-sm font-medium text-gray-500">User</dt>
-            <dd class="mt-1 text-sm text-gray-900">{{ entry.user_email or 'User #' + entry.user_id }}</dd>
+            <div style="font-size: var(--text-2xs); text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-secondary); margin-bottom: 4px;">User</div>
+            <div style="font-size: var(--text-sm);">{{ entry.user_email or 'User #' + entry.user_id }}</div>
         </div>
         {% if entry.ip_address %}
         <div>
-            <dt class="text-sm font-medium text-gray-500">IP Address</dt>
-            <dd class="mt-1 text-sm text-gray-900">{{ entry.ip_address }}</dd>
-        </div>
-        {% endif %}
-        {% if entry.user_agent %}
-        <div>
-            <dt class="text-sm font-medium text-gray-500">User Agent</dt>
-            <dd class="mt-1 text-sm text-gray-900 truncate" title="{{ entry.user_agent }}">{{ entry.user_agent }}</dd>
+            <div style="font-size: var(--text-2xs); text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-secondary); margin-bottom: 4px;">IP Address</div>
+            <div style="font-family: var(--font-mono); font-size: var(--text-sm);">{{ entry.ip_address }}</div>
         </div>
         {% endif %}
         {% if entry.object_repr %}
-        <div>
-            <dt class="text-sm font-medium text-gray-500">Object Repr</dt>
-            <dd class="mt-1 text-sm text-gray-900">{{ entry.object_repr }}</dd>
+        <div style="grid-column: 1 / -1;">
+            <div style="font-size: var(--text-2xs); text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-secondary); margin-bottom: 4px;">Object Repr</div>
+            <div style="font-size: var(--text-sm);">{{ entry.object_repr }}</div>
         </div>
         {% endif %}
-    </dl>
+    </div>
 </div>
 
 <!-- Changes diff -->
 {% if entry.changes %}
-<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-    <h2 class="text-lg font-semibold text-gray-900 mb-4">Changed Fields</h2>
-    <table class="min-w-full divide-y divide-gray-200">
-        <thead class="bg-gray-50">
-            <tr>
-                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Field</th>
-                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Before</th>
-                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">After</th>
-            </tr>
-        </thead>
-        <tbody class="divide-y divide-gray-200">
-            {% for field, diff in entry.changes.items() %}
-            <tr class="hover:bg-gray-50">
-                <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">{{ field }}</td>
-                <td class="px-4 py-3 text-sm text-gray-700">{{ diff.before }}</td>
-                <td class="px-4 py-3 text-sm text-gray-700">{{ diff.after }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+<div class="fieldset" style="margin-bottom: var(--space-5);">
+    <div class="fieldset__header">
+        <h3 class="fieldset__title">Changed Fields</h3>
+    </div>
+    <div class="table-container" style="border: none;">
+        <table class="table-wrapper">
+            <thead>
+                <tr>
+                    <th class="table__th">Field</th>
+                    <th class="table__th">Before</th>
+                    <th class="table__th">After</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for field, diff in entry.changes.items() %}
+                <tr>
+                    <td class="table__cell" style="font-weight: var(--font-medium);">{{ field }}</td>
+                    <td class="table__cell table__cell--mono">{{ diff.before }}</td>
+                    <td class="table__cell table__cell--mono">{{ diff.after }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </div>
 {% endif %}
 
 <!-- Full snapshot -->
 {% if entry.full_snapshot %}
-<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-    <h2 class="text-lg font-semibold text-gray-900 mb-4">Full Snapshot</h2>
-    <pre class="bg-gray-50 p-4 rounded-md text-sm text-gray-800 overflow-x-auto">{{ entry.full_snapshot | tojson(indent=2) }}</pre>
+<div class="fieldset">
+    <div class="fieldset__header">
+        <h3 class="fieldset__title">Full Snapshot</h3>
+    </div>
+    <div class="json-editor-wrapper" style="min-height: auto; background: var(--surface-inset); padding: var(--space-4); border: 1px solid var(--surface-border); border-radius: var(--radius-md);">
+        <pre style="margin: 0; font-family: var(--font-mono); font-size: var(--text-xs); color: var(--text-secondary); white-space: pre-wrap; word-break: break-all;">{{ entry.full_snapshot | tojson(indent=2) }}</pre>
+    </div>
 </div>
 {% endif %}
 {% endblock %}

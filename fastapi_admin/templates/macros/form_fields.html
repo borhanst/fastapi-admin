@@ -47,7 +47,7 @@
 {% set name = field_ctx.meta.name %}
 {% set has_error = field_ctx.errors | length > 0 %}
 {% set full_width = field_ctx.meta.extra.get('full_width', false) %}
-<div class="field-wrapper{% if full_width %} md:col-span-2{% endif %}{% if has_error %} has-error{% endif %}"
+<div class="field-wrapper{% if full_width %} field-wrapper--full{% endif %}{% if has_error %} has-error{% endif %}"
      id="field-wrapper-{{ name }}">
 {% endmacro %}
 
@@ -57,17 +57,17 @@
 
 {% macro _label(field_ctx) %}
 {% set name = field_ctx.meta.name %}
-<label for="{{ name }}" class="field-label block text-sm font-medium text-[var(--color-gray-700)] mb-1">
+<label for="{{ name }}" class="field-label">
   {{ field_ctx.meta.label }}
-  {% if field_ctx.meta.required %}<span class="required-star text-[var(--color-danger)]">*</span>{% endif %}
+  {% if field_ctx.meta.required %}<span class="required-star">*</span>{% endif %}
 </label>
 {% endmacro %}
 
 {% macro _errors(field_ctx) %}
 {% if field_ctx.errors %}
-<ul class="field-errors mt-1">
+<ul class="field-errors">
   {% for err in field_ctx.errors %}
-  <li class="text-sm text-[var(--color-danger)]">{{ err }}</li>
+  <li>{{ err }}</li>
   {% endfor %}
 </ul>
 {% endif %}
@@ -75,7 +75,7 @@
 
 {% macro _help_text(field_ctx) %}
 {% if field_ctx.meta.help_text %}
-<p class="field-help mt-1 text-sm text-[var(--color-gray-500)]">{{ field_ctx.meta.help_text }}</p>
+<p class="field-help">{{ field_ctx.meta.help_text }}</p>
 {% endif %}
 {% endmacro %}
 
@@ -86,8 +86,6 @@ hx-target="#field-wrapper-{{ field_ctx.meta.name }}"
 hx-swap="outerHTML"
 hx-vals='{"field_name": "{{ field_ctx.meta.name }}"}'
 {% endmacro %}
-
-{% set _input_base = "w-full px-4 py-2.5 rounded-lg border border-[var(--color-gray-300)] bg-white text-[var(--color-gray-900)] focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)] transition-colors" %}
 
 {# ─── Text Input ────────────────────────────────────────────────────────── #}
 
@@ -104,7 +102,7 @@ hx-vals='{"field_name": "{{ field_ctx.meta.name }}"}'
          {% if field_ctx.meta.placeholder %}placeholder="{{ field_ctx.meta.placeholder }}"{% endif %}
          {% if field_ctx.widget_context.maxlength %}maxlength="{{ field_ctx.widget_context.maxlength }}"{% endif %}
          {{ _htmx_validate(field_ctx, model_name) }}
-         class="form-input {{ _input_base }} {% if has_error %}border-[var(--color-danger)]{% endif %}">
+         class="form-input">
   {{ _errors(field_ctx) }}
   {{ _help_text(field_ctx) }}
 {{ _field_wrapper_close() }}
@@ -124,7 +122,7 @@ hx-vals='{"field_name": "{{ field_ctx.meta.name }}"}'
             {% if field_ctx.meta.readonly %}readonly{% endif %}
             {% if field_ctx.meta.placeholder %}placeholder="{{ field_ctx.meta.placeholder }}"{% endif %}
             {{ _htmx_validate(field_ctx, model_name) }}
-            class="form-input {{ _input_base }} {% if has_error %}border-[var(--color-danger)]{% endif %}">{{ val }}</textarea>
+            class="form-textarea">{{ val }}</textarea>
   {{ _errors(field_ctx) }}
   {{ _help_text(field_ctx) }}
 {{ _field_wrapper_close() }}
@@ -146,11 +144,11 @@ hx-vals='{"field_name": "{{ field_ctx.meta.name }}"}'
          step="{{ step }}"
          {% if min is not none %}min="{{ min }}"{% endif %}
          {% if max is not none %}max="{{ max }}"{% endif %}
-          {% if field_ctx.meta.required %}required{% endif %}
-          {% if field_ctx.meta.readonly %}readonly{% endif %}
-          {% if field_ctx.meta.placeholder %}placeholder="{{ field_ctx.meta.placeholder }}"{% endif %}
-          {{ _htmx_validate(field_ctx, model_name) }}
-          class="form-input {{ _input_base }} {% if has_error %}border-[var(--color-danger)]{% endif %}">
+         {% if field_ctx.meta.required %}required{% endif %}
+         {% if field_ctx.meta.readonly %}readonly{% endif %}
+         {% if field_ctx.meta.placeholder %}placeholder="{{ field_ctx.meta.placeholder }}"{% endif %}
+         {{ _htmx_validate(field_ctx, model_name) }}
+         class="form-input">
   {{ _errors(field_ctx) }}
   {{ _help_text(field_ctx) }}
 {{ _field_wrapper_close() }}
@@ -163,16 +161,15 @@ hx-vals='{"field_name": "{{ field_ctx.meta.name }}"}'
 {% set val = field_ctx.widget_context.value %}
 {{ _field_wrapper_open(field_ctx) }}
   {{ _label(field_ctx) }}
-  <div class="toggle-switch relative inline-flex h-6 w-11 items-center rounded-full"
-       :class="{ 'bg-[var(--color-primary-600)]': $refs.{{ name }}.checked, 'bg-[var(--color-gray-300)]': !$refs.{{ name }}.checked }">
+  <div class="toggle-switch"
+       :class="{ 'active': $refs.{{ name }}.checked }">
     <input type="hidden" name="{{ name }}" value="0">
     <input type="checkbox" id="{{ name }}" name="{{ name }}" value="1"
            {% if val %}checked{% endif %}
            {% if field_ctx.meta.readonly %}disabled{% endif %}
            x-ref="{{ name }}"
            class="sr-only">
-    <span class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform"
-          :class="{ 'translate-x-6': $refs.{{ name }}.checked, 'translate-x-1': !$refs.{{ name }}.checked }"></span>
+    <span class="toggle-knob"></span>
   </div>
   {{ _errors(field_ctx) }}
   {{ _help_text(field_ctx) }}
@@ -192,7 +189,7 @@ hx-vals='{"field_name": "{{ field_ctx.meta.name }}"}'
           {% if field_ctx.meta.required %}required{% endif %}
           {% if field_ctx.meta.readonly %}disabled{% endif %}
           {{ _htmx_validate(field_ctx, model_name, trigger="change") }}
-          class="form-select {{ _input_base }} {% if has_error %}border-[var(--color-danger)]{% endif %}">
+          class="form-select">
     <option value="">Select {{ field_ctx.meta.label }}...</option>
     {% for choice in choices %}
     <option value="{{ choice[0] }}" {% if choice[0] | string == val | string %}selected{% endif %}>{{ choice[1] }}</option>
@@ -213,11 +210,10 @@ hx-vals='{"field_name": "{{ field_ctx.meta.name }}"}'
   {{ _label(field_ctx) }}
   <input type="date" id="{{ name }}" name="{{ name }}"
          value="{{ val }}"
-          {% if field_ctx.meta.required %}required{% endif %}
-          {% if field_ctx.meta.readonly %}readonly{% endif %}
-          {% if field_ctx.meta.placeholder %}placeholder="{{ field_ctx.meta.placeholder }}"{% endif %}
-          {{ _htmx_validate(field_ctx, model_name) }}
-          class="form-input {{ _input_base }} {% if has_error %}border-[var(--color-danger)]{% endif %}">
+         {% if field_ctx.meta.required %}required{% endif %}
+         {% if field_ctx.meta.readonly %}readonly{% endif %}
+         {{ _htmx_validate(field_ctx, model_name) }}
+         class="form-input">
   {{ _errors(field_ctx) }}
   {{ _help_text(field_ctx) }}
 {{ _field_wrapper_close() }}
@@ -233,11 +229,10 @@ hx-vals='{"field_name": "{{ field_ctx.meta.name }}"}'
   {{ _label(field_ctx) }}
   <input type="datetime-local" id="{{ name }}" name="{{ name }}"
          value="{{ val }}"
-          {% if field_ctx.meta.required %}required{% endif %}
-          {% if field_ctx.meta.readonly %}readonly{% endif %}
-          {% if field_ctx.meta.placeholder %}placeholder="{{ field_ctx.meta.placeholder }}"{% endif %}
-          {{ _htmx_validate(field_ctx, model_name) }}
-          class="form-input {{ _input_base }} {% if has_error %}border-[var(--color-danger)]{% endif %}">
+         {% if field_ctx.meta.required %}required{% endif %}
+         {% if field_ctx.meta.readonly %}readonly{% endif %}
+         {{ _htmx_validate(field_ctx, model_name) }}
+         class="form-input">
   {{ _errors(field_ctx) }}
   {{ _help_text(field_ctx) }}
 {{ _field_wrapper_close() }}
@@ -253,11 +248,10 @@ hx-vals='{"field_name": "{{ field_ctx.meta.name }}"}'
   {{ _label(field_ctx) }}
   <input type="time" id="{{ name }}" name="{{ name }}"
          value="{{ val }}"
-          {% if field_ctx.meta.required %}required{% endif %}
-          {% if field_ctx.meta.readonly %}readonly{% endif %}
-          {% if field_ctx.meta.placeholder %}placeholder="{{ field_ctx.meta.placeholder }}"{% endif %}
-          {{ _htmx_validate(field_ctx, model_name) }}
-          class="form-input {{ _input_base }} {% if has_error %}border-[var(--color-danger)]{% endif %}">
+         {% if field_ctx.meta.required %}required{% endif %}
+         {% if field_ctx.meta.readonly %}readonly{% endif %}
+         {{ _htmx_validate(field_ctx, model_name) }}
+         class="form-input">
   {{ _errors(field_ctx) }}
   {{ _help_text(field_ctx) }}
 {{ _field_wrapper_close() }}
@@ -272,7 +266,7 @@ hx-vals='{"field_name": "{{ field_ctx.meta.name }}"}'
 {{ _field_wrapper_open(field_ctx) }}
   {{ _label(field_ctx) }}
   <div id="json-editor-{{ name }}" x-data="jsonEditor('field-{{ name }}')" class="json-editor-wrapper">
-    <div x-ref="editorContainer" class="min-h-[200px] border border-[var(--color-gray-300)] rounded-lg overflow-hidden"></div>
+    <div x-ref="editorContainer" style="min-height: 200px;"></div>
     <textarea id="field-{{ name }}" name="{{ name }}" class="sr-only">{{ val }}</textarea>
   </div>
   {{ _errors(field_ctx) }}
@@ -288,11 +282,11 @@ hx-vals='{"field_name": "{{ field_ctx.meta.name }}"}'
 {{ _field_wrapper_open(field_ctx) }}
   {{ _label(field_ctx) }}
   <input type="password" id="{{ name }}" name="{{ name }}" value=""
-          {% if field_ctx.meta.required %}required{% endif %}
-          {% if field_ctx.meta.readonly %}readonly{% endif %}
-          {% if field_ctx.meta.placeholder %}placeholder="{{ field_ctx.meta.placeholder }}"{% endif %}
-          {{ _htmx_validate(field_ctx, model_name) }}
-          class="form-input {{ _input_base }} {% if has_error %}border-[var(--color-danger)]{% endif %}">
+         {% if field_ctx.meta.required %}required{% endif %}
+         {% if field_ctx.meta.readonly %}readonly{% endif %}
+         {% if field_ctx.meta.placeholder %}placeholder="{{ field_ctx.meta.placeholder }}"{% endif %}
+         {{ _htmx_validate(field_ctx, model_name) }}
+         class="form-input">
   {{ _errors(field_ctx) }}
   {{ _help_text(field_ctx) }}
 {{ _field_wrapper_close() }}
@@ -312,7 +306,7 @@ hx-vals='{"field_name": "{{ field_ctx.meta.name }}"}'
          {% if field_ctx.meta.readonly %}readonly{% endif %}
          {% if field_ctx.meta.placeholder %}placeholder="{{ field_ctx.meta.placeholder }}"{% endif %}
          {{ _htmx_validate(field_ctx, model_name) }}
-         class="form-input {{ _input_base }} {% if has_error %}border-[var(--color-danger)]{% endif %}">
+         class="form-input">
   {{ _errors(field_ctx) }}
   {{ _help_text(field_ctx) }}
 {{ _field_wrapper_close() }}
@@ -332,7 +326,7 @@ hx-vals='{"field_name": "{{ field_ctx.meta.name }}"}'
          {% if field_ctx.meta.readonly %}readonly{% endif %}
          {% if field_ctx.meta.placeholder %}placeholder="{{ field_ctx.meta.placeholder }}"{% endif %}
          {{ _htmx_validate(field_ctx, model_name) }}
-         class="form-input {{ _input_base }} {% if has_error %}border-[var(--color-danger)]{% endif %}">
+         class="form-input">
   {{ _errors(field_ctx) }}
   {{ _help_text(field_ctx) }}
 {{ _field_wrapper_close() }}
@@ -352,7 +346,7 @@ hx-vals='{"field_name": "{{ field_ctx.meta.name }}"}'
          {% if field_ctx.meta.readonly %}readonly{% endif %}
          {% if field_ctx.meta.placeholder %}placeholder="{{ field_ctx.meta.placeholder }}"{% endif %}
          {{ _htmx_validate(field_ctx, model_name) }}
-         class="form-input {{ _input_base }} {% if has_error %}border-[var(--color-danger)]{% endif %}">
+         class="form-input">
   {{ _errors(field_ctx) }}
   {{ _help_text(field_ctx) }}
 {{ _field_wrapper_close() }}
@@ -369,11 +363,11 @@ hx-vals='{"field_name": "{{ field_ctx.meta.name }}"}'
     <input type="color" id="{{ name }}" name="{{ name }}"
            value="{{ val }}"
            {% if field_ctx.meta.readonly %}disabled{% endif %}
-           class="h-10 w-14 rounded border border-[var(--color-gray-300)] cursor-pointer">
+           style="height: 40px; width: 56px; border-radius: var(--radius-md); border: 1px solid var(--surface-border); cursor: pointer;">
     <input type="text" value="{{ val }}"
            @input="document.getElementById('{{ name }}').value = $event.target.value"
            @change="document.querySelector('[name={{ name }}_text]').value = $event.target.value"
-           class="form-input flex-1 {{ _input_base }}">
+           class="form-input" style="flex: 1;">
   </div>
   <input type="hidden" name="{{ name }}" value="{{ val }}">
   {{ _errors(field_ctx) }}
@@ -394,14 +388,14 @@ hx-vals='{"field_name": "{{ field_ctx.meta.name }}"}'
     <input type="text" id="{{ name }}" name="{{ name }}"
            :value="slug"
            @input="onManualEdit($event.target.value)"
-          {% if field_ctx.meta.required %}required{% endif %}
-          {% if field_ctx.meta.readonly %}readonly{% endif %}
-          pattern="^[a-z0-9]+(?:-[a-z0-9]+)*$"
-          {% if field_ctx.meta.placeholder %}placeholder="{{ field_ctx.meta.placeholder }}"{% endif %}
-          {{ _htmx_validate(field_ctx, model_name) }}
-          class="form-input flex-1 {{ _input_base }} {% if has_error %}border-[var(--color-danger)]{% endif %}">
+           {% if field_ctx.meta.required %}required{% endif %}
+           {% if field_ctx.meta.readonly %}readonly{% endif %}
+           pattern="^[a-z0-9]+(?:-[a-z0-9]+)*$"
+           {% if field_ctx.meta.placeholder %}placeholder="{{ field_ctx.meta.placeholder }}"{% endif %}
+           {{ _htmx_validate(field_ctx, model_name) }}
+           class="form-input" style="flex: 1;">
     <button type="button" @click="regenerate()"
-            class="px-3 py-2 rounded-lg border border-[var(--color-gray-300)] text-sm text-[var(--color-gray-700)] hover:bg-[var(--color-gray-50)] transition-colors">
+            class="btn btn-secondary btn-sm" style="padding: 7px 12px;">
       ↺
     </button>
   </div>
@@ -417,7 +411,7 @@ hx-vals='{"field_name": "{{ field_ctx.meta.name }}"}'
 {% set val = field_ctx.widget_context.value | default('-') %}
 {{ _field_wrapper_open(field_ctx) }}
   {{ _label(field_ctx) }}
-  <div class="px-4 py-2.5 rounded-lg border border-[var(--color-gray-200)] bg-[var(--color-gray-50)] text-[var(--color-gray-700)]">
+  <div class="form-input" style="cursor: default; background: var(--surface-inset);">
     {{ val }}
   </div>
   {{ _help_text(field_ctx) }}
@@ -442,22 +436,22 @@ hx-vals='{"field_name": "{{ field_ctx.meta.name }}"}'
   <div x-data="imageUpload('{{ val }}')">
     <input type="hidden" name="{{ name }}_action" :value="action">
     <input type="file" id="{{ name }}" name="{{ name }}" accept="image/*"
-           @change="onFileSelect($event)" class="hidden" x-ref="fileInput">
+           @change="onFileSelect($event)" class="sr-only" x-ref="fileInput">
     {% if val %}
-    <div class="mb-2">
-      <img :src="existingUrl || '{{ val }}'" class="w-32 h-32 object-cover rounded-lg border border-[var(--color-gray-200)]">
+    <div style="margin-bottom: 8px;">
+      <img :src="existingUrl || '{{ val }}'" style="width: 128px; height: 128px; object-fit: cover; border-radius: var(--radius-md); border: 1px solid var(--surface-border);">
     </div>
     {% endif %}
-    <div x-show="previewUrl" class="mb-2">
-      <img :src="previewUrl" class="w-32 h-32 object-cover rounded-lg border border-[var(--color-gray-200)]">
+    <div x-show="previewUrl" style="margin-bottom: 8px;">
+      <img :src="previewUrl" style="width: 128px; height: 128px; object-fit: cover; border-radius: var(--radius-md); border: 1px solid var(--surface-border);">
     </div>
     <div class="flex items-center gap-2">
       <button type="button" @click="$refs.fileInput.click()"
-              class="px-4 py-2 rounded-lg border border-[var(--color-gray-300)] text-sm text-[var(--color-gray-700)] hover:bg-[var(--color-gray-50)] transition-colors">
+              class="btn btn-secondary btn-sm">
         Choose Image
       </button>
       {% if val %}
-      <button type="button" @click="clear()" class="text-[var(--color-danger)] text-sm hover:underline">Remove</button>
+      <button type="button" @click="clear()" class="btn btn-ghost btn-sm" style="color: var(--danger-500);">Remove</button>
       {% endif %}
     </div>
   </div>
@@ -476,19 +470,19 @@ hx-vals='{"field_name": "{{ field_ctx.meta.name }}"}'
   <div x-data="fileUpload('{{ val }}')">
     <input type="hidden" name="{{ name }}_action" :value="action">
     <input type="file" id="{{ name }}" name="{{ name }}"
-           @change="onFileSelect($event)" class="hidden" x-ref="fileInput">
+           @change="onFileSelect($event)" class="sr-only" x-ref="fileInput">
     {% if val %}
-    <div class="mb-2 text-sm text-[var(--color-gray-600)]">
-      Current: <a href="{{ val }}" class="text-[var(--color-primary-600)] hover:underline" target="_blank">{{ val }}</a>
+    <div style="margin-bottom: 8px; font-size: var(--text-sm); color: var(--text-secondary);">
+      Current: <a href="{{ val }}" style="color: var(--primary-500);" target="_blank">{{ val }}</a>
     </div>
     {% endif %}
     <div class="flex items-center gap-2">
       <button type="button" @click="$refs.fileInput.click()"
-              class="px-4 py-2 rounded-lg border border-[var(--color-gray-300)] text-sm text-[var(--color-gray-700)] hover:bg-[var(--color-gray-50)] transition-colors">
+              class="btn btn-secondary btn-sm">
         Choose File
       </button>
       {% if val %}
-      <button type="button" @click="clear()" class="text-[var(--color-danger)] text-sm hover:underline">Remove</button>
+      <button type="button" @click="clear()" class="btn btn-ghost btn-sm" style="color: var(--danger-500);">Remove</button>
       {% endif %}
     </div>
   </div>
@@ -506,12 +500,12 @@ hx-vals='{"field_name": "{{ field_ctx.meta.name }}"}'
   {{ _label(field_ctx) }}
   <div x-data="tagInput({{ tags }})">
     <input type="hidden" name="{{ name }}" :value="JSON.stringify(tags)">
-    <div class="flex flex-wrap gap-2 mb-2">
+    <div class="flex flex-wrap gap-2" style="margin-bottom: 8px;">
       <template x-for="(tag, index) in tags" :key="index">
-        <span class="tag-chip inline-flex items-center gap-1 px-3 py-1 rounded-full bg-[var(--color-primary-100)] text-[var(--color-primary-700)] text-sm">
+        <span class="tag-chip">
           <span x-text="tag"></span>
-          <button type="button" @click="remove(index)" class="hover:text-[var(--color-primary-900)]">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <button type="button" @click="remove(index)" class="tag-chip__remove">
+            <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <use href="/static/icons/heroicons.svg#x-mark"/>
             </svg>
           </button>
@@ -519,7 +513,7 @@ hx-vals='{"field_name": "{{ field_ctx.meta.name }}"}'
       </template>
     </div>
     <input type="text" x-model="newTag" @keydown.enter.prevent="add()" placeholder="Add tag..."
-           class="form-input {{ _input_base }}">
+           class="form-input">
   </div>
   {{ _errors(field_ctx) }}
   {{ _help_text(field_ctx) }}
@@ -537,23 +531,21 @@ hx-vals='{"field_name": "{{ field_ctx.meta.name }}"}'
   {{ _label(field_ctx) }}
   <div x-data="relationPicker('{{ val }}', '{{ label_text }}', '/admin/{{ related_table }}/search')">
     <input type="hidden" name="{{ name }}" :value="selectedId">
-    <div class="relative">
+    <div class="relation-picker">
       <input type="text" x-model="searchQuery" @input="search()" @click.outside="open = false" @focus="open = true"
              placeholder="Search {{ field_ctx.meta.label | lower }}..."
-             class="form-input {{ _input_base }}">
-      <div x-show="open && results.length > 0"
-           class="absolute z-10 mt-1 w-full bg-white border border-[var(--color-gray-200)] rounded-lg shadow-lg max-h-60 overflow-auto">
+             class="form-input">
+      <div x-show="open && results.length > 0" class="relation-picker-dropdown">
         <template x-for="result in results" :key="result.id">
-          <div @click="select(result)"
-               class="px-4 py-2 hover:bg-[var(--color-gray-50)] cursor-pointer text-sm">
+          <div @click="select(result)" class="relation-option">
             <span x-text="result.label"></span>
           </div>
         </template>
       </div>
     </div>
     {% if val %}
-    <div class="mt-2 text-sm text-[var(--color-gray-600)]">
-      Selected: <span class="font-medium">{{ label_text }}</span>
+    <div style="margin-top: 8px; font-size: var(--text-sm); color: var(--text-secondary);">
+      Selected: <span style="font-weight: var(--font-medium);">{{ label_text }}</span>
     </div>
     {% endif %}
   </div>
@@ -572,27 +564,25 @@ hx-vals='{"field_name": "{{ field_ctx.meta.name }}"}'
   {{ _label(field_ctx) }}
   <div x-data="multiRelation({{ val }}, '/admin/{{ related_table }}/search')">
     <input type="hidden" name="{{ name }}" :value="JSON.stringify(selectedIds)">
-    <div class="flex flex-wrap gap-2 mb-2">
+    <div class="flex flex-wrap gap-2" style="margin-bottom: 8px;">
       <template x-for="(item, index) in selectedItems" :key="item.id">
-        <span class="tag-chip inline-flex items-center gap-1 px-3 py-1 rounded-full bg-[var(--color-primary-100)] text-[var(--color-primary-700)] text-sm">
+        <span class="tag-chip">
           <span x-text="item.label"></span>
-          <button type="button" @click="remove(index)" class="hover:text-[var(--color-primary-900)]">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <button type="button" @click="remove(index)" class="tag-chip__remove">
+            <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <use href="/static/icons/heroicons.svg#x-mark"/>
             </svg>
           </button>
         </span>
       </template>
     </div>
-    <div class="relative">
+    <div class="relation-picker">
       <input type="text" x-model="searchQuery" @input="search()" @click.outside="open = false" @focus="open = true"
              placeholder="Add {{ field_ctx.meta.label | lower }}..."
-             class="form-input {{ _input_base }}">
-      <div x-show="open && results.length > 0"
-           class="absolute z-10 mt-1 w-full bg-white border border-[var(--color-gray-200)] rounded-lg shadow-lg max-h-60 overflow-auto">
+             class="form-input">
+      <div x-show="open && results.length > 0" class="relation-picker-dropdown">
         <template x-for="result in results" :key="result.id">
-          <div @click="add(result)"
-               class="px-4 py-2 hover:bg-[var(--color-gray-50)] cursor-pointer text-sm">
+          <div @click="add(result)" class="relation-option">
             <span x-text="result.label"></span>
           </div>
         </template>

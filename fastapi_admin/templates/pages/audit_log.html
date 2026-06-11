@@ -1,130 +1,117 @@
 {% extends "base.html" %}
 
-{% block title %}Audit Log{% endblock %}
+{% block title %}Audit Log — Admin{% endblock %}
 
 {% block content %}
-<div class="mb-6">
-    <h1 class="text-2xl font-bold text-gray-900">Audit Log</h1>
-    <p class="text-gray-600 mt-1">System activity tracking for registered models.</p>
+<div class="page-header">
+    <div class="page-header__left">
+        <h1 class="page-header__title">Audit Log</h1>
+        <p class="page-header__subtitle">System activity tracking for registered models.</p>
+    </div>
 </div>
 
 <!-- Filters -->
-<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
-    <form method="get" class="grid grid-cols-1 md:grid-cols-6 gap-4">
-        <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Model</label>
-            <input type="text" name="model" value="{{ filters.model }}" 
-                   placeholder="Table name" 
-                   class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
-        </div>
-        <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">User ID</label>
-            <input type="number" name="user_id" value="{{ filters.user_id }}" 
-                   placeholder="User ID" 
-                   class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
-        </div>
-        <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Action</label>
-            <select name="action" class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
-                <option value="">All</option>
-                <option value="CREATE" {% if filters.action == 'CREATE' %}selected{% endif %}>CREATE</option>
-                <option value="UPDATE" {% if filters.action == 'UPDATE' %}selected{% endif %}>UPDATE</option>
-                <option value="DELETE" {% if filters.action == 'DELETE' %}selected{% endif %}>DELETE</option>
-            </select>
-        </div>
-        <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">From</label>
-            <input type="date" name="from_date" value="{{ filters.from_date }}" 
-                   class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
-        </div>
-        <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">To</label>
-            <input type="date" name="to_date" value="{{ filters.to_date }}" 
-                   class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
-        </div>
-        <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Object ID</label>
-            <input type="text" name="object_id" value="{{ filters.object_id }}" 
-                   placeholder="Object ID" 
-                   class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
-        </div>
-        <div class="md:col-span-6 flex justify-end">
-            <button type="submit" 
-                    class="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500">
-                Apply Filters
-            </button>
+<div class="fieldset" style="margin-bottom: var(--space-6);">
+    <form method="get">
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: var(--space-3); align-items: end;">
+            <div class="field-wrapper">
+                <label class="field-label" style="font-size: var(--text-xs);">Model</label>
+                <input type="text" name="model" value="{{ filters.model }}"
+                       placeholder="Table name"
+                       class="form-input">
+            </div>
+            <div class="field-wrapper">
+                <label class="field-label" style="font-size: var(--text-xs);">User ID</label>
+                <input type="number" name="user_id" value="{{ filters.user_id }}"
+                       placeholder="User ID"
+                       class="form-input">
+            </div>
+            <div class="field-wrapper">
+                <label class="field-label" style="font-size: var(--text-xs);">Action</label>
+                <select name="action" class="form-select">
+                    <option value="">All</option>
+                    <option value="CREATE" {% if filters.action == 'CREATE' %}selected{% endif %}>CREATE</option>
+                    <option value="UPDATE" {% if filters.action == 'UPDATE' %}selected{% endif %}>UPDATE</option>
+                    <option value="DELETE" {% if filters.action == 'DELETE' %}selected{% endif %}>DELETE</option>
+                </select>
+            </div>
+            <div class="field-wrapper">
+                <label class="field-label" style="font-size: var(--text-xs);">From</label>
+                <input type="date" name="from_date" value="{{ filters.from_date }}"
+                       class="form-input">
+            </div>
+            <div class="field-wrapper">
+                <label class="field-label" style="font-size: var(--text-xs);">To</label>
+                <input type="date" name="to_date" value="{{ filters.to_date }}"
+                       class="form-input">
+            </div>
+            <div class="field-wrapper">
+                <label class="field-label" style="font-size: var(--text-xs);">Object ID</label>
+                <input type="text" name="object_id" value="{{ filters.object_id }}"
+                       placeholder="Object ID"
+                       class="form-input">
+            </div>
+            <div>
+                <button type="submit" class="btn btn-primary btn-sm" style="width: 100%;">
+                    Apply Filters
+                </button>
+            </div>
         </div>
     </form>
 </div>
 
 <!-- Results -->
-<div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-    <table class="min-w-full divide-y divide-gray-200">
-        <thead class="bg-gray-50">
-            <tr>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Timestamp</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">User</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Model</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Action</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Object</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Details</th>
-            </tr>
-        </thead>
-        <tbody class="bg-white divide-y divide-gray-200">
-            {% if entries %}
-                {% for entry in entries %}
-                <tr class="hover:bg-gray-50">
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ entry.id }}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ entry.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ entry.user_email or ('#' + entry.user_id|string) }}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ entry.model_name }}</td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                            {% if entry.action == 'CREATE' %}bg-green-100 text-green-800
-                            {% elif entry.action == 'UPDATE' %}bg-blue-100 text-blue-800
-                            {% elif entry.action == 'DELETE' %}bg-red-100 text-red-800{% endif %}">
-                            {{ entry.action }}
-                        </span>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ entry.object_repr or entry.object_id }}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm">
-                        <a href="{{ request.app.state.admin_config.admin_path }}/audit/{{ entry.id }}" 
-                           class="text-primary-600 hover:text-primary-900">View</a>
-                    </td>
-                </tr>
-                {% endfor %}
-            {% else %}
-                <tr>
-                    <td colspan="7" class="px-6 py-12 text-center text-sm text-gray-500">
-                        No audit entries found matching the current filters.
-                    </td>
-                </tr>
-            {% endif %}
-        </tbody>
-    </table>
-
-    <!-- Pagination -->
-    {% if total > per_page %}
-    <div class="bg-white px-4 py-3 border-t border-gray-200 flex items-center justify-between">
-        <div class="text-sm text-gray-700">
-            Showing page <span class="font-medium">{{ page }}</span> of <span class="font-medium">{{ (total / per_page) | round(0, 'ceil') | int }}</span>
+<div class="audit-timeline">
+    {% if entries %}
+        {% for entry in entries %}
+        <a href="{{ request.app.state.admin_config.admin_path }}/audit/{{ entry.id }}"
+           class="audit-entry audit-entry--{{ entry.action|lower }}">
+            <div class="audit-entry__header">
+                <span class="audit-entry__time">{{ entry.timestamp.strftime('%Y-%m-%d %H:%M') }}</span>
+                <span class="audit-entry__user">{{ entry.user_email or ('#' + entry.user_id|string) }}</span>
+                <span class="badge badge-{% if entry.action == 'CREATE' %}success{% elif entry.action == 'UPDATE' %}warning{% else %}danger{% endif %}">
+                    {{ entry.action }}
+                </span>
+                <span class="audit-entry__model">{{ entry.model_name }}</span>
+                <span class="font-mono text-xs" style="color: var(--text-secondary);">{{ entry.object_repr or entry.object_id }}</span>
+            </div>
+        </a>
+        {% endfor %}
+    {% else %}
+        <div class="empty-state">
+            <svg class="empty-state__icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+            </svg>
+            <h3 class="empty-state__title">No entries found</h3>
+            <p class="empty-state__text">No audit entries match the current filters.</p>
         </div>
-        <div class="flex space-x-2">
-            {% if page > 1 %}
-            <a href="?{% for key, value in filters.items() %}{% if value %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page - 1 }}"
-               class="px-3 py-1 border border-gray-300 rounded-md text-sm text-gray-700 hover:bg-gray-50">
-                Previous
-            </a>
-            {% endif %}
-            {% if page * per_page < total %}
-            <a href="?{% for key, value in filters.items() %}{% if value %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page + 1 }}"
-               class="px-3 py-1 border border-gray-300 rounded-md text-sm text-gray-700 hover:bg-gray-50">
-                Next
-            </a>
-            {% endif %}
-        </div>
-    </div>
     {% endif %}
 </div>
+
+<!-- Pagination -->
+{% if total > per_page %}
+<div class="pagination" style="margin-top: var(--space-4); border-top: 1px solid var(--surface-border); border-radius: var(--radius-lg); background: var(--surface-raised);">
+    <div class="pagination__info">
+        Page <strong>{{ page }}</strong> of <strong>{{ (total / per_page) | round(0, 'ceil') | int }}</strong>
+    </div>
+    <div class="pagination__links">
+        {% if page > 1 %}
+        <a href="?{% for key, value in filters.items() %}{% if value %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page - 1 }}"
+           class="pagination__link">
+            <svg width="14" height="14" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+            </svg>
+        </a>
+        {% endif %}
+        {% if page * per_page < total %}
+        <a href="?{% for key, value in filters.items() %}{% if value %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page + 1 }}"
+           class="pagination__link">
+            <svg width="14" height="14" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+            </svg>
+        </a>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
 {% endblock %}

@@ -1,257 +1,177 @@
 /* ═══════════════════════════════════════════════════════════════════════════
    FastAPI Admin — Design Tokens
-   Single source of truth for all CSS custom properties.
-   Reference: ui_design_system.md §1, UI_DESIGN_SYSTEM.md
+   Warm Editorial Brutalism — paper texture meets computational precision
    ═══════════════════════════════════════════════════════════════════════════ */
+
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap');
 
 :root {
 
-  /* ── Primary colour scale ─────────────────────────────────────────────── */
-  --color-primary-50:  #eff6ff;
-  --color-primary-100: #dbeafe;
-  --color-primary-200: #bfdbfe;
-  --color-primary-300: #93c5fd;
-  --color-primary-400: #60a5fa;
-  --color-primary-500: #6366f1;
-  --color-primary-600: #4f46e5;
-  --color-primary-700: #4338ca;
-  --color-primary-800: #3730a3;
-  --color-primary-900: #312e81;
+  /* ── Surfaces — warm paper palette ─────────────────────────────────────── */
+  --surface-base:      #FAF8F5;
+  --surface-raised:    #FFFFFF;
+  --surface-overlay:   #FFFFFF;
+  --surface-border:    #E8E4DE;
+  --surface-inset:     #F3F0EB;
 
-  /* ── Neutral greys ────────────────────────────────────────────────────── */
-  --color-gray-50:  #f9fafb;
-  --color-gray-100: #f3f4f6;
-  --color-gray-200: #e5e7eb;
-  --color-gray-300: #d1d5db;
-  --color-gray-400: #9ca3af;
-  --color-gray-500: #6b7280;
-  --color-gray-600: #4b5563;
-  --color-gray-700: #374151;
-  --color-gray-800: #1f2937;
-  --color-gray-900: #111827;
+  /* ── Text — deep charcoal hierarchy ────────────────────────────────────── */
+  --text-primary:      #1C1917;
+  --text-secondary:    #78716C;
+  --text-disabled:     #A8A29E;
+  --text-inverse:      #FAF8F5;
 
-  /* ── Success colour scale ─────────────────────────────────────────────── */
-  --color-success-50:  #ecfdf5;
-  --color-success-100: #d1fae5;
-  --color-success-200: #a7f3d0;
-  --color-success-300: #6ee7b7;
-  --color-success-400: #34d399;
-  --color-success-500: #059669;
-  --color-success-600: #047857;
-  --color-success-700: #065f46;
-  --color-success-800: #064e3b;
-  --color-success-900: #022c22;
+  /* ── Primary — emerald (the signature accent) ──────────────────────────── */
+  --primary-50:        #ECFDF5;
+  --primary-100:       #D1FAE5;
+  --primary-200:       #A7F3D0;
+  --primary-300:       #6EE7B7;
+  --primary-400:       #34D399;
+  --primary-500:       #059669;
+  --primary-600:       #047857;
+  --primary-700:       #065F46;
+  --primary-800:       #064E3B;
+  --primary-900:       #022C22;
 
-  /* ── Warning colour scale ─────────────────────────────────────────────── */
-  --color-warning-50:  #fffbeb;
-  --color-warning-100: #fef3c7;
-  --color-warning-200: #fde68a;
-  --color-warning-300: #fcd34d;
-  --color-warning-400: #fbbf24;
-  --color-warning-500: #d97706;
-  --color-warning-600: #b45309;
-  --color-warning-700: #92400e;
-  --color-warning-800: #78350f;
-  --color-warning-900: #451a03;
+  /* ── Semantic colours ──────────────────────────────────────────────────── */
+  --success-50:        #F0FDF4;
+  --success-500:       #16A34A;
+  --success-700:       #15803D;
 
-  /* ── Danger colour scale ──────────────────────────────────────────────── */
-  --color-danger-50:  #fef2f2;
-  --color-danger-100: #fee2e2;
-  --color-danger-200: #fecaca;
-  --color-danger-300: #fca5a5;
-  --color-danger-400: #f87171;
-  --color-danger-500: #dc2626;
-  --color-danger-600: #b91c1c;
-  --color-danger-700: #991b1b;
-  --color-danger-800: #7f1d1d;
-  --color-danger-900: #450a0a;
+  --warning-50:        #FFFBEB;
+  --warning-500:       #D97706;
+  --warning-700:       #B45309;
 
-  /* ── Info colour scale ────────────────────────────────────────────────── */
-  --color-info-50:  #eff6ff;
-  --color-info-100: #dbeafe;
-  --color-info-200: #bfdbfe;
-  --color-info-300: #93c5fd;
-  --color-info-400: #60a5fa;
-  --color-info-500: #2563eb;
-  --color-info-600: #1d4ed8;
-  --color-info-700: #1e40af;
-  --color-info-800: #1e3a5f;
-  --color-info-900: #172554;
+  --danger-50:         #FEF2F2;
+  --danger-500:        #DC2626;
+  --danger-700:        #B91C1C;
 
-  /* ── Semantic aliases (convenience) ───────────────────────────────────── */
-  --color-success: var(--color-success-500);
-  --color-warning: var(--color-warning-500);
-  --color-danger:  var(--color-danger-500);
-  --color-info:    var(--color-info-500);
+  --info-50:           #EFF6FF;
+  --info-500:          #2563EB;
+  --info-700:          #1D4ED8;
 
-  /* ═══════════════════════════════════════════════════════════════════════
-     Surface colours
-     ═══════════════════════════════════════════════════════════════════════ */
-  --surface-base:    var(--color-gray-50);
-  --surface-raised:  #ffffff;
-  --surface-overlay: #ffffff;
-  --surface-border:  var(--color-gray-200);
+  /* ── Mono accent — emerald for data values ─────────────────────────────── */
+  --mono-accent:       #059669;
+  --mono-accent-muted: #065F46;
 
-  /* ═══════════════════════════════════════════════════════════════════════
-     Text colours
-     ═══════════════════════════════════════════════════════════════════════ */
-  --text-primary:   var(--color-gray-900);
-  --text-secondary: var(--color-gray-500);
-  --text-disabled:  var(--color-gray-400);
-  --text-inverse:   #ffffff;
-  --mono-accent:    var(--color-primary-500);
+  /* ── Typography ────────────────────────────────────────────────────────── */
+  --font-display:      'Instrument Serif', Georgia, 'Times New Roman', serif;
+  --font-body:         'DM Sans', system-ui, -apple-system, sans-serif;
+  --font-mono:         'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
 
-  /* ═══════════════════════════════════════════════════════════════════════
-     Layout dimensions
-     Reference: ui_design_system.md §1, §2, §3
-     ═══════════════════════════════════════════════════════════════════════ */
-  --topbar-height:          52px;
-  --sidebar-width:          240px;
-  --sidebar-collapsed-width: 56px;
-  --content-padding:        24px;
-  --content-max-width:      1320px;
-  --form-max-width:         860px;
+  /* Type scale */
+  --text-2xs:          0.6875rem;
+  --text-xs:           0.75rem;
+  --text-sm:           0.8125rem;
+  --text-base:         0.9375rem;
+  --text-md:           1.0625rem;
+  --text-lg:           1.25rem;
+  --text-xl:           1.75rem;
+  --text-2xl:          2.25rem;
+  --text-3xl:          3rem;
 
-  /* ═══════════════════════════════════════════════════════════════════════
-     Border radius
-     ═══════════════════════════════════════════════════════════════════════ */
-  --radius-sm:   0.25rem;
-  --radius-md:   0.5rem;
-  --radius-lg:   0.75rem;
-  --radius-full: 9999px;
+  --font-normal:       400;
+  --font-medium:       500;
+  --font-semibold:     600;
 
-  /* ═══════════════════════════════════════════════════════════════════════
-     Shadows
-     ═══════════════════════════════════════════════════════════════════════ */
-  --shadow-sm:  0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-md:  0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
-  --shadow-lg:  0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+  /* ── Spacing — 4px base ────────────────────────────────────────────────── */
+  --space-1:           0.25rem;
+  --space-2:           0.5rem;
+  --space-3:           0.75rem;
+  --space-4:           1rem;
+  --space-5:           1.25rem;
+  --space-6:           1.5rem;
+  --space-8:           2rem;
+  --space-10:          2.5rem;
+  --space-12:          3rem;
+  --space-16:          4rem;
 
-  /* ═══════════════════════════════════════════════════════════════════════
-     Typography
-     ═══════════════════════════════════════════════════════════════════════ */
-  --font-sans:  'Inter', system-ui, -apple-system, sans-serif;
-  --font-mono:  'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+  /* ── Layout ────────────────────────────────────────────────────────────── */
+  --topbar-height:     56px;
+  --sidebar-width:     248px;
+  --sidebar-collapsed: 60px;
+  --content-padding:   32px;
+  --content-max-width: 1360px;
+  --form-max-width:    860px;
 
-  --text-xs:  0.75rem;
-  --text-sm:  0.875rem;
-  --text-base: 1rem;
-  --text-md:  1.125rem;
-  --text-lg:  1.25rem;
+  /* ── Border & Radius ───────────────────────────────────────────────────── */
+  --radius-sm:         3px;
+  --radius-md:         5px;
+  --radius-lg:         8px;
+  --radius-full:       9999px;
 
-  --font-normal:   400;
-  --font-medium:   500;
-  --font-semibold: 600;
+  --border-width:      1px;
+  --border-color:      var(--surface-border);
 
-  /* ═══════════════════════════════════════════════════════════════════════
-     Durations
-     ═══════════════════════════════════════════════════════════════════════ */
-  --duration-fast:   100ms;
-  --duration-base:   150ms;
-  --duration-slow:   300ms;
+  /* ── Shadows — warm-toned ──────────────────────────────────────────────── */
+  --shadow-xs:         0 1px 2px rgba(28, 25, 23, 0.04);
+  --shadow-sm:         0 1px 3px rgba(28, 25, 23, 0.06), 0 1px 2px rgba(28, 25, 23, 0.04);
+  --shadow-md:         0 4px 12px rgba(28, 25, 23, 0.08), 0 2px 4px rgba(28, 25, 23, 0.04);
+  --shadow-lg:         0 12px 32px rgba(28, 25, 23, 0.12), 0 4px 8px rgba(28, 25, 23, 0.06);
+  --shadow-focus:      0 0 0 3px rgba(5, 150, 105, 0.2);
+  --shadow-focus-error:0 0 0 3px rgba(220, 38, 38, 0.2);
 
+  /* ── Motion ────────────────────────────────────────────────────────────── */
+  --duration-instant:  50ms;
+  --duration-fast:     100ms;
+  --duration-base:     180ms;
+  --duration-slow:     280ms;
+  --duration-slower:   400ms;
+
+  --easing-out:        cubic-bezier(0.16, 1, 0.3, 1);
+  --easing-in:         cubic-bezier(0.4, 0, 1, 1);
+  --easing-spring:     cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   Dark mode overrides
-   Reference: ui_design_system.md §2
+   Dark mode — inverted warm palette
    ═══════════════════════════════════════════════════════════════════════════ */
 
 [data-theme="dark"] {
+  --surface-base:      #141210;
+  --surface-raised:    #1C1A17;
+  --surface-overlay:   #242220;
+  --surface-border:    #33302D;
+  --surface-inset:     #1A1816;
 
-  /* ── Primary colour scale (inverted lightness) ────────────────────────── */
-  --color-primary-50:  #1e1b4b;
-  --color-primary-100: #312e81;
-  --color-primary-200: #3730a3;
-  --color-primary-300: #4338ca;
-  --color-primary-400: #4f46e5;
-  --color-primary-500: #6366f1;
-  --color-primary-600: #818cf8;
-  --color-primary-700: #a5b4fc;
-  --color-primary-800: #c7d2fe;
-  --color-primary-900: #eef2ff;
+  --text-primary:      #F5F0EB;
+  --text-secondary:    #9C9590;
+  --text-disabled:     #5C5752;
+  --text-inverse:      #141210;
 
-  /* ── Neutral greys (inverted) ─────────────────────────────────────────── */
-  --color-gray-50:  #111827;
-  --color-gray-100: #1f2937;
-  --color-gray-200: #374151;
-  --color-gray-300: #4b5563;
-  --color-gray-400: #6b7280;
-  --color-gray-500: #9ca3af;
-  --color-gray-600: #d1d5db;
-  --color-gray-700: #e5e7eb;
-  --color-gray-800: #f3f4f6;
-  --color-gray-900: #f9fafb;
+  --primary-50:        #022C22;
+  --primary-100:       #064E3B;
+  --primary-200:       #065F46;
+  --primary-300:       #047857;
+  --primary-400:       #059669;
+  --primary-500:       #34D399;
+  --primary-600:       #6EE7B7;
+  --primary-700:       #A7F3D0;
+  --primary-800:       #D1FAE5;
+  --primary-900:       #ECFDF5;
 
-  /* ── Success (dark) ───────────────────────────────────────────────────── */
-  --color-success-50:  #022c22;
-  --color-success-100: #064e3b;
-  --color-success-200: #065f46;
-  --color-success-300: #047857;
-  --color-success-400: #059669;
-  --color-success-500: #34d399;
-  --color-success-600: #6ee7b7;
-  --color-success-700: #a7f3d0;
-  --color-success-800: #d1fae5;
-  --color-success-900: #ecfdf5;
+  --success-50:        #052E16;
+  --success-500:       #4ADE80;
+  --success-700:       #86EFAC;
 
-  /* ── Warning (dark) ───────────────────────────────────────────────────── */
-  --color-warning-50:  #451a03;
-  --color-warning-100: #78350f;
-  --color-warning-200: #92400e;
-  --color-warning-300: #b45309;
-  --color-warning-400: #d97706;
-  --color-warning-500: #fbbf24;
-  --color-warning-600: #fcd34d;
-  --color-warning-700: #fde68a;
-  --color-warning-800: #fef3c7;
-  --color-warning-900: #fffbeb;
+  --warning-50:        #451A03;
+  --warning-500:       #FBBF24;
+  --warning-700:       #FCD34D;
 
-  /* ── Danger (dark) ────────────────────────────────────────────────────── */
-  --color-danger-50:  #450a0a;
-  --color-danger-100: #7f1d1d;
-  --color-danger-200: #991b1b;
-  --color-danger-300: #b91c1c;
-  --color-danger-400: #dc2626;
-  --color-danger-500: #f87171;
-  --color-danger-600: #fca5a5;
-  --color-danger-700: #fecaca;
-  --color-danger-800: #fee2e2;
-  --color-danger-900: #fef2f2;
+  --danger-50:         #450A0A;
+  --danger-500:        #F87171;
+  --danger-700:        #FCA5A5;
 
-  /* ── Info (dark) ──────────────────────────────────────────────────────── */
-  --color-info-50:  #172554;
-  --color-info-100: #1e3a5f;
-  --color-info-200: #1e40af;
-  --color-info-300: #1d4ed8;
-  --color-info-400: #2563eb;
-  --color-info-500: #60a5fa;
-  --color-info-600: #93c5fd;
-  --color-info-700: #bfdbfe;
-  --color-info-800: #dbeafe;
-  --color-info-900: #eff6ff;
+  --info-50:           #172554;
+  --info-500:          #60A5FA;
+  --info-700:          #93C5FD;
 
-  /* ── Semantic aliases (dark) ──────────────────────────────────────────── */
-  --color-success: var(--color-success-500);
-  --color-warning: var(--color-warning-500);
-  --color-danger:  var(--color-danger-500);
-  --color-info:    var(--color-info-500);
+  --mono-accent:       #34D399;
+  --mono-accent-muted: #6EE7B7;
 
-  /* ── Surfaces (dark) ──────────────────────────────────────────────────── */
-  --surface-base:    var(--color-gray-50);
-  --surface-raised:  var(--color-gray-100);
-  --surface-overlay: var(--color-gray-100);
-  --surface-border:  var(--color-gray-200);
-
-  /* ── Text (dark) ──────────────────────────────────────────────────────── */
-  --text-primary:   var(--color-gray-900);
-  --text-secondary: var(--color-gray-500);
-  --text-disabled:  var(--color-gray-400);
-  --text-inverse:   var(--color-gray-900);
-  --mono-accent:    var(--color-primary-400);
-
-  /* ── Shadows (dark — slightly stronger) ───────────────────────────────── */
-  --shadow-sm:  0 1px 2px 0 rgba(0, 0, 0, 0.3);
-  --shadow-md:  0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -2px rgba(0, 0, 0, 0.3);
-  --shadow-lg:  0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -4px rgba(0, 0, 0, 0.3);
+  --shadow-xs:         0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-sm:         0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-md:         0 4px 12px rgba(0, 0, 0, 0.4), 0 2px 4px rgba(0, 0, 0, 0.3);
+  --shadow-lg:         0 12px 32px rgba(0, 0, 0, 0.5), 0 4px 8px rgba(0, 0, 0, 0.3);
+  --shadow-focus:      0 0 0 3px rgba(52, 211, 153, 0.25);
+  --shadow-focus-error:0 0 0 3px rgba(248, 113, 113, 0.25);
 }
