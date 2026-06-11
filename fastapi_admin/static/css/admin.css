@@ -837,6 +837,50 @@ img { max-width: 100%; display: block; }
   width: 44px;
 }
 
+.table-checkbox {
+  width: 16px;
+  height: 16px;
+  border: 1.5px solid var(--surface-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  appearance: none;
+  background: var(--surface-raised);
+  transition: all var(--duration-fast);
+  position: relative;
+}
+
+.table-checkbox:checked {
+  background: var(--primary-500);
+  border-color: var(--primary-500);
+}
+
+.table-checkbox:checked::after {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 1px;
+  width: 5px;
+  height: 9px;
+  border: solid var(--text-inverse);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.table-checkbox:indeterminate {
+  background: var(--primary-500);
+  border-color: var(--primary-500);
+}
+
+.table-checkbox:indeterminate::after {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: 6px;
+  width: 8px;
+  height: 0;
+  border-bottom: 2px solid var(--text-inverse);
+}
+
 .table__cell--mono {
   font-family: var(--font-mono);
   font-size: var(--text-xs);

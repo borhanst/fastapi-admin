@@ -264,6 +264,43 @@ document.addEventListener('alpine:init', () => {
     },
   }));
 
+  /* ── Row Selection ─────────────────────────────────────────────── */
+
+  Alpine.data('rowSelect', () => ({
+    selected: [],
+
+    isSelected(id) {
+      return this.selected.includes(id)
+    },
+
+    toggle(id) {
+      if (this.isSelected(id)) {
+        this.selected = this.selected.filter(i => i !== id)
+      } else {
+        this.selected.push(id)
+      }
+    },
+
+    toggleAll() {
+      const checkboxes = this.$root.querySelectorAll('input[name="ids[]"]')
+      const allIds = Array.from(checkboxes).map(cb => cb.value)
+      if (this.selected.length === allIds.length) {
+        this.selected = []
+      } else {
+        this.selected = [...allIds]
+      }
+    },
+
+    get allSelected() {
+      const checkboxes = this.$root.querySelectorAll('input[name="ids[]"]')
+      return checkboxes.length > 0 && this.selected.length === checkboxes.length
+    },
+
+    get someSelected() {
+      return this.selected.length > 0 && !this.allSelected
+    },
+  }))
+
   /* ── Delete Confirm Modal ────────────────────────────────────────── */
 
   Alpine.data('deleteConfirm', () => ({
