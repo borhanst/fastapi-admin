@@ -4,6 +4,29 @@
 
 document.addEventListener('alpine:init', () => {
 
+  /* ── navGroup (sidebar collapsible sections) ─────────────────────── */
+
+  Alpine.data('navGroup', (tag, defaultCollapsed) => ({
+    collapsed: false,
+
+    init() {
+      const saved = localStorage.getItem('admin-nav-group:' + tag)
+      if (saved !== null) {
+        this.collapsed = saved === '1'
+      } else {
+        this.collapsed = defaultCollapsed
+      }
+      if (this.$el && this.$el.querySelector('.nav-item-active')) {
+        this.collapsed = false
+      }
+    },
+
+    toggle() {
+      this.collapsed = !this.collapsed
+      localStorage.setItem('admin-nav-group:' + tag, this.collapsed ? '1' : '0')
+    },
+  }))
+
   /* ── Theme store (dark mode) ─────────────────────────────────────────── */
 
   Alpine.store('theme', {

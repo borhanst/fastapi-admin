@@ -175,6 +175,7 @@ class ProductAdmin(ModelAdmin):
     verbose_name = "Product"
     verbose_name_plural = "Products"
     per_page = 20
+    tag="product"
 
 
 class UserAdmin(ModelAdmin):
@@ -188,6 +189,7 @@ class UserAdmin(ModelAdmin):
     readonly_fields = ["created_at"]
     verbose_name = "User"
     verbose_name_plural = "Users"
+    tag="user"
 
 
 class OrderAdmin(ModelAdmin):
@@ -201,6 +203,7 @@ class OrderAdmin(ModelAdmin):
     readonly_fields = ["order_date", "created_at"]
     verbose_name = "Order"
     verbose_name_plural = "Orders"
+    tag = "Order"
 
 
 # ============================================================================

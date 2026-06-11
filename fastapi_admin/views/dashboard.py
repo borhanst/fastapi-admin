@@ -30,7 +30,7 @@ def dashboard_view_factory(admin: Any):
     """Return a dashboard view function bound to the given admin instance."""
     async def dashboard_view(
         request: Request,
-        _: Any = Depends(get_current_admin_user),
+        current_user: Any = Depends(get_current_admin_user),
     ):
         templates = request.app.state.admin_jinja_env
         admin_instance = request.app.state.admin
@@ -59,7 +59,7 @@ def dashboard_view_factory(admin: Any):
                 stat_cards.append({
                     "title": model.verbose_name_plural,
                     "count": count,
-                    "url": f"/{admin_instance.admin_path}/{model.table_name}/",
+                    "url": f"{admin_instance.admin_path}/{model.table_name}/",
                 })
 
             # Fetch last 10 audit entries
@@ -73,15 +73,18 @@ def dashboard_view_factory(admin: Any):
         show_charts = config.get("dashboard_charts", True)
 
         template = templates.get_template("pages/dashboard.html")
-        html = template.render(
-            request=request,
-            registered_models=registered_models,
-            stat_cards=stat_cards,
-            recent_audit=recent_audit,
-            show_charts=show_charts,
-            admin_path=admin_instance.admin_path,
-            title=admin_instance.title,
-        )
+        context: dict[str, Any] = {
+            "request": request,
+            "registered_models": registered_models,
+            "stat_cards": stat_cards,
+            "recent_audit": recent_audit,
+            "show_charts": show_charts,
+            "admin_path": admin_instance.admin_path,
+            "title": admin_instance.title,
+        }
+        if hasattr(admin_instance, "build_sidebar_context") and current_user is not None:
+            context.update(admin_instance.build_sidebar_context(request, user=current_user))
+        html = template.render(**context)
         return HTMLResponse(content=html)
 
     dashboard_view.__name__ = "dashboard"

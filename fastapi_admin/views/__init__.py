@@ -10,9 +10,11 @@ from fastapi_admin.views.form import (
 from fastapi_admin.views.delete import delete_factory
 from fastapi_admin.views.bulk import bulk_factory
 from fastapi_admin.views.search import search_factory
+from fastapi_admin.views.sidebar import inject_sidebar_context
 
 __all__ = [
     "ModelAdmin",
+    "inject_sidebar_context",
     "list_view_factory",
     "create_form_factory",
     "create_submit_factory",

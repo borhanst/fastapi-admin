@@ -9,6 +9,8 @@ from fastapi_admin.types import ExtraField, FieldMeta
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
 
+    from fastapi_admin.nav import NavItemConfig
+
 
 class ModelAdmin:
     """Base class for model admin configuration.
@@ -37,6 +39,14 @@ class ModelAdmin:
     verbose_name: str | None = None
     verbose_name_plural: str | None = None
     icon: str | None = None
+    tag: str | None = None
+    tags: list[str] | None = None
+    nav_order: int = 999
+    nav_children: list["NavItemConfig"] | None = None
+
+    # Badge hook — return str e.g. "12" or None
+    def get_nav_badge(self, request: Any = None) -> str | None:
+        return None
 
     # Object display
     def __str__(self, obj: Any) -> str:

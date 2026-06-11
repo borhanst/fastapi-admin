@@ -12,6 +12,7 @@ from fastapi_admin.flash import add_flash
 from fastapi_admin.form.pipeline import build_form_context
 from fastapi_admin.registry import RegisteredModel
 from fastapi_admin.types import PermissionSet
+from fastapi_admin.views.sidebar import inject_sidebar_context
 from fastapi_admin.validation import FormValidator
 from fastapi_admin.widgets.inputs import FileUploadWidget, ImageUploadWidget
 
@@ -102,13 +103,13 @@ def create_form_factory(registered: RegisteredModel):
     async def create_form(request: Request, _: Any = None):
         templates = request.app.state.admin_jinja_env
         ctx = build_form_context(registered, is_create=True)
-        return templates.TemplateResponse(request, "pages/form.html", {
+        return templates.TemplateResponse(request, "pages/form.html", inject_sidebar_context(request, {
             "form_context": ctx,
             "is_create": True,
             "permissions": PermissionSet(
                 can_view=True, can_create=True, can_edit=True, can_delete=True
             ),
-        })
+        }))
     create_form.__name__ = f"create_form_{registered.table_name}"
     return create_form
 
@@ -153,10 +154,10 @@ def create_submit_factory(registered: RegisteredModel):
             ctx = build_form_context(
                 registered, values=parsed, errors=errors, is_create=True
             )
-            return templates.TemplateResponse(request, "pages/form.html", {
+            return templates.TemplateResponse(request, "pages/form.html", inject_sidebar_context(request, {
                 "form_context": ctx,
                 "is_create": True,
-            }, status_code=422)
+            }), status_code=422)
 
         obj = registered.model(**parsed)
         registered.admin.on_create(obj, request)
@@ -178,10 +179,10 @@ def edit_form_factory(registered: RegisteredModel):
         if not obj:
             raise HTTPException(status_code=404, detail="Not found")
         form_ctx = build_form_context(registered, obj=obj, is_create=False)
-        return templates.TemplateResponse(request, "pages/form.html", {
+        return templates.TemplateResponse(request, "pages/form.html", inject_sidebar_context(request, {
             "form_context": form_ctx,
             "is_create": False,
-        })
+        }))
     edit_form.__name__ = f"edit_form_{registered.table_name}"
     return edit_form
 
@@ -227,10 +228,10 @@ def edit_submit_factory(registered: RegisteredModel):
             ctx = build_form_context(
                 registered, obj=obj, values=parsed, errors=errors, is_create=False
             )
-            return templates.TemplateResponse(request, "pages/form.html", {
+            return templates.TemplateResponse(request, "pages/form.html", inject_sidebar_context(request, {
                 "form_context": ctx,
                 "is_create": False,
-            }, status_code=422)
+            }), status_code=422)
 
         registered.admin.on_update(obj, parsed, request)
         for key, value in parsed.items():

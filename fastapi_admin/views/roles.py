@@ -13,6 +13,7 @@ from fastapi_admin.auth.dependencies import get_current_admin_user
 from fastapi_admin.auth.models import AdminFieldPermission, AdminPermission, AdminRole, AdminUser
 from fastapi_admin.registry import AdminRegistry
 from fastapi_admin.auth.protocol import AdminUserProtocol
+from fastapi_admin.views.sidebar import inject_sidebar_context
 
 
 router = APIRouter()
@@ -49,9 +50,9 @@ async def role_list_view(
     return templates.TemplateResponse(
         request,
         "pages/roles/list.html",
-        {
+        inject_sidebar_context(request, {
             "roles": role_data,
-        },
+        }),
     )
 
 
@@ -68,12 +69,12 @@ async def role_create_view(
     return templates.TemplateResponse(
         request,
         "pages/roles/form.html",
-        {
+        inject_sidebar_context(request, {
             "role": None,
             "models": models,
             "permissions": {},
             "field_permissions": {},
-        },
+        }),
     )
 
 
@@ -107,12 +108,12 @@ async def role_edit_view(
     return templates.TemplateResponse(
         request,
         "pages/roles/form.html",
-        {
+        inject_sidebar_context(request, {
             "role": role,
             "models": models,
             "permissions": perm_map,
             "field_permissions": f_perms_map,
-        },
+        }),
     )
 
 

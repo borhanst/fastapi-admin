@@ -7,22 +7,91 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
     <script defer src="https://unpkg.com/alpinejs@3.13.3/dist/cdn.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/collapse@3.x.x/dist/cdn.min.js"></script>
     {% block head %}{% endblock %}
 </head>
 <body class="bg-gray-100">
     <div class="flex h-screen">
         <!-- Sidebar -->
-        <aside class="w-64 bg-gray-800 text-white">
-            <div class="p-4">
-                <h1 class="text-xl font-bold">Admin</h1>
+        <aside class="w-64 bg-gray-800 text-white flex flex-col">
+            <div class="p-4 flex-shrink-0">
+                <h1 class="text-xl font-bold">{{ title or 'Admin' }}</h1>
             </div>
-            <nav class="mt-4">
+            <nav class="mt-2 flex-1 overflow-y-auto px-2">
                 {% block sidebar %}
-                <a href="/admin" class="block px-4 py-2 hover:bg-gray-700">Dashboard</a>
-                {% for model in registered_models %}
-                <a href="/admin/{{ model.table_name }}/" class="block px-4 py-2 hover:bg-gray-700">
-                    {{ model.verbose_name_plural }}
+                {# Dashboard — always at top #}
+                <a href="/admin/"
+                   class="nav-item block px-4 py-2 rounded hover:bg-gray-700 {% if request.url.path == '/admin/' %}nav-item-active{% endif %}">
+                    <span>Dashboard</span>
                 </a>
+
+                {# Tag groups — RBAC filtered at render time #}
+                {% for group in nav_groups %}
+
+                {% set ns = namespace(has_visible=false) %}
+                {% for item in group.items %}
+                  {% set perm = permissions_map.get(item.permission_table) if permissions_map is defined and permissions_map else none %}
+                  {% if item.permission_table is none or perm is none or perm.can_view %}
+                    {% set ns.has_visible = true %}
+                  {% endif %}
+                {% endfor %}
+
+                {% if ns.has_visible %}
+                <div class="nav-group"
+                     x-data="navGroup('{{ group.tag | slugify }}', {{ 'true' if group.collapsed_by_default else 'false' }})">
+                  <button class="nav-group-heading w-full text-left px-4 py-2 hover:bg-gray-700 flex items-center justify-between"
+                          @click="toggle()"
+                          :aria-expanded="!collapsed">
+                    <span class="flex items-center gap-2">
+                      {% if group.icon %}
+                      <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <use href="/static/icons/heroicons.svg#{{ group.icon }}-outline" />
+                      </svg>
+                      {% endif %}
+                      <span class="nav-group-label font-semibold text-sm uppercase tracking-wide">{{ group.label }}</span>
+                    </span>
+                    <svg class="nav-group-chevron w-4 h-4 transition-transform"
+                         :class="{'rotate-180': !collapsed}"
+                         xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                      <path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd"/>
+                    </svg>
+                  </button>
+                  <div x-show="!collapsed" x-collapse>
+                    {% for item in group.items %}
+                    {% set perm = permissions_map.get(item.permission_table) if permissions_map is defined and permissions_map else none %}
+                    {% if item.permission_table is none or perm is none or perm.can_view %}
+                    {% set is_active = request.url.path.startswith(item.url) %}
+                    <a href="{{ item.url }}"
+                       class="nav-item-child block pl-10 pr-4 py-2 rounded hover:bg-gray-700 text-sm
+                              {% if is_active %}nav-item-active{% endif %}">
+                      {% if item.icon %}
+                      <svg class="inline w-4 h-4 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <use href="/static/icons/heroicons.svg#{{ item.icon }}-outline" />
+                      </svg>
+                      {% endif %}
+                      <span>{{ item.label }}</span>
+                      {% if item.badge_fn and not is_active %}
+                        {% set badge = item.badge_fn(request) %}
+                        {% if badge %}
+                        <span class="ml-2 px-2 py-0.5 rounded-full text-xs bg-primary-500 text-white">{{ badge }}</span>
+                        {% endif %}
+                      {% endif %}
+                    </a>
+                    {% for child in item.children %}
+                    {% set child_perm = permissions_map.get(child.permission_table) if permissions_map is defined and permissions_map else none %}
+                    {% if child.permission_table is none or child_perm is none or child_perm.can_view %}
+                    <a href="{{ child.url }}"
+                       class="nav-item-grandchild block pl-16 pr-4 py-1 rounded hover:bg-gray-700 text-xs
+                              {% if request.url.path.startswith(child.url) %}nav-item-active{% endif %}">
+                      {{ child.label }}
+                    </a>
+                    {% endif %}
+                    {% endfor %}
+                    {% endif %}
+                    {% endfor %}
+                  </div>
+                </div>
+                {% endif %}
                 {% endfor %}
                 {% endblock %}
             </nav>
@@ -36,6 +105,7 @@
         </main>
     </div>
 
+    <script src="/static/js/admin.js"></script>
     {% block scripts %}{% endblock %}
 </body>
 </html>

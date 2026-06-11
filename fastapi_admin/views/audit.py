@@ -12,6 +12,7 @@ from sqlalchemy import desc, select
 from fastapi_admin.audit.models import AuditLog
 from fastapi_admin.auth.dependencies import get_current_admin_user
 from fastapi_admin.auth.protocol import AdminUserProtocol
+from fastapi_admin.views.sidebar import inject_sidebar_context
 
 
 router = APIRouter()
@@ -82,7 +83,7 @@ async def audit_list_view(
     return templates.TemplateResponse(
         request,
         "pages/audit_log.html",
-        {
+        inject_sidebar_context(request, {
             "entries": entries,
             "page": page,
             "per_page": per_page,
@@ -96,7 +97,7 @@ async def audit_list_view(
                 "to_date": to_date or "",
                 "object_id": object_id or "",
             },
-        },
+        }),
     )
 
 
@@ -119,8 +120,8 @@ async def audit_detail_view(
     return templates.TemplateResponse(
         request,
         "pages/audit_detail.html",
-        {
+        inject_sidebar_context(request, {
             "entry": entry,
             "admin_path": admin_path,
-        },
+        }),
     )

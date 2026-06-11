@@ -2,6 +2,14 @@
 
 from fastapi_admin.admin import Admin
 from fastapi_admin.exceptions import ConfigError
+from fastapi_admin.nav import (
+    BuiltNavGroup,
+    BuiltNavItem,
+    DefaultSidebarBuilder,
+    NavGroupConfig,
+    NavItemConfig,
+    SidebarBuilder,
+)
 from fastapi_admin.registry import AdminRegistry, RegisteredModel
 from fastapi_admin.types import (
     ColumnMeta,
@@ -23,11 +31,16 @@ __all__ = [
     "ConfigError",
     "RegisteredModel",
     "ModelAdmin",
+    "BuiltNavGroup",
+    "BuiltNavItem",
+    "DefaultSidebarBuilder",
+    "NavGroupConfig",
+    "NavItemConfig",
+    "SidebarBuilder",
     "ColumnMeta",
     "RelationMeta",
     "FieldMeta",
     "PermissionSet",
-    "FieldsetSpec",
     "SeedRole",
     "ExtraField",
     "FieldRenderContext",

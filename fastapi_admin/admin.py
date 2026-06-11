@@ -12,6 +12,8 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from jinja2 import Environment, FileSystemLoader
 
+import re
+
 from fastapi_admin.exceptions import ConfigError
 from fastapi_admin.registry import AdminRegistry, RegisteredModel
 from fastapi_admin.types import SeedRole
@@ -20,6 +22,7 @@ if TYPE_CHECKING:
     from sqlalchemy.engine import Engine
 
     from fastapi_admin.auth.backend import AuthBackend
+    from fastapi_admin.nav import NavGroupConfig, SidebarBuilder
     from fastapi_admin.storage.base import StorageBackend
     from fastapi_admin.views import ModelAdmin
 
@@ -132,6 +135,10 @@ class Admin:
         uploads_url: str = "/uploads",
         # Behavior flags
         auto_discover: bool = True,
+        # Nav / sidebar
+        nav_groups: list[NavGroupConfig] | None = None,
+        sidebar_builder: SidebarBuilder | None = None,
+        require_tags: bool = False,
     ):
         self.registry = AdminRegistry()
         self.engine = engine
@@ -178,6 +185,14 @@ class Admin:
 
         # Flags
         self.auto_discover = auto_discover
+
+        # Nav / sidebar
+        self.nav_groups = nav_groups or []
+        self.sidebar_builder = sidebar_builder
+        self.require_tags = require_tags
+
+        # Built sidebar (populated during setup)
+        self._nav_groups_built: list[Any] = []
 
         # Internal state (populated during setup)
         self._session_backend: Any = None
@@ -243,7 +258,16 @@ class Admin:
         if self.auto_discover:
             self.registry.auto_discover()
 
-        # 9. Build and mount routers
+        # 9. Validate require_tags
+        if self.require_tags:
+            self._validate_tags()
+
+        # 10. Build sidebar structure (once at startup)
+        self._nav_groups_built = self._build_sidebar()
+        if self._jinja_env:
+            self._jinja_env.env.globals["nav_groups"] = self._nav_groups_built
+
+        # 11. Build and mount routers
         self._build_router(app)
 
     # ------------------------------------------------------------------
@@ -266,9 +290,16 @@ class Admin:
                 list_display = ["name", "price"]
         """
         if admin_class is not None:
-            return self.registry.register(model, admin_class)
-
-        registered = self.registry.register(model)
+            registered = self.registry.register(model, admin_class)
+        else:
+            registered = self.registry.register(model)
+        if self._jinja_env:
+            self._jinja_env.env.globals["registered_models"] = self.registry.all()
+            if self._nav_groups_built:
+                self._nav_groups_built = self._build_sidebar()
+                self._jinja_env.env.globals["nav_groups"] = self._nav_groups_built
+        if admin_class is not None:
+            return registered
         return _RegistrationProxy(self, registered)
 
     # ------------------------------------------------------------------
@@ -440,6 +471,7 @@ class Admin:
         app.state.admin_session_backend = self._session_backend
         app.state.admin_auth_backend = self.auth_backend
         app.state.admin_storage = self.storage
+        app.state.admin_registry = self.registry
 
         # Async session for views (reused per-request via dependency)
         app.state.admin_db_session = AsyncSession(self.engine, expire_on_commit=False)
@@ -493,9 +525,10 @@ class Admin:
 
         templates_dir = Path(__file__).parent / "templates"
         self._jinja_env = Jinja2Templates(directory=str(templates_dir))
-        # Make registered_models and admin_path available in all templates
+        self._jinja_env.env.filters["slugify"] = lambda s: re.sub(r"[^\w]", "-", s, flags=re.A).strip("-").lower()
         self._jinja_env.env.globals["registered_models"] = self.registry.all()
         self._jinja_env.env.globals["admin_path"] = self.admin_path
+        self._jinja_env.env.globals["nav_groups"] = self._nav_groups_built
         app.state.admin_jinja_env = self._jinja_env
 
     def _build_router(self, app: FastAPI) -> None:
@@ -530,3 +563,68 @@ class Admin:
         )
 
         self._router_built = True
+
+    # ------------------------------------------------------------------
+    # Tags validation
+    # ------------------------------------------------------------------
+
+    def _validate_tags(self) -> None:
+        """Raise ConfigError if any registered model has no tag (when require_tags=True)."""
+        untagged: list[str] = []
+        for registered in self.registry.all():
+            admin = registered.admin
+            tags = getattr(admin, "tags", None)
+            tag = getattr(admin, "tag", None)
+            if not tags and not tag:
+                untagged.append(registered.table_name)
+        if untagged:
+            raise ConfigError(
+                "require_tags=True but the following models have no tag: "
+                + ", ".join(sorted(untagged))
+            )
+
+    # ------------------------------------------------------------------
+    # Sidebar
+    # ------------------------------------------------------------------
+
+    def _build_sidebar(self) -> list:
+        """Build the sidebar group structure once at startup."""
+        from fastapi_admin.nav import DefaultSidebarBuilder
+
+        builder = self.sidebar_builder or DefaultSidebarBuilder()
+        return builder.build(self.registry.all(), self.nav_groups, admin_path=self.admin_path)
+
+    def build_sidebar_context(self, request: Any, user: Any = None) -> dict:
+        """Build per-request sidebar context (RBAC filter + permissions map)."""
+        if user is None:
+            user = getattr(request.state, "admin_user", None)
+
+        from sqlalchemy.orm import Session
+        from fastapi_admin.auth.permissions import PermissionChecker
+
+        session: Session = request.app.state.admin_db_session
+        checker = PermissionChecker(session=session, user=user) if user else None
+
+        permissions_map: dict[str, Any] = {}
+        nav_groups = self._nav_groups_built
+        if checker:
+            for group in nav_groups:
+                for item in group.items:
+                    table = item.permission_table
+                    if table and table not in permissions_map:
+                        permissions_map[table] = checker.permission_set(table)
+
+        return {
+            "nav_groups": nav_groups,
+            "permissions_map": permissions_map,
+            "current_user": user,
+        }
+
+    def sidebar_template_kwargs(self, request: Any) -> dict[str, Any]:
+        """Thin wrapper — returns sidebar kwargs for TemplateResponse contexts."""
+        return self.build_sidebar_context(request)
+
+    def apply_sidebar_context(self, request: Any, user: Any, context: dict) -> dict:
+        """Inject nav_groups + permissions_map into a template context dict."""
+        context.update(self.build_sidebar_context(request, user=user))
+        return context

@@ -10,6 +10,7 @@ from sqlalchemy import desc, asc, select, func, or_
 from sqlalchemy.orm import joinedload
 from fastapi_admin.registry import RegisteredModel
 from fastapi_admin.types import PermissionSet
+from fastapi_admin.views.sidebar import inject_sidebar_context
 
 
 class DisplayColumn:
@@ -97,7 +98,7 @@ def list_view_factory(registered: RegisteredModel):
             label = col_name.replace("_", " ").title()
             display_columns.append(DisplayColumn(col_name, label, col_name in rel_names))
 
-        return templates.TemplateResponse(request, "pages/list.html", {
+        template_context = {
             "model": registered,
             "display_columns": display_columns,
             "items": items,
@@ -111,6 +112,9 @@ def list_view_factory(registered: RegisteredModel):
                 can_edit=True,
                 can_delete=True,
             ),
-        })
+        }
+        inject_sidebar_context(request, template_context)
+
+        return templates.TemplateResponse(request, "pages/list.html", template_context)
     list_view.__name__ = f"list_{registered.table_name}"
     return list_view
