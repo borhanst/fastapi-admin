@@ -5,12 +5,16 @@
 
 {% block content %}
 <div class="space-y-6">
-  <div class="flex items-center justify-between">
-    <h1 class="text-2xl font-bold text-[var(--color-gray-900)]">Roles</h1>
-    <a href="{{ admin_path | default('/admin') }}/roles/create"
-       class="btn-primary px-4 py-2 rounded-lg bg-[var(--color-primary-600)] text-white text-sm font-medium hover:bg-[var(--color-primary-500)] transition-colors">
-      + New Role
-    </a>
+  <div class="page-header">
+    <div class="page-header-left">
+      <h1 class="page-header-title">Roles</h1>
+      <p class="page-header-subtitle">Manage roles and permissions</p>
+    </div>
+    <div class="page-header-right">
+      <a href="{{ admin_path | default('/admin') }}/roles/create" class="btn btn-primary">
+        + New Role
+      </a>
+    </div>
   </div>
 
   <div class="bg-white rounded-xl border border-[var(--color-gray-200)]">

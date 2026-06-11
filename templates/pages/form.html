@@ -14,31 +14,32 @@
 
 {% block content %}
 <div x-data="{ unsaved: false }" @change="unsaved = true">
-  <div class="flex items-center justify-between mb-6">
-    <div>
-      <a href="{{ admin_path | default('/admin') }}/{{ registered.table_name }}/"
-         class="inline-flex items-center gap-1 text-sm text-[var(--color-gray-500)] hover:text-[var(--color-primary-600)] transition-colors mb-2">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  <div class="page-header">
+    <div class="page-header-left">
+      <a href="{{ admin_path | default('/admin') }}/{{ registered.table_name }}/" class="page-header-back">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <use href="/static/icons/heroicons.svg#chevron-left"/>
         </svg>
-        Back to {{ registered.verbose_name_plural }}
+        {{ registered.verbose_name_plural }}
       </a>
-      <h1 class="text-2xl font-bold text-[var(--color-gray-900)]">
-        {% if obj %}Edit {{ registered.verbose_name }}{% else %}Create {{ registered.verbose_name }}{% endif %}
+      <h1 class="page-header-title">
+        {% if obj %}Edit {{ registered.verbose_name }}{% else %}New {{ registered.verbose_name }}{% endif %}
       </h1>
+      {% if obj %}
+      <p class="page-header-subtitle">
+        <span class="mono">#{{ obj.id }}</span>
+        {% if obj.__str__() %} — {{ obj.__str__() }}{% endif %}
+      </p>
+      {% endif %}
     </div>
-
-    <div class="flex items-center gap-3">
+    <div class="page-header-right">
       {% if obj and permissions.can_delete %}
       <form method="post" action="{{ admin_path | default('/admin') }}/{{ registered.table_name }}/{{ obj.id }}/delete"
             hx-confirm="Are you sure you want to delete this {{ registered.verbose_name | lower }}?"
             hx-delete="{{ admin_path | default('/admin') }}/{{ registered.table_name }}/{{ obj.id }}"
             hx-target="closest tr"
             hx-swap="outerHTML">
-        <button type="submit"
-                class="btn-danger px-4 py-2 rounded-lg border border-[var(--color-gray-300)] text-[var(--color-danger)] text-sm font-medium hover:bg-red-50 transition-colors">
-          Delete
-        </button>
+        <button type="submit" class="btn btn-danger btn-sm">Delete</button>
       </form>
       {% endif %}
     </div>

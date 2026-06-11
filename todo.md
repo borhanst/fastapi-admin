@@ -285,3 +285,290 @@
 - [x] 19.4 Update `fastapi_admin/views/form.py` to handle file fields: detect `FileUploadWidget`/`ImageUploadWidget`, handle keep/replace/clear actions
 - [x] 19.5 Add `max_size_mb` validation to `FileUploadWidget`
 - [x] 19.6 Write tests in `tests/test_storage.py`: save returns path, url returns correct URL, delete removes file, oversized file rejected
+
+---
+
+## Phase 20 — CSS Design Tokens & Variables
+
+**References:** `ui_design_system.md` §1 (Shell Layout), `UI_DESIGN_SYSTEM.md` tokens
+
+- [x] 20.1 Create `static/css/tokens.css` — all CSS custom properties: colour scales (primary, success, warning, danger, info), neutral greys, surface colours (`--surface-base`, `--surface-raised`, `--surface-overlay`, `--surface-border`), text colours (`--text-primary`, `--text-secondary`, `--text-disabled`, `--text-inverse`, `--mono-accent`)
+- [x] 20.2 Define layout dimension tokens: `--topbar-height: 52px`, `--sidebar-width: 240px`, `--sidebar-collapsed-width: 56px`, `--content-padding: 24px`, `--form-max-width: 860px`
+- [x] 20.3 Define radius tokens: `--radius-sm`, `--radius-md`, `--radius-lg`, `--radius-full`
+- [x] 20.4 Define shadow tokens: `--shadow-sm`, `--shadow-md`, `--shadow-lg`
+- [x] 20.5 Define typography tokens: `--text-xs`, `--text-sm`, `--text-base`, `--text-md`, `--text-lg`; font families (Inter, JetBrains Mono); font weights (400, 500, 600)
+- [x] 20.6 Define duration tokens: `--duration-fast`, `--duration-base`, `--duration-slow`
+- [x] 20.7 Add `[data-theme="dark"]` block overriding all surface/text/colour tokens for dark mode
+- [x] 20.8 Verify existing `variables.css` is replaced/consolidated into `tokens.css` — single source of truth
+
+---
+
+## Phase 21 — Shell Layout (Topbar + Sidebar + Content Area)
+
+**References:** `ui_design_system.md` §1, §2, §3, §4
+
+- [x] 21.1 Update `templates/base.html` — implement `.admin-shell` (`display: flex; flex-direction: column; height: 100vh`), `.admin-topbar` (52px, `flex-shrink: 0`), `.admin-body` (`display: flex; flex: 1; overflow: hidden`)
+- [x] 21.2 Implement `.admin-sidebar` — 240px fixed width, `overflow-y: auto`, `--surface-raised` background, right border
+- [x] 21.3 Implement `.admin-content` — `flex: 1; overflow-y: auto; padding: 24px`, inner wrapper `max-width: 1320px; margin: 0 auto`
+- [x] 21.4 Implement topbar left zone — collapse toggle (≡) 36px ghost icon, logo 28px tall, vertical divider
+- [x] 21.5 Implement topbar center zone — breadcrumb `--text-sm`, separators in `--text-disabled`, last segment `--text-secondary`
+- [x] 21.6 Implement topbar right zone — search trigger (⌘K badge), theme toggle, user avatar dropdown (28px circle, initials fallback)
+- [x] 21.7 Implement user avatar dropdown — user name header, role badge, Profile link, Sign out button (danger text)
+- [x] 21.8 Implement topbar loading bar — 2px `--primary-500` bar at very top during HTMX requests
+- [x] 21.9 Update sidebar nav sections: unlabelled (Dashboard), MODELS (registered models with record count badges), SYSTEM (Audit Log, Roles, Agent, API Keys), BOTTOM (Settings, `margin-top: auto`)
+- [x] 21.10 Implement nav item anatomy — 36px height, icon 16px, label `--text-sm`, badge `--text-mono-sm`, active state (`--primary-100` bg, `--primary-500` text, 2px left border), hover `--surface-overlay`
+- [x] 21.11 Implement section labels — `--text-xs` uppercase, `--text-disabled`, 0.06em letter-spacing
+- [x] 21.12 Write tests / visual verification for shell layout rendering
+
+---
+
+## Phase 22 — Collapsed Sidebar & Responsive Sidebar
+
+**References:** `ui_design_system.md` §3 (collapsed sidebar), §19 (responsive)
+
+- [x] 22.1 Implement collapsed sidebar state — width 56px, labels hidden, icons centered
+- [x] 22.2 Implement nav icon tooltip on hover — `--surface-overlay` bg, `--shadow-md`, positioned `left: 64px`, `--text-sm`
+- [x] 22.3 Active indicator in collapsed mode — 3px left border `--primary-500` only
+- [x] 22.4 Implement sidebar collapse toggle — persists state in `localStorage`, animated width transition
+- [x] 22.5 Mobile sidebar (< 768px) — off-canvas drawer with hamburger in topbar, overlay backdrop (`rgba(0,0,0,0.6)`), slide-in transition
+- [x] 22.6 Breakpoint `< 1024px` — sidebar auto-collapses to icon-only
+- [x] 22.7 Breakpoint `< 1280px` — content padding reduces to 16px
+
+---
+
+## Phase 23 — Page Header Component
+
+**References:** `ui_design_system.md` §4 (page header)
+
+- [x] 23.1 Implement `.page-header` component — title `--text-lg` Inter 600, optional subtitle `--text-sm` secondary
+- [x] 23.2 Implement primary action button placement — top-right, only one per page (list pages: "+ New {Model}", edit pages: none)
+- [x] 23.3 Implement form page header — back link `← {Model plural}` ghost text, title "New/Edit {Model}", subtitle with object repr + ID (JetBrains Mono for ID), History link on edit pages
+- [x] 23.4 Ensure header is NOT sticky — scrolls with content
+- [x] 23.5 Update all page templates to use the new `.page-header` component consistently
+
+---
+
+## Phase 24 — List Page: Search & Filter Bar
+
+**References:** `ui_design_system.md` §6
+
+- [x] 24.1 Implement search & filter bar container — sticky below page header (`position: sticky; top: 0; z-index: 10`), 48px height, flex layout with gap 8px
+- [x] 24.2 Implement search input — `flex: 1`, max 360px, 34px height, magnifying-glass icon 14px, placeholder in `--text-disabled`, clear button (✕) when active
+- [x] 24.3 Implement filter chips — 34px height, 1px border, `--radius-sm`, inactive: `--surface-raised` bg / `--text-secondary`, active: `--primary-100` bg / `--text-primary` + count badge
+- [x] 24.4 Implement filter dropdown panel — 220–320px width, `--surface-overlay` bg, `--shadow-md`, checkbox list, "Clear" link at bottom, boolean filters as Yes/No/Any radio
+- [x] 24.5 Implement "+ N more" overflow button when > 4 filters
+- [x] 24.6 Implement right side — "Clear all filters" link (visible when ≥1 active), Export dropdown (if `enable_export`), column visibility toggle (ghost icon, localStorage preference)
+- [x] 24.7 Wire HTMX `hx-get` on search `keyup` with `delay:300ms`, swap `#table-wrapper`
+
+---
+
+## Phase 25 — List Page: Table Component
+
+**References:** `ui_design_system.md` §7
+
+- [ ] 25.1 Implement table container — `--surface-raised` bg, 1px border, `--radius-md`, `overflow: hidden`
+- [ ] 25.2 Implement column headers — `--text-xs` uppercase, 500 weight, `--text-secondary`, 10px/12px padding; sortable columns show sort icon on hover, active sort in `--primary-500`
+- [ ] 25.3 Implement checkbox column — 44px width, header checkbox with indeterminate state, only shown if `can_delete`
+- [ ] 25.4 Implement data cell rendering — text truncation, mono font for numeric/ID/date, boolean as 6px circle (`--success-500`/`--surface-border`), status as badge, FK as linked `__str__`, long text tooltip on hover
+- [ ] 25.5 Implement actions column — rightmost, "Edit" ghost link, dot separator, "Delete" ghost link (hover: `--danger-500`)
+- [ ] 25.6 Implement inline delete confirmation — replaces actions `<td>` content, "Delete {name}?" with Yes/Cancel buttons, `--danger-100` row tint
+- [ ] 25.7 Implement row hover — `--primary-100` background, `--duration-fast` transition
+- [ ] 25.8 Implement empty table state — centered within table row, icon, message, "Try clearing filters" if active, "+ New" button if `can_create`
+- [ ] 25.9 Implement sortable column click — HTMX fetch with `?sort={col}&dir={asc|desc}`, URL param state
+
+---
+
+## Phase 26 — List Page: Bulk Action Bar
+
+**References:** `ui_design_system.md` §8
+
+- [ ] 26.1 Implement bulk action bar — replaces filter bar when ≥1 row selected, 48px height, `--primary-100` bg, `--primary-500` border, `--radius-md`
+- [ ] 26.2 Implement deselect button (✕), "{N} selected" label, action dropdown (secondary style), "Delete (N)" danger button (if `can_delete`)
+- [ ] 26.3 Animate bar in/out — height expand 150ms
+- [ ] 26.4 Bulk delete opens confirmation modal (not inline)
+- [ ] 26.5 Ensure filter bar is hidden (`display: none`) when bulk bar is visible, reappears when selection cleared
+
+---
+
+## Phase 27 — List Page: Pagination
+
+**References:** `ui_design_system.md` §5 (list page pagination zone)
+
+- [ ] 27.1 Implement pagination bar — "Showing 1–20 of 143" label, Prev/Next buttons, page number links
+- [ ] 27.2 Pagination placed outside `<table>` inside `#table-wrapper`
+- [ ] 27.3 Pagination swap target — updates via HTMX when search/filter/sort changes
+- [ ] 27.4 Style pagination buttons — ghost style, active page highlighted with `--primary-100`
+- [ ] 27.5 Ellipsis for large page counts (1 2 3 … 8)
+
+---
+
+## Phase 28 — Form Page: Fieldsets & Field Wrapper
+
+**References:** `ui_design_system.md` §9, §10
+
+- [ ] 28.1 Implement form body layout — `max-width: 860px`, flex column, gap 24px
+- [ ] 28.2 Implement fieldset card — `--surface-raised` bg, 1px border, `--radius-md`, 20px padding
+- [ ] 28.3 Implement fieldset header — flex space-between, title `--text-xs` uppercase secondary, collapse toggle (ghost icon chevron, Alpine.js `x-show` with height transition, `aria-expanded`/`aria-controls`)
+- [ ] 28.4 Implement fieldset CSS Grid — `repeat(auto-fill, minmax(280px, 1fr))`, gap 16px; full-width fields (`grid-column: 1 / -1`): textarea, JSON editor, rich text, multi-relation, file/image upload
+- [ ] 28.5 Implement `.field-wrapper` — flex column, gap 5px; label row (Inter 500, required `*` in `--danger-500`, readonly lock icon), input, help text, error list (no bullets, `--danger-500`, exclamation icon)
+- [ ] 28.6 Update form macros to match field wrapper anatomy exactly
+
+---
+
+## Phase 29 — Form Page: Save Bar & Dirty State
+
+**References:** `ui_design_system.md` §11
+
+- [ ] 29.1 Implement save bar — sticky bottom of `.admin-content` (`position: sticky; bottom: 0`), `--surface-raised` bg, border-top, z-index 20, flex with space-between
+- [ ] 29.2 Implement left side — "Delete record" danger-button-style (edit only, `can_delete`), opens delete confirmation modal
+- [ ] 29.3 Implement right side — "Save & continue editing" (secondary, 8px gap) + "Save & return" (primary)
+- [ ] 29.4 Implement dirty state tracking — Alpine.js `x-data` tracks `isDirty`, shows `●` dot badge before "Save & continue editing" in `--warning-500`
+- [ ] 29.5 Implement `beforeunload` warning for unsaved changes (native browser dialog)
+- [ ] 29.6 Implement submitting state — clicked button shows spinner, other save button disabled, 50% opacity on non-loading elements
+
+---
+
+## Phase 30 — Delete Confirmation Modal & Inline Delete
+
+**References:** `ui_design_system.md` §12
+
+- [ ] 30.1 Implement inline delete confirmation (single row) — replaces actions `<td>`, `--danger-100` row tint, "Yes, delete" danger btn sm, "Cancel" ghost btn sm, auto-cancel on click elsewhere
+- [ ] 30.2 Implement delete modal — `modal--sm` (480px), header "Delete {Model}?", body with object repr in `<strong>`, footer with Cancel ghost + Delete danger buttons
+- [ ] 30.3 Implement bulk delete modal — body "This will permanently delete **{N} {model plural}**. This cannot be undone."
+- [ ] 30.4 Implement modal backdrop — `rgba(0,0,0,0.6)`, `backdrop-filter: blur(2px)`, z-index 50; click closes (except delete confirmations)
+- [ ] 30.5 Implement modal entrance animation — `opacity: 0→1`, `scale(0.97)→scale(1)`, `--duration-slow`
+
+---
+
+## Phase 31 — Dashboard Page
+
+**References:** `ui_design_system.md` §13
+
+- [ ] 31.1 Implement stat cards row — CSS Grid `repeat(auto-fill, minmax(200px, 1fr))`, gap 16px; cards clickable (link to model list), hover: `--surface-overlay` bg + `--shadow-sm`
+- [ ] 31.2 Implement chart + activity split — flex layout (chart `flex: 3`, activity `flex: 2`), stacks below 1024px
+- [ ] 31.3 Implement recent activity feed — last 10 audit entries, each: coloured dot (CREATE `--success-500`, UPDATE `--warning-500`, DELETE `--danger-500`), user email, action badge, model + ID (mono), relative timestamp with absolute tooltip
+- [ ] 31.4 Add "View full audit log →" link at feed bottom
+- [ ] 31.5 Implement quick create row — flex wrap, secondary buttons with `+` prefix, only models with `can_create`, max 6 (truncate to 5 + "…more")
+
+---
+
+## Phase 32 — Audit Log Page
+
+**References:** `ui_design_system.md` §14
+
+- [ ] 32.1 Implement audit filter bar — Model, Action, User, Date range filters, "Clear" link; no search input
+- [ ] 32.2 Implement timeline layout — entries grouped by date, date group headers (`--text-xs` uppercase, line on each side)
+- [ ] 32.3 Implement audit entry card — `--surface-raised` bg, 1px border, 3px left border (colour per action), 12px/16px padding, cursor pointer
+- [ ] 32.4 Implement collapsed state — one line: colour dot, time (JetBrains Mono), user email, action badge, model + ID
+- [ ] 32.5 Implement expanded state (Alpine.js `x-show`) — diff table for UPDATE (FIELD/BEFORE/AFTER columns, changed rows highlighted `--warning-100`, values in mono), full snapshot JSON for CREATE/DELETE
+
+---
+
+## Phase 33 — Role Management Page
+
+**References:** `ui_design_system.md` §15
+
+- [ ] 33.1 Implement role list page — same list page structure, no search/filters, columns: Name, Description, Users (count mono), Created, Actions
+- [ ] 33.2 Implement role edit page — Role Details fieldset (Name input, Description textarea full width)
+- [ ] 33.3 Implement permissions matrix — `--surface-raised` bg, header row `--surface-overlay`, columns: Model (auto), View/Create/Edit/Delete (72px each), Fields (80px)
+- [ ] 33.4 Implement permission checkboxes — 18px custom checkboxes (not toggles), centered, alternating row backgrounds
+- [ ] 33.5 Implement fields expand — clicking "fields ▾" expands sub-section inline, two columns per field (view + edit checkbox), `--surface-overlay` bg, 4px left indent, field names in JetBrains Mono
+
+---
+
+## Phase 34 — Agent Chat Panel
+
+**References:** `ui_design_system.md` §16
+
+- [ ] 34.1 Implement panel container — fixed right, `top: 52px`, `height: calc(100vh - 52px)`, width 420px, `translateX(100%)` default, `translateX(0)` when open, 200ms cubic-bezier transition
+- [ ] 34.2 Implement panel shadow — `box-shadow: -4px 0 20px rgba(0,0,0,0.4)` on left edge
+- [ ] 34.3 Implement panel header — 52px, `--surface-overlay` bg, "✦ Agent" + model name + close button
+- [ ] 34.4 Implement session tabs — 36px, "Current" + "History ▾" dropdown
+- [ ] 34.5 Implement conversation thread — `flex: 1`, `overflow-y: auto`, 16px padding
+- [ ] 34.6 Implement tool indicators — auto height, visible only when tools running (e.g. "⚙ Querying products...")
+- [ ] 34.7 Implement input area — auto height, max ~120px, border-top, textarea + send button, model label (`--text-xs --text-disabled`)
+- [ ] 34.8 Implement trigger button — sticky bottom-right inside `.admin-content`, 44px circle, `--primary-500` bg, `--shadow-md`, sparkles icon, "Ask AI" tooltip
+
+---
+
+## Phase 35 — Login Page
+
+**References:** `ui_design_system.md` §17
+
+- [ ] 35.1 Implement standalone login layout — full viewport, `--surface-base` bg, vertically centred (min-height 100vh, flex center)
+- [ ] 35.2 Implement login card — `--surface-raised` bg, `--radius-lg`, `--shadow-lg`, width 380px, 32px padding
+- [ ] 35.3 Implement logo — centred, 36px height, fallback to app name in `--text-lg` Inter 600
+- [ ] 35.4 Implement title — "Sign in to {App Name}" in `--text-md` secondary, app name in primary 600
+- [ ] 35.5 Implement error message — full-width alert box, `--danger-100` bg, 3px left border `--danger-500`, exclamation icon
+- [ ] 35.6 Implement sign in button — full card width, primary, md size (36px)
+- [ ] 35.7 Implement show/hide password toggle — ghost icon button inside password input, eye/eye-slash icons
+
+---
+
+## Phase 36 — Command Palette (⌘K Global Search)
+
+**References:** `ui_design_system.md` §18 (command palette)
+
+- [ ] 36.1 Implement command palette overlay — full-screen backdrop, palette floats at `top: 20%`, width 560px, max-height 60vh, `--surface-overlay` bg, `--shadow-lg`, z-index 60
+- [ ] 36.2 Implement search input — 44px, borderless inside palette, auto-focus on open
+- [ ] 36.3 Implement results list — scrollable, keyboard navigation (↑↓), enter to select
+- [ ] 36.4 Wire ⌘K / Ctrl+K keyboard shortcut to open palette
+- [ ] 36.5 Wire search trigger button in topbar to open palette
+
+---
+
+## Phase 37 — Responsive Design & Mobile
+
+**References:** `ui_design_system.md` §19
+
+- [ ] 37.1 Breakpoint `< 1280px` — content padding 24px → 16px
+- [ ] 37.2 Breakpoint `< 1024px` — sidebar collapses to icon-only 56px, content takes full remaining width
+- [ ] 37.3 Breakpoint `< 768px` — sidebar becomes off-canvas drawer, hamburger in topbar, overlay backdrop; filter bar wraps to two rows; table columns collapse (show only primary column + actions column)
+- [ ] 37.4 Breakpoint `< 480px` — login card full width with 16px padding; modal becomes bottom sheet (full width, slides up, border-radius only top); agent panel full width
+- [ ] 37.5 Implement mobile table "view" row action — expands to show all field values inline
+- [ ] 37.6 Test all breakpoints in browser DevTools — verify no layout breaks
+
+---
+
+## Phase 38 — Page Transitions & Loading States
+
+**References:** `ui_design_system.md` §20
+
+- [ ] 38.1 Implement HTMX loading indicator — topbar progress bar (2px `--primary-500`) during requests
+- [ ] 38.2 Implement page content fade-in on HTMX swap — `opacity: 0→1` transition
+- [ ] 38.3 Implement skeleton loading states — for table rows (placeholder bars), stat cards, form fields
+- [ ] 38.4 Implement button loading spinners — on form submit, action buttons show spinner and disable
+- [ ] 38.5 Ensure all HTMX swaps have appropriate `hx-indicator` targets
+
+---
+
+## Phase 39 — Toast Notifications & Flash Messages (UI Polish)
+
+**References:** `ui_design_system.md` §18 (modals), existing flash system
+
+- [ ] 39.1 Implement toast container — fixed bottom-right, z-index 100, stack vertically with gap
+- [ ] 39.2 Implement toast component — `--surface-raised` bg, 1px border, `--radius-md`, `--shadow-md`, 4s auto-dismiss with progress bar
+- [ ] 39.3 Implement toast variants — success (`--success-500` left border), error (`--danger-500`), warning (`--warning-500`), info (`--info-500`)
+- [ ] 39.4 Wire flash messages to render as toasts via Alpine.js `x-show` with enter/leave transitions
+- [ ] 39.5 Implement toast close button (✕ ghost icon)
+
+---
+
+## Phase 40 — Final Integration & Visual QA
+
+**References:** `ui_design_system.md` §21 (Component Placement Rules)
+
+- [ ] 40.1 Verify zone ordering on all pages — no component from a lower zone appears in an upper zone
+- [ ] 40.2 Verify sidebar nav matches spec — correct sections, correct order, record count badges, active state
+- [ ] 40.3 Verify topbar — all three zones render correctly, dropdowns work, loading bar appears
+- [ ] 40.4 Verify all list pages — search, filters, table, pagination, bulk actions, empty states
+- [ ] 40.5 Verify all form pages — fieldsets, field wrapper, save bar, dirty state, delete confirmation
+- [ ] 40.6 Verify dashboard — stat cards, activity feed, quick create
+- [ ] 40.7 Verify audit log — timeline, expand/collapse, diff table
+- [ ] 40.8 Verify role management — permissions matrix, field expand
+- [ ] 40.9 Verify login page — standalone layout, error display, password toggle
+- [ ] 40.10 Verify agent chat panel — open/close, conversation, input
+- [ ] 40.11 Verify modals — backdrop, entrance animation, sizes (sm/default/lg)
+- [ ] 40.12 Verify responsive behaviour at all breakpoints (1280, 1024, 768, 480)
+- [ ] 40.13 Verify dark mode — all tokens switch correctly, no hardcoded colours
+- [ ] 40.14 Run full test suite and fix any regressions

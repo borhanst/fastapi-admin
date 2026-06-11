@@ -13,18 +13,22 @@
 
 {% block content %}
 <div class="space-y-6">
-  <div class="flex items-center justify-between">
-    <div>
-      <a href="{{ admin_path | default('/admin') }}/roles/"
-         class="inline-flex items-center gap-1 text-sm text-[var(--color-gray-500)] hover:text-[var(--color-primary-600)] transition-colors mb-2">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  <div class="page-header">
+    <div class="page-header-left">
+      <a href="{{ admin_path | default('/admin') }}/roles/" class="page-header-back">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <use href="/static/icons/heroicons.svg#chevron-left"/>
         </svg>
-        Back to Roles
+        Roles
       </a>
-      <h1 class="text-2xl font-bold text-[var(--color-gray-900)]">
-        {% if role %}Edit Role: {{ role.name }}{% else %}Create Role{% endif %}
+      <h1 class="page-header-title">
+        {% if role %}Edit Role{% else %}New Role{% endif %}
       </h1>
+      {% if role %}
+      <p class="page-header-subtitle">
+        <span class="mono">#{{ role.id }}</span> — {{ role.name }}
+      </p>
+      {% endif %}
     </div>
   </div>
 

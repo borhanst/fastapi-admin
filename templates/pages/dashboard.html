@@ -5,15 +5,9 @@
 
 {% block content %}
 <div class="space-y-6">
-  <div class="flex items-center justify-between">
-    <h1 class="text-2xl font-bold text-[var(--color-gray-900)]">Dashboard</h1>
-    <div class="flex items-center gap-3">
-      {% for registered in registered_models %}
-      <a href="{{ admin_path | default('/admin') }}/{{ registered.table_name }}/create"
-         class="btn-primary px-4 py-2 rounded-lg bg-[var(--color-primary-600)] text-white text-sm font-medium hover:bg-[var(--color-primary-500)] transition-colors">
-        + New {{ registered.verbose_name }}
-      </a>
-      {% endfor %}
+  <div class="page-header">
+    <div class="page-header-left">
+      <h1 class="page-header-title">Dashboard</h1>
     </div>
   </div>
 

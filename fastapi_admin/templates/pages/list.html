@@ -15,10 +15,42 @@
 {% if model.admin.search_fields %}
 <div class="mb-4">
     <form method="get" class="flex gap-2">
+        {% for ff, fv in active_filters.items() %}
+        <input type="hidden" name="filter_{{ ff }}" value="{{ fv }}">
+        {% endfor %}
         <input type="text" name="q" value="{{ search_query or '' }}" 
                placeholder="Search..."
                class="border rounded px-3 py-2 flex-1">
         <button type="submit" class="bg-gray-500 text-white px-4 py-2 rounded">Search</button>
+    </form>
+</div>
+{% endif %}
+
+<!-- Filters -->
+{% if filter_fields %}
+<div class="mb-4 flex flex-wrap gap-4">
+    <form method="get" class="flex flex-wrap gap-4 items-end">
+        {% if search_query %}
+        <input type="hidden" name="q" value="{{ search_query }}">
+        {% endif %}
+        {% for field_name, choices in filter_fields.items() %}
+        <div class="flex flex-col">
+            <label class="text-sm font-medium text-gray-700 mb-1">{{ field_name.replace("_", " ").title() }}</label>
+            <select name="filter_{{ field_name }}" 
+                    onchange="this.form.submit()"
+                    class="border rounded px-3 py-2">
+                {% for value, label in choices %}
+                <option value="{{ value }}" {% if active_filters.get(field_name) == value %}selected{% endif %}>
+                    {{ label }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        {% endfor %}
+        {% if active_filters %}
+        <a href="?{% if search_query %}q={{ search_query }}{% endif %}" 
+           class="text-sm text-red-500 hover:underline mb-1">Clear filters</a>
+        {% endif %}
     </form>
 </div>
 {% endif %}
@@ -76,20 +108,23 @@
 
 <!-- Pagination -->
 {% if total_pages > 1 %}
+{% set filter_params = "" %}
+{% for ff, fv in active_filters.items() %}{% set filter_params = filter_params ~ "&filter_" ~ ff ~ "=" ~ fv %}{% endfor %}
+{% if search_query %}{% set filter_params = filter_params ~ "&q=" ~ search_query %}{% endif %}
 <div class="mt-4 flex justify-center gap-2">
     {% if page > 1 %}
-    <a href="?page={{ page - 1 }}" class="px-3 py-1 border rounded">Previous</a>
+    <a href="?page={{ page - 1 }}{{ filter_params }}" class="px-3 py-1 border rounded">Previous</a>
     {% endif %}
     
     {% for p in range(1, total_pages + 1) %}
-    <a href="?page={{ p }}" 
+    <a href="?page={{ p }}{{ filter_params }}" 
        class="px-3 py-1 border rounded {% if p == page %}bg-blue-500 text-white{% endif %}">
         {{ p }}
     </a>
     {% endfor %}
     
     {% if page < total_pages %}
-    <a href="?page={{ page + 1 }}" class="px-3 py-1 border rounded">Next</a>
+    <a href="?page={{ page + 1 }}{{ filter_params }}" class="px-3 py-1 border rounded">Next</a>
     {% endif %}
 </div>
 {% endif %}
