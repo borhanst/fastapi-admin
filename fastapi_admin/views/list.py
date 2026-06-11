@@ -6,8 +6,9 @@ import math
 from typing import Any
 
 from fastapi import Request
-from sqlalchemy import desc, asc, select, func, or_, and_
+from sqlalchemy import and_, asc, desc, func, or_, select
 from sqlalchemy.orm import joinedload
+
 from fastapi_admin.registry import RegisteredModel
 from fastapi_admin.types import PermissionSet
 from fastapi_admin.views.sidebar import inject_sidebar_context
@@ -38,43 +39,130 @@ def _get_eager_loads(model: Any, list_display: list[str]) -> list:
     return options
 
 
-def _get_filter_choices(
-    model: Any, field_name: str, session: Any = None
-) -> list[tuple[str, str]]:
-    """Get available filter choices for a field. Returns list of (value, label)."""
-    from sqlalchemy import inspect as sa_inspect, select, func
+def _get_field_type(model: Any, field_name: str) -> str:
+    """Detect the abstract field type for a model field.
 
-    choices: list[tuple[str, str]] = [("", "All")]
+    Returns one of: "boolean", "datetime", "date", "time", "enum",
+    "relation", "text".
+    """
+    from sqlalchemy import inspect as sa_inspect
+
     mapper = sa_inspect(model)
+    rel_names = {r.key for r in mapper.relationships}
+
+    if field_name in rel_names:
+        return "relation"
+
     for prop in mapper.column_attrs:
         if prop.key == field_name:
             col = prop.columns[0] if prop.columns else None
-            if col is not None:
-                # Boolean field
-                if col.type.__class__.__name__ == "Boolean":
-                    choices.append(("1", "Yes"))
-                    choices.append(("0", "No"))
-                # Enum field
-                elif hasattr(col.type, "enums") and col.type.enums:
+            if col is None:
+                break
+            type_name = col.type.__class__.__name__
+            if type_name == "Boolean":
+                return "boolean"
+            if type_name == "DateTime":
+                return "datetime"
+            if type_name == "Date":
+                return "date"
+            if type_name == "Time":
+                return "time"
+            if hasattr(col.type, "enums") and col.type.enums:
+                return "enum"
+            if col.foreign_keys:
+                return "relation"
+            return "text"
+    return "text"
+
+
+def _get_filter_choices(
+    model: Any, field_name: str, session: Any = None
+) -> dict[str, Any]:
+    """Get filter field type and available choices for a field.
+
+    Returns ``{"field_type": str, "choices": [(value, label), ...]}``.
+    """
+    from sqlalchemy import inspect as sa_inspect
+    from sqlalchemy import select
+
+    mapper = sa_inspect(model)
+    field_type = _get_field_type(model, field_name)
+
+    # Relationship field — query related model objects
+    if field_type == "relation":
+        rel_map = {r.key: r for r in mapper.relationships}
+        target_model = None
+        if field_name in rel_map:
+            target_model = rel_map[field_name].target_model
+        else:
+            # FK column name (e.g. "category_id") — find matching relationship
+            for rel in mapper.relationships:
+                if rel.direction.name == "MANYTOONE":
+                    for prop in mapper.column_attrs:
+                        if prop.key == field_name:
+                            col = prop.columns[0] if prop.columns else None
+                            if col is not None:
+                                for fk in col.foreign_keys:
+                                    if fk.column.table == rel.target_table:
+                                        target_model = rel.mapper.class_
+                                        break
+                    if target_model is not None:
+                        break
+
+        choices: list[tuple[str, str]] = [("", "All")]
+        if target_model is not None and session is not None:
+            try:
+                q = select(target_model).order_by(target_model).limit(100)
+                result = session.execute(q)
+                for obj in result.scalars():
+                    choices.append((str(obj.id), str(obj)))
+            except Exception:
+                pass
+        return {"field_type": field_type, "choices": choices}
+
+    # Boolean
+    if field_type == "boolean":
+        return {
+            "field_type": "boolean",
+            "choices": [("", "All"), ("1", "Yes"), ("0", "No")],
+        }
+
+    # Enum
+    if field_type == "enum":
+        for prop in mapper.column_attrs:
+            if prop.key == field_name:
+                col = prop.columns[0] if prop.columns else None
+                if col is not None and hasattr(col.type, "enums"):
+                    choices = [("", "All")]
                     for val in col.type.enums:
                         choices.append((val, val.replace("_", " ").title()))
-                # String/other fields — query distinct values
-                elif session is not None:
-                    try:
-                        q = (
-                            select(col)
-                            .where(col.isnot(None))
-                            .group_by(col)
-                            .order_by(col)
-                            .limit(100)
-                        )
-                        result = session.execute(q)
-                        for (val,) in result:
-                            label = str(val).replace("_", " ").title()
-                            choices.append((str(val), label))
-                    except Exception:
-                        pass
-    return choices
+                    return {"field_type": "enum", "choices": choices}
+
+    # Date / DateTime / Time — no choices, rendered as input
+    if field_type in ("date", "datetime", "time"):
+        return {"field_type": field_type, "choices": [("", "All")]}
+
+    # Text / other — query distinct values
+    choices = [("", "All")]
+    for prop in mapper.column_attrs:
+        if prop.key == field_name:
+            col = prop.columns[0] if prop.columns else None
+            if col is not None and session is not None:
+                try:
+                    q = (
+                        select(col)
+                        .where(col.isnot(None))
+                        .group_by(col)
+                        .order_by(col)
+                        .limit(100)
+                    )
+                    result = session.execute(q)
+                    for (val,) in result:
+                        label = str(val).replace("_", " ").title()
+                        choices.append((str(val), label))
+                except Exception:
+                    pass
+    return {"field_type": "text", "choices": choices}
 
 
 def list_view_factory(registered: RegisteredModel):
@@ -102,13 +190,42 @@ def list_view_factory(registered: RegisteredModel):
                 param_key = f"filter_{filter_field}"
                 filter_value = request.query_params.get(param_key, "")
                 if filter_value and hasattr(model, filter_field):
+                    field_type = _get_field_type(model, filter_field)
                     col = getattr(model, filter_field)
-                    # Boolean filter
-                    if filter_value in ("0", "1"):
+
+                    if field_type == "boolean":
                         bool_val = filter_value == "1"
                         filter_clauses.append(col == bool_val)
+                    elif field_type == "datetime":
+                        from datetime import datetime as _dt
+
+                        try:
+                            parsed = _dt.fromisoformat(filter_value)
+                        except (ValueError, TypeError):
+                            parsed = None
+                        if parsed is not None:
+                            filter_clauses.append(col == parsed)
+                    elif field_type == "date":
+                        from datetime import date as _date
+
+                        try:
+                            parsed = _date.fromisoformat(filter_value)
+                        except (ValueError, TypeError):
+                            parsed = None
+                        if parsed is not None:
+                            filter_clauses.append(col == parsed)
+                    elif field_type == "time":
+                        from datetime import time as _time
+
+                        try:
+                            parsed = _time.fromisoformat(filter_value)
+                        except (ValueError, TypeError):
+                            parsed = None
+                        if parsed is not None:
+                            filter_clauses.append(col == parsed)
                     else:
                         filter_clauses.append(col == filter_value)
+
                 if filter_value:
                     active_filters[filter_field] = filter_value
             if filter_clauses:
@@ -158,7 +275,7 @@ def list_view_factory(registered: RegisteredModel):
             display_columns.append(DisplayColumn(col_name, label, col_name in rel_names))
 
         # Build filter choices for template
-        filter_fields: dict[str, list[tuple[str, str]]] = {}
+        filter_fields: dict[str, dict[str, Any]] = {}
         if registered.admin.list_filter:
             for filter_field in registered.admin.list_filter:
                 filter_fields[filter_field] = _get_filter_choices(

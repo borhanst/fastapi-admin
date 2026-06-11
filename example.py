@@ -1,9 +1,7 @@
 """Example usage of FastAPI Admin with multiple models and configurations."""
 
 import os
-import secrets
 from contextlib import asynccontextmanager
-from pathlib import Path
 
 import bcrypt
 from fastapi import FastAPI
@@ -11,6 +9,7 @@ from sqlalchemy import (
     Boolean,
     Column,
     DateTime,
+    Enum,
     Float,
     ForeignKey,
     Integer,
@@ -23,9 +22,11 @@ from sqlalchemy.orm import DeclarativeBase, relationship, sessionmaker
 from sqlalchemy.sql import func
 
 from fastapi_admin import Admin, ModelAdmin
+from fastapi_admin.audit.models import (
+    AuditLog,  # noqa: F401 — ensure table is created
+)
 from fastapi_admin.auth.backend import BuiltinAuthBackend
 from fastapi_admin.auth.models import AdminUser
-from fastapi_admin.audit.models import AuditLog  # noqa: F401 — ensure table is created
 from fastapi_admin.models import Base as AdminBase
 
 # ============================================================================
@@ -106,8 +107,15 @@ class Order(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     order_date = Column(DateTime(timezone=True), server_default=func.now())
     status = Column(
-        String(20), default="pending"
-    )  # pending, processing, completed, cancelled
+        Enum(
+            "pending",
+            "processing",
+            "completed",
+            "cancelled",
+            name="order_status",
+        ),
+        default="pending",
+    )
     total_amount = Column(Float, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
@@ -175,7 +183,7 @@ class ProductAdmin(ModelAdmin):
     verbose_name = "Product"
     verbose_name_plural = "Products"
     per_page = 20
-    tag="product"
+    tag = "product"
 
 
 class UserAdmin(ModelAdmin):
@@ -189,7 +197,7 @@ class UserAdmin(ModelAdmin):
     readonly_fields = ["created_at"]
     verbose_name = "User"
     verbose_name_plural = "Users"
-    tag="user"
+    tag = "user"
 
 
 class OrderAdmin(ModelAdmin):
@@ -226,21 +234,53 @@ async def seed_demo_data(session: AsyncSession) -> None:
     if result.scalars().first() is not None:
         return
 
-    electronics = Category(name="Electronics", description="Gadgets and devices")
+    electronics = Category(
+        name="Electronics", description="Gadgets and devices"
+    )
     clothing = Category(name="Clothing", description="Apparel and accessories")
     session.add_all([electronics, clothing])
     await session.flush()
 
     products = [
-        Product(name="Laptop", description="15-inch laptop", price=999.99, stock=50, category=electronics, is_active=True),
-        Product(name="Headphones", description="Noise-cancelling", price=199.99, stock=200, category=electronics, is_active=True),
-        Product(name="T-Shirt", description="Cotton tee", price=29.99, stock=500, category=clothing, is_active=True),
-        Product(name="Jeans", description="Slim fit denim", price=79.99, stock=150, category=clothing, is_active=False),
+        Product(
+            name="Laptop",
+            description="15-inch laptop",
+            price=999.99,
+            stock=50,
+            category=electronics,
+            is_active=True,
+        ),
+        Product(
+            name="Headphones",
+            description="Noise-cancelling",
+            price=199.99,
+            stock=200,
+            category=electronics,
+            is_active=True,
+        ),
+        Product(
+            name="T-Shirt",
+            description="Cotton tee",
+            price=29.99,
+            stock=500,
+            category=clothing,
+            is_active=True,
+        ),
+        Product(
+            name="Jeans",
+            description="Slim fit denim",
+            price=79.99,
+            stock=150,
+            category=clothing,
+            is_active=False,
+        ),
     ]
     session.add_all(products)
     await session.flush()
 
-    user1 = User(email="alice@example.com", full_name="Alice Johnson", is_active=True)
+    user1 = User(
+        email="alice@example.com", full_name="Alice Johnson", is_active=True
+    )
     user2 = User(email="bob@example.com", full_name="Bob Smith", is_active=True)
     session.add_all([user1, user2])
     await session.flush()
@@ -250,11 +290,19 @@ async def seed_demo_data(session: AsyncSession) -> None:
     session.add_all([order1, order2])
     await session.flush()
 
-    session.add_all([
-        OrderItem(order=order1, product=products[0], quantity=1, price=999.99),
-        OrderItem(order=order1, product=products[1], quantity=1, price=199.99),
-        OrderItem(order=order2, product=products[2], quantity=1, price=29.99),
-    ])
+    session.add_all(
+        [
+            OrderItem(
+                order=order1, product=products[0], quantity=1, price=999.99
+            ),
+            OrderItem(
+                order=order1, product=products[1], quantity=1, price=199.99
+            ),
+            OrderItem(
+                order=order2, product=products[2], quantity=1, price=29.99
+            ),
+        ]
+    )
     await session.commit()
     print("Seeded demo data.")
 

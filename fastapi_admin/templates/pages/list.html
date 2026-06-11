@@ -38,7 +38,7 @@
     {% endif %}
 
     {% if filter_fields %}
-    {% for field_name, choices in filter_fields.items() %}
+    {% for field_name, field_info in filter_fields.items() %}
     <form method="get" style="display: contents;">
         {% if search_query %}<input type="hidden" name="q" value="{{ search_query }}">{% endif %}
         {% for ff, fv in active_filters.items() %}
@@ -46,16 +46,59 @@
           <input type="hidden" name="filter_{{ ff }}" value="{{ fv }}">
           {% endif %}
         {% endfor %}
+
+        {% if field_info.field_type == "date" %}
+        <div class="filter-chip-wrap {% if active_filters.get(field_name) %}filter-chip--active{% endif %}">
+            <label class="filter-chip-label">{{ field_name.replace("_", " ").title() }}</label>
+            <input type="date" name="filter_{{ field_name }}"
+                   value="{{ active_filters.get(field_name, '') }}"
+                   onchange="this.form.submit()"
+                   class="filter-input-date">
+            {% if active_filters.get(field_name) %}
+            <a href="?{% for ff, fv in active_filters.items() %}{% if ff != field_name %}filter_{{ ff }}={{ fv }}&{% endif %}{% endfor %}{% if search_query %}q={{ search_query }}{% endif %}"
+               class="filter-clear-btn" title="Clear">&times;</a>
+            {% endif %}
+        </div>
+
+        {% elif field_info.field_type == "datetime" %}
+        <div class="filter-chip-wrap {% if active_filters.get(field_name) %}filter-chip--active{% endif %}">
+            <label class="filter-chip-label">{{ field_name.replace("_", " ").title() }}</label>
+            <input type="datetime-local" name="filter_{{ field_name }}"
+                   value="{{ active_filters.get(field_name, '') }}"
+                   onchange="this.form.submit()"
+                   class="filter-input-datetime">
+            {% if active_filters.get(field_name) %}
+            <a href="?{% for ff, fv in active_filters.items() %}{% if ff != field_name %}filter_{{ ff }}={{ fv }}&{% endif %}{% endfor %}{% if search_query %}q={{ search_query }}{% endif %}"
+               class="filter-clear-btn" title="Clear">&times;</a>
+            {% endif %}
+        </div>
+
+        {% elif field_info.field_type == "time" %}
+        <div class="filter-chip-wrap {% if active_filters.get(field_name) %}filter-chip--active{% endif %}">
+            <label class="filter-chip-label">{{ field_name.replace("_", " ").title() }}</label>
+            <input type="time" name="filter_{{ field_name }}"
+                   value="{{ active_filters.get(field_name, '') }}"
+                   onchange="this.form.submit()"
+                   class="filter-input-time">
+            {% if active_filters.get(field_name) %}
+            <a href="?{% for ff, fv in active_filters.items() %}{% if ff != field_name %}filter_{{ ff }}={{ fv }}&{% endif %}{% endfor %}{% if search_query %}q={{ search_query }}{% endif %}"
+               class="filter-clear-btn" title="Clear">&times;</a>
+            {% endif %}
+        </div>
+
+        {% else %}
+        {# boolean, enum, relation, text — render as select #}
         <select name="filter_{{ field_name }}"
                 onchange="this.form.submit()"
                 class="filter-chip {% if active_filters.get(field_name) %}filter-chip--active{% endif %}">
             <option value="">{{ field_name.replace("_", " ").title() }}</option>
-            {% for value, label in choices %}
+            {% for value, label in field_info.choices %}
             <option value="{{ value }}" {% if active_filters.get(field_name) == value %}selected{% endif %}>
                 {{ label }}
             </option>
             {% endfor %}
         </select>
+        {% endif %}
     </form>
     {% endfor %}
 

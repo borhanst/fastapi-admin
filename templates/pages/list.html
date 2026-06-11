@@ -1,4 +1,4 @@
-{# pages/list.html — model list view with HTMX #}
+{# pages/list.html — model list view with type-aware filters #}
 {% extends "base.html" %}
 
 {% block title %}{{ registered.verbose_name_plural }} — {{ title | default("Admin") }}{% endblock %}
@@ -23,7 +23,7 @@
       <svg class="filter-bar-search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <use href="/static/icons/heroicons.svg#magnifying-glass"/>
       </svg>
-      <input type="text" name="search" value="{{ search | default('') }}"
+      <input type="text" name="search" value="{{ search_query | default('') }}"
              placeholder="Search {{ registered.verbose_name_plural | lower }}..."
              hx-get="{{ admin_path | default('/admin') }}/{{ registered.table_name }}/"
              hx-trigger="keyup changed delay:300ms"
@@ -41,16 +41,73 @@
       </button>
     </div>
 
-    {% if registered.admin.list_filter %}
+    {% if filter_fields %}
     <div class="filter-bar-chips">
-      {% for filter_field in registered.admin.list_filter %}
+      {% for field_name, field_info in filter_fields.items() %}
       <div class="relative" x-data="{ open: false }">
+
+        {% if field_info.field_type == "date" %}
+        <div class="filter-chip-wrap {% if active_filters.get(field_name) %}filter-chip--active{% endif %}">
+          <label class="filter-chip-label">{{ field_name | replace('_', ' ') | title }}</label>
+          <input type="date" name="filter_{{ field_name }}"
+                 value="{{ active_filters.get(field_name, '') }}"
+                 hx-get="{{ admin_path | default('/admin') }}/{{ registered.table_name }}/"
+                 hx-trigger="change"
+                 hx-target="#table-wrapper"
+                 hx-include="[name='search'], [name^='filter_']"
+                 class="filter-input-date">
+          {% if active_filters.get(field_name) %}
+          <button type="button" class="filter-clear-btn" title="Clear"
+                  hx-get="{{ admin_path | default('/admin') }}/{{ registered.table_name }}/"
+                  hx-target="#table-wrapper"
+                  hx-include="[name='search']">&times;</button>
+          {% endif %}
+        </div>
+
+        {% elif field_info.field_type == "datetime" %}
+        <div class="filter-chip-wrap {% if active_filters.get(field_name) %}filter-chip--active{% endif %}">
+          <label class="filter-chip-label">{{ field_name | replace('_', ' ') | title }}</label>
+          <input type="datetime-local" name="filter_{{ field_name }}"
+                 value="{{ active_filters.get(field_name, '') }}"
+                 hx-get="{{ admin_path | default('/admin') }}/{{ registered.table_name }}/"
+                 hx-trigger="change"
+                 hx-target="#table-wrapper"
+                 hx-include="[name='search'], [name^='filter_']"
+                 class="filter-input-datetime">
+          {% if active_filters.get(field_name) %}
+          <button type="button" class="filter-clear-btn" title="Clear"
+                  hx-get="{{ admin_path | default('/admin') }}/{{ registered.table_name }}/"
+                  hx-target="#table-wrapper"
+                  hx-include="[name='search']">&times;</button>
+          {% endif %}
+        </div>
+
+        {% elif field_info.field_type == "time" %}
+        <div class="filter-chip-wrap {% if active_filters.get(field_name) %}filter-chip--active{% endif %}">
+          <label class="filter-chip-label">{{ field_name | replace('_', ' ') | title }}</label>
+          <input type="time" name="filter_{{ field_name }}"
+                 value="{{ active_filters.get(field_name, '') }}"
+                 hx-get="{{ admin_path | default('/admin') }}/{{ registered.table_name }}/"
+                 hx-trigger="change"
+                 hx-target="#table-wrapper"
+                 hx-include="[name='search'], [name^='filter_']"
+                 class="filter-input-time">
+          {% if active_filters.get(field_name) %}
+          <button type="button" class="filter-clear-btn" title="Clear"
+                  hx-get="{{ admin_path | default('/admin') }}/{{ registered.table_name }}/"
+                  hx-target="#table-wrapper"
+                  hx-include="[name='search']">&times;</button>
+          {% endif %}
+        </div>
+
+        {% else %}
+        {# boolean, enum, relation, text — render as dropdown #}
         <button type="button" class="filter-chip"
-                :class="{ 'active': activeFilters['{{ filter_field }}'] }"
+                :class="{ 'active': activeFilters['{{ field_name }}'] }"
                 @click="open = !open">
-          {{ filter_field | replace('_', ' ') | title }}
-          <template x-if="activeFilters['{{ filter_field }}']">
-            <span class="filter-chip-count" x-text="activeFilters['{{ filter_field }}']"></span>
+          {{ field_name | replace('_', ' ') | title }}
+          <template x-if="activeFilters['{{ field_name }}']">
+            <span class="filter-chip-count" x-text="activeFilters['{{ field_name }}']"></span>
           </template>
           <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <use href="/static/icons/heroicons.svg#chevron-right"/>
@@ -58,38 +115,29 @@
         </button>
         <div class="filter-dropdown" x-show="open" @click.outside="open = false" x-transition>
           <div class="filter-dropdown-header">
-            <span>{{ filter_field | replace('_', ' ') | title }}</span>
+            <span>{{ field_name | replace('_', ' ') | title }}</span>
             <button type="button" class="filter-dropdown-clear"
-                    @click="clearFilter('{{ filter_field }}'); open = false">Clear</button>
+                    @click="clearFilter('{{ field_name }}'); open = false">Clear</button>
           </div>
+          {% for value, label in field_info.choices %}
           <div class="filter-dropdown-item">
-            <input type="radio" name="filter_{{ filter_field }}" value=""
-                   :checked="!activeFilters['{{ filter_field }}']"
-                   @change="setFilter('{{ filter_field }}', '')" id="filter_{{ filter_field }}_all">
-            <label for="filter_{{ filter_field }}_all">All</label>
+            <input type="radio" name="filter_{{ field_name }}" value="{{ value }}"
+                   :checked="activeFilters['{{ field_name }}'] === '{{ value }}'"
+                   @change="setFilter('{{ field_name }}', '{{ value }}'); open = false"
+                   id="filter_{{ field_name }}_{{ value }}">
+            <label for="filter_{{ field_name }}_{{ value }}">{{ label }}</label>
           </div>
-          {% if filter_field == 'is_active' %}
-          <div class="filter-dropdown-item">
-            <input type="radio" name="filter_{{ filter_field }}" value="1"
-                   :checked="activeFilters['{{ filter_field }}'] === '1'"
-                   @change="setFilter('{{ filter_field }}', '1')" id="filter_{{ filter_field }}_yes">
-            <label for="filter_{{ filter_field }}_yes">Yes</label>
-          </div>
-          <div class="filter-dropdown-item">
-            <input type="radio" name="filter_{{ filter_field }}" value="0"
-                   :checked="activeFilters['{{ filter_field }}'] === '0'"
-                   @change="setFilter('{{ filter_field }}', '0')" id="filter_{{ filter_field }}_no">
-            <label for="filter_{{ filter_field }}_no">No</label>
-          </div>
-          {% endif %}
+          {% endfor %}
         </div>
+        {% endif %}
+
       </div>
       {% endfor %}
     </div>
     {% endif %}
 
     <div class="filter-bar-right">
-      {% if registered.admin.list_filter %}
+      {% if filter_fields %}
       <button type="button" class="filter-bar-clear-all"
               x-show="Object.keys(activeFilters).length > 0"
               x-transition
@@ -116,7 +164,7 @@
             {% if permissions.can_delete %}
             <th class="px-4 py-3 text-left" style="width: 44px">
               <input type="checkbox" id="select-all"
-                     hx-on:click="document.querySelectorAll('input[name=&quot;ids[]&quot;"]').forEach(c => c.checked = $el.checked)">
+                     hx-on:click="document.querySelectorAll('input[name=&quot;ids[]&quot;]').forEach(c => c.checked = $el.checked)">
             </th>
             {% endif %}
             {% for col in registered.columns %}
@@ -142,8 +190,8 @@
           </tr>
         </thead>
         <tbody>
-          {% if objects %}
-          {% for obj in objects %}
+          {% if items %}
+          {% for obj in items %}
           <tr>
             {% if permissions.can_delete %}
             <td class="px-4 py-3">
@@ -208,7 +256,7 @@
     {% endif %}
 
     {% from "partials/pagination.html" import render_pagination %}
-    {{ render_pagination(page, total_pages, total_items, per_page) }}
+    {{ render_pagination(page, total_pages, total, registered.admin.per_page) }}
   </div>
 </div>
 
@@ -220,7 +268,7 @@
 function filterBar() {
   return {
     hasSearch: false,
-    activeFilters: {},
+    activeFilters: {{ active_filters | tojson }},
     showColumnPicker: false,
     setFilter(field, value) {
       if (value) {
@@ -241,8 +289,8 @@ function filterBar() {
     applyFilters() {
       const params = new URLSearchParams(window.location.search);
       Object.entries(this.activeFilters).forEach(([key, val]) => {
-        if (val) params.set(key, val);
-        else params.delete(key);
+        if (val) params.set('filter_' + key, val);
+        else params.delete('filter_' + key);
       });
       const search = this.$refs.searchInput?.value;
       if (search) params.set('search', search);
