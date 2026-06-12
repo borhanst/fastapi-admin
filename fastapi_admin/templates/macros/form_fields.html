@@ -80,7 +80,7 @@
 {% endmacro %}
 
 {% macro _htmx_validate(field_ctx, model_name, trigger="blur") %}
-hx-post="/admin/{{ model_name }}/validate-field"
+hx-post="{{ admin_path }}/{{ model_name }}/validate-field"
 hx-trigger="{{ trigger }}"
 hx-target="#field-wrapper-{{ field_ctx.meta.name }}"
 hx-swap="outerHTML"
@@ -529,7 +529,7 @@ hx-vals='{"field_name": "{{ field_ctx.meta.name }}"}'
 {% set related_table = field_ctx.widget_context.related_table | default('') %}
 {{ _field_wrapper_open(field_ctx) }}
   {{ _label(field_ctx) }}
-  <div x-data="relationPicker('{{ val }}', '{{ label_text }}', '/admin/{{ related_table }}/search')">
+  <div x-data="relationPicker('{{ val }}', '{{ label_text }}', '{{ admin_path }}/{{ related_table }}/search')">
     <input type="hidden" name="{{ name }}" :value="selectedId">
     <div class="relation-picker">
       <input type="text" x-model="searchQuery" @input="search()" @click.outside="open = false" @focus="open = true"
@@ -562,7 +562,7 @@ hx-vals='{"field_name": "{{ field_ctx.meta.name }}"}'
 {% set related_table = field_ctx.widget_context.related_table | default('') %}
 {{ _field_wrapper_open(field_ctx) }}
   {{ _label(field_ctx) }}
-  <div x-data="multiRelation({{ val }}, '/admin/{{ related_table }}/search')">
+  <div x-data="multiRelation({{ val }}, '{{ admin_path }}/{{ related_table }}/search')">
     <input type="hidden" name="{{ name }}" :value="JSON.stringify(selectedIds)">
     <div class="flex flex-wrap gap-2" style="margin-bottom: 8px;">
       <template x-for="(item, index) in selectedItems" :key="item.id">

@@ -93,7 +93,7 @@ def _get_filter_choices(
         rel_map = {r.key: r for r in mapper.relationships}
         target_model = None
         if field_name in rel_map:
-            target_model = rel_map[field_name].target_model
+            target_model = rel_map[field_name].mapper.class_
         else:
             # FK column name (e.g. "category_id") — find matching relationship
             for rel in mapper.relationships:
@@ -103,7 +103,7 @@ def _get_filter_choices(
                             col = prop.columns[0] if prop.columns else None
                             if col is not None:
                                 for fk in col.foreign_keys:
-                                    if fk.column.table == rel.target_table:
+                                    if fk.column.table == rel.mapper.persist_selectable:
                                         target_model = rel.mapper.class_
                                         break
                     if target_model is not None:
@@ -291,6 +291,7 @@ def list_view_factory(registered: RegisteredModel):
             "page": page,
             "total_pages": total_pages,
             "total": total,
+            "per_page": per_page,
             "filter_fields": filter_fields,
             "active_filters": active_filters,
             "permissions": PermissionSet(

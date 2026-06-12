@@ -32,6 +32,7 @@
             </svg>
             <input type="text" name="q" value="{{ search_query or '' }}"
                    placeholder="Search {{ model.verbose_name_plural|lower }}..."
+                   oninput="clearTimeout(this._st); this._st=setTimeout(()=>this.form.submit(),350)"
                    class="form-input filter-bar__search">
         </div>
     </form>

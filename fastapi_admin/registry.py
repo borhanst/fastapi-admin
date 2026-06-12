@@ -57,7 +57,11 @@ class RegisteredModel:
         col = next((c for c in self.columns if c.name == field_name), None)
         rel = next((r for r in self.relationships if r.name == field_name), None)
         if col is not None:
-            return widget_registry.resolve(col)
+            widget = widget_registry.resolve(col)
+            if isinstance(widget, RelationPickerWidget) and not widget.related_table and col.foreign_keys:
+                fk = col.foreign_keys[0]
+                widget.related_table = fk.column.table.name
+            return widget
         if rel is not None:
             related_verbose = auto_label(
                 rel.target_model.__tablename__

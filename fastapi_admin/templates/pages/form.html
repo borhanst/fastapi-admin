@@ -4,7 +4,7 @@
 {% block title %}{{ "Edit" if form_context.obj else "Create" }} {{ form_context.verbose_name }} — Admin{% endblock %}
 
 {% block content %}
-<a href="/admin/{{ form_context.model_name }}/" class="back-link">
+<a href="{{ admin_path }}/{{ form_context.model_name }}/" class="back-link">
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
     </svg>
@@ -45,13 +45,13 @@
         <div class="form-save-bar__left">
             {% if form_context.obj %}
             <button type="button" class="btn btn-danger btn-sm"
-                    onclick="if(confirm('Are you sure you want to delete this {{ form_context.verbose_name|lower }}?')) { window.location='/admin/{{ form_context.model_name }}/{{ form_context.obj.id }}/delete'; }">
+                    onclick="if(confirm('Are you sure you want to delete this {{ form_context.verbose_name|lower }}?')) { window.location='{{ admin_path }}/{{ form_context.model_name }}/{{ form_context.obj.id }}/delete'; }">
                 Delete
             </button>
             {% endif %}
         </div>
         <div class="form-save-bar__right">
-            <a href="/admin/{{ form_context.model_name }}/" class="btn btn-ghost">Cancel</a>
+            <a href="{{ admin_path }}/{{ form_context.model_name }}/" class="btn btn-ghost">Cancel</a>
             <button type="submit" class="btn btn-primary">
                 {{ "Save" if form_context.obj else "Create" }} {{ form_context.verbose_name }}
             </button>

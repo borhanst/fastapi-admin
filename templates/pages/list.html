@@ -23,18 +23,18 @@
       <svg class="filter-bar-search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <use href="/static/icons/heroicons.svg#magnifying-glass"/>
       </svg>
-      <input type="text" name="search" value="{{ search_query | default('') }}"
+      <input type="text" name="q" value="{{ search_query | default('') }}"
              placeholder="Search {{ registered.verbose_name_plural | lower }}..."
              hx-get="{{ admin_path | default('/admin') }}/{{ registered.table_name }}/"
              hx-trigger="keyup changed delay:300ms"
              hx-target="#table-wrapper"
-             hx-include="[name='search']"
+             hx-include="[name='q']"
              class="filter-bar-search-input"
              x-ref="searchInput"
              @input="hasSearch = $refs.searchInput.value.length > 0">
       <button type="button" class="filter-bar-clear"
               x-show="hasSearch" x-transition
-              @click="$refs.searchInput.value = ''; hasSearch = false; $refs.searchInput.dispatchEvent(new Event('input'))">
+              @click="$refs.searchInput.value = ''; hasSearch = false; $refs.searchInput.dispatchEvent(new KeyboardEvent('keyup', {bubbles: true}))">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <use href="/static/icons/heroicons.svg#x-mark"/>
         </svg>
@@ -54,13 +54,13 @@
                  hx-get="{{ admin_path | default('/admin') }}/{{ registered.table_name }}/"
                  hx-trigger="change"
                  hx-target="#table-wrapper"
-                 hx-include="[name='search'], [name^='filter_']"
+                 hx-include="[name='q'], [name^='filter_']"
                  class="filter-input-date">
           {% if active_filters.get(field_name) %}
           <button type="button" class="filter-clear-btn" title="Clear"
                   hx-get="{{ admin_path | default('/admin') }}/{{ registered.table_name }}/"
                   hx-target="#table-wrapper"
-                  hx-include="[name='search']">&times;</button>
+                   hx-include="[name='q']">&times;</button>
           {% endif %}
         </div>
 
@@ -72,13 +72,13 @@
                  hx-get="{{ admin_path | default('/admin') }}/{{ registered.table_name }}/"
                  hx-trigger="change"
                  hx-target="#table-wrapper"
-                 hx-include="[name='search'], [name^='filter_']"
+                 hx-include="[name='q'], [name^='filter_']"
                  class="filter-input-datetime">
           {% if active_filters.get(field_name) %}
           <button type="button" class="filter-clear-btn" title="Clear"
                   hx-get="{{ admin_path | default('/admin') }}/{{ registered.table_name }}/"
                   hx-target="#table-wrapper"
-                  hx-include="[name='search']">&times;</button>
+                   hx-include="[name='q']">&times;</button>
           {% endif %}
         </div>
 
@@ -90,13 +90,13 @@
                  hx-get="{{ admin_path | default('/admin') }}/{{ registered.table_name }}/"
                  hx-trigger="change"
                  hx-target="#table-wrapper"
-                 hx-include="[name='search'], [name^='filter_']"
+                 hx-include="[name='q'], [name^='filter_']"
                  class="filter-input-time">
           {% if active_filters.get(field_name) %}
           <button type="button" class="filter-clear-btn" title="Clear"
                   hx-get="{{ admin_path | default('/admin') }}/{{ registered.table_name }}/"
                   hx-target="#table-wrapper"
-                  hx-include="[name='search']">&times;</button>
+                   hx-include="[name='q']">&times;</button>
           {% endif %}
         </div>
 
@@ -293,8 +293,8 @@ function filterBar() {
         else params.delete('filter_' + key);
       });
       const search = this.$refs.searchInput?.value;
-      if (search) params.set('search', search);
-      else params.delete('search');
+      if (search) params.set('q', search);
+      else params.delete('q');
       const url = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
       htmx.ajax('GET', url, { target: '#table-wrapper', swap: 'outerHTML' });
     }

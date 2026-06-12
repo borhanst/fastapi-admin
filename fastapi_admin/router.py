@@ -42,24 +42,6 @@ def build_model_router(registered: RegisteredModel) -> APIRouter:
         dependencies=[Depends(require_permission(registered.table_name, "create"))],
     )
     router.add_api_route(
-        "/{id}",
-        edit_form_factory(registered),
-        methods=["GET"],
-        dependencies=[Depends(require_permission(registered.table_name, "edit"))],
-    )
-    router.add_api_route(
-        "/{id}",
-        edit_submit_factory(registered),
-        methods=["POST"],
-        dependencies=[Depends(require_permission(registered.table_name, "edit"))],
-    )
-    router.add_api_route(
-        "/{id}/delete",
-        delete_factory(registered),
-        methods=["POST"],
-        dependencies=[Depends(require_permission(registered.table_name, "delete"))],
-    )
-    router.add_api_route(
         "/search",
         search_factory(registered),
         methods=["GET"],
@@ -95,13 +77,36 @@ def build_model_router(registered: RegisteredModel) -> APIRouter:
             if err:
                 errors = [err]
 
-        return templates.TemplateResponse("partials/field_wrapper.html", {
-            "request": request,
-            "field": field_meta,
-            "value": raw_value,
-            "errors": errors,
-            "widget_macro": widget.macro_name,
+        from fastapi_admin.types import FieldRenderContext
+
+        field_ctx = FieldRenderContext(
+            meta=field_meta,
+            widget_macro=widget.macro_name,
+            widget_context=widget.render_context(field_meta, raw_value),
+            errors=errors,
+        )
+        return templates.TemplateResponse(request, "partials/field_wrapper.html", {
+            "field_ctx": field_ctx,
             "model_name": registered.table_name,
         })
+
+    router.add_api_route(
+        "/{id}",
+        edit_form_factory(registered),
+        methods=["GET"],
+        dependencies=[Depends(require_permission(registered.table_name, "edit"))],
+    )
+    router.add_api_route(
+        "/{id}",
+        edit_submit_factory(registered),
+        methods=["POST"],
+        dependencies=[Depends(require_permission(registered.table_name, "edit"))],
+    )
+    router.add_api_route(
+        "/{id}/delete",
+        delete_factory(registered),
+        methods=["POST"],
+        dependencies=[Depends(require_permission(registered.table_name, "delete"))],
+    )
 
     return router

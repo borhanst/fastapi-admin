@@ -62,8 +62,8 @@
                 <nav class="admin-sidebar__nav" aria-label="Main navigation">
                     {% block sidebar %}
                     {# Dashboard — always at top #}
-                    <a href="/admin/"
-                       class="nav-link {% if request.url.path == '/admin/' %}active{% endif %}">
+                    <a href="{{ admin_path }}/"
+                       class="nav-link {% if request.url.path == admin_path ~ '/' %}active{% endif %}">
                         <svg class="nav-link__icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                             <use href="/static/icons/heroicons.svg#home-outline" />
                         </svg>
