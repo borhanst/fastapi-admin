@@ -382,42 +382,52 @@ class TestMultiRelationWidget:
 class TestWidgetRegistry:
     def test_register_and_get(self):
         from fastapi_admin.widgets.registry import WidgetRegistry
+        from fastapi_admin.widgets.resolver import WidgetResolver
         from fastapi_admin.widgets.inputs import TextInputWidget
         reg = WidgetRegistry()
         reg.register_type(str, TextInputWidget)
-        w = reg.resolve(_col(col_type=str))
+        resolver = WidgetResolver(reg)
+        w = resolver.resolve(_col(col_type=str))
         assert isinstance(w, TextInputWidget)
 
     def test_fallback_to_text_input(self):
         from fastapi_admin.widgets.registry import WidgetRegistry
+        from fastapi_admin.widgets.resolver import WidgetResolver
         from fastapi_admin.widgets.inputs import TextInputWidget
         reg = WidgetRegistry()
-        w = reg.resolve(_col(col_type=type("Unknown", (), {})))
+        resolver = WidgetResolver(reg)
+        w = resolver.resolve(_col(col_type=type("Unknown", (), {})))
         assert isinstance(w, TextInputWidget)
 
     def test_fk_resolves_to_relation_picker(self):
         from fastapi_admin.widgets.registry import WidgetRegistry
+        from fastapi_admin.widgets.resolver import WidgetResolver
         from fastapi_admin.widgets.relation import RelationPickerWidget
         reg = WidgetRegistry()
+        resolver = WidgetResolver(reg)
         col = _col(name="category_id", foreign_keys=[1])
-        w = reg.resolve(col)
+        w = resolver.resolve(col)
         assert isinstance(w, RelationPickerWidget)
 
     def test_name_pattern_password(self):
         from fastapi_admin.widgets.registry import WidgetRegistry
+        from fastapi_admin.widgets.resolver import WidgetResolver
         from fastapi_admin.widgets.inputs import PasswordWidget
         reg = WidgetRegistry()
         reg.register_name("password", PasswordWidget)
+        resolver = WidgetResolver(reg)
         col = _col(name="user_password")
-        w = reg.resolve(col)
+        w = resolver.resolve(col)
         assert isinstance(w, PasswordWidget)
 
     def test_name_pattern_takes_priority_over_type(self):
         from fastapi_admin.widgets.registry import WidgetRegistry
+        from fastapi_admin.widgets.resolver import WidgetResolver
         from fastapi_admin.widgets.inputs import PasswordWidget, TextInputWidget
         reg = WidgetRegistry()
         reg.register_name("password", PasswordWidget)
         reg.register_type(str, TextInputWidget)
+        resolver = WidgetResolver(reg)
         col = _col(name="password_hash", col_type=str)
-        w = reg.resolve(col)
+        w = resolver.resolve(col)
         assert isinstance(w, PasswordWidget)

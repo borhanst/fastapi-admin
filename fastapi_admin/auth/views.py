@@ -14,7 +14,7 @@ from fastapi import (
     status,
 )
 from fastapi.responses import HTMLResponse, RedirectResponse
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from fastapi_admin.auth.dependencies import _get_db_session, get_session
 
@@ -53,7 +53,7 @@ async def login_post(
     email: str = Form(...),
     password: str = Form(...),
     next: str | None = Form(None),
-    session: Session = Depends(_get_db_session),
+    session: AsyncSession = Depends(_get_db_session),
 ) -> HTMLResponse | RedirectResponse:
     """POST /admin/login — process login form."""
     auth_backend = request.app.state.admin_auth_backend
@@ -61,8 +61,8 @@ async def login_post(
     if user is not None:
         # Update last_login
         user.last_login = datetime.now(UTC)
-        session.add(user)
-        session.commit()
+        await session.merge(user)
+        await session.commit()
 
         # Create session cookie
         session_backend = request.app.state.admin_session_backend

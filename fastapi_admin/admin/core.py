@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import re
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -10,10 +11,20 @@ from typing import TYPE_CHECKING, Any
 
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-from jinja2 import Environment, FileSystemLoader
+from jinja2 import Environment
 
-import re
-
+from fastapi_admin.admin.admin_config import AdminConfig
+from fastapi_admin.admin.admin_database import AdminDatabase
+from fastapi_admin.admin.admin_router import AdminRouter
+from fastapi_admin.admin.admin_template import AdminTemplate
+from fastapi_admin.config import (
+    AuditConfig,
+    AuthConfig,
+    BehaviorConfig,
+    NavConfig,
+    StorageConfig,
+    UIConfig,
+)
 from fastapi_admin.exceptions import ConfigError
 from fastapi_admin.registry import AdminRegistry, RegisteredModel
 from fastapi_admin.types import SeedRole
@@ -93,8 +104,11 @@ class _RegistrationProxy:
 class Admin:
     """Main admin interface. Register models and mount to your FastAPI app.
 
-    Full configuration kwargs from ``AUTH_RBAC_SYSTEM.md`` §17 and
-    ``fastapi_admin_core_spec.md`` §3.12.
+    Uses component-based architecture with:
+    - config: AdminConfig (UI, auth, audit, behavior, storage, nav settings)
+    - database: AdminDatabase (engine, table creation, role seeding)
+    - router: AdminRouter (routing, static files, Jinja)
+    - template: AdminTemplate (branding, sidebar context)
     """
 
     def __init__(
@@ -102,94 +116,106 @@ class Admin:
         app: FastAPI | None = None,
         engine: Engine | None = None,
         *,
-        # Database
-        base: type | None = None,  # User's SQLAlchemy DeclarativeBase
-        # Branding
+        # Component instances (new API)
+        config: AdminConfig | None = None,
+        database: AdminDatabase | None = None,
+        router: AdminRouter | None = None,
+        template: AdminTemplate | None = None,
+        # Legacy kwargs for backward compatibility
+        base: type | None = None,
         title: str = "FastAPI Admin",
         logo_url: str | None = None,
         favicon_url: str | None = None,
         primary_color: str = "#0ea5e9",
         primary_color_dark: str = "#0284c7",
-        # Behavior
         dark_mode_default: bool = False,
         per_page_default: int = 25,
         session_ttl: int = 28800,
         audit_retention_days: int = 365,
-        # Dashboard
         dashboard_stats: list[str] | None = None,
         dashboard_charts: bool = True,
-        # Security
         admin_path: str = "/admin",
         secret_key: str = "",
-        # Auth
         auth_model: type | None = None,
         auth_backend: AuthBackend | None = None,
         session_cookie_name: str = "admin_session",
         session_secure: bool = False,
-        # RBAC
         seed_roles: list[SeedRole] | None = None,
         seed_roles_overwrite: bool = False,
         superuser_emails: list[str] | None = None,
-        # Storage
         storage: StorageBackend | None = None,
         uploads_url: str = "/uploads",
-        # Behavior flags
         auto_discover: bool = True,
-        # Nav / sidebar
         nav_groups: list[NavGroupConfig] | None = None,
         sidebar_builder: SidebarBuilder | None = None,
         require_tags: bool = False,
     ):
         self.registry = AdminRegistry()
-        self.engine = engine
-        self.base = base  # Store user's Base for table creation
         self._app: FastAPI | None = app
 
-        # Branding
-        self.title = title
-        self.logo_url = logo_url
-        self.favicon_url = favicon_url
-        self.primary_color = primary_color
-        self.primary_color_dark = primary_color_dark
+        # Build components from legacy kwargs if components not provided
+        if config is None:
+            config = AdminConfig(
+                ui=UIConfig(
+                    title=title,
+                    logo_url=logo_url,
+                    favicon_url=favicon_url,
+                    primary_color=primary_color,
+                    primary_color_dark=primary_color_dark,
+                    dark_mode_default=dark_mode_default,
+                    per_page_default=per_page_default,
+                ),
+                auth=AuthConfig(
+                    auth_model=auth_model,
+                    auth_backend=auth_backend,
+                    session_ttl=session_ttl,
+                    session_cookie_name=session_cookie_name,
+                    session_secure=session_secure,
+                    superuser_emails=superuser_emails,
+                ),
+                audit=AuditConfig(audit_retention_days=audit_retention_days),
+                behavior=BehaviorConfig(
+                    auto_discover=auto_discover,
+                    dashboard_stats=dashboard_stats or [],
+                    dashboard_charts=dashboard_charts,
+                ),
+                storage=StorageConfig(storage=storage, uploads_url=uploads_url),
+                nav=NavConfig(
+                    nav_groups=nav_groups or [],
+                    sidebar_builder=sidebar_builder,
+                    require_tags=require_tags,
+                ),
+            )
 
-        # Behavior
-        self.dark_mode_default = dark_mode_default
-        self.per_page_default = per_page_default
-        self.session_ttl = session_ttl
-        self.audit_retention_days = audit_retention_days
+        if database is None:
+            database = AdminDatabase(engine=engine, base=base)
 
-        # Dashboard
-        self.dashboard_stats = dashboard_stats or []
-        self.dashboard_charts = dashboard_charts
+        if router is None:
+            router = AdminRouter(
+                admin_path=admin_path,
+                secret_key=secret_key or os.environ.get("SECRET_KEY", ""),
+            )
 
-        # Security
-        self.admin_path = admin_path.rstrip("/")
-        self.secret_key = secret_key or os.environ.get("SECRET_KEY", "")
+        if template is None:
+            template = AdminTemplate(
+                title=config.ui.title,
+                logo_url=config.ui.logo_url,
+                favicon_url=config.ui.favicon_url,
+                primary_color=config.ui.primary_color,
+                primary_color_dark=config.ui.primary_color_dark,
+                dark_mode_default=config.ui.dark_mode_default,
+            )
 
-        # Auth
-        self.auth_model = auth_model
-        self.auth_backend = auth_backend
-        self.session_cookie_name = session_cookie_name
-        self.session_secure = session_secure
+        self.config = config
+        self.database = database
+        self.router = router
+        self.template = template
 
         # RBAC
         self.seed_roles = (
             seed_roles if seed_roles is not None else DEFAULT_SEED_ROLES
         )
         self.seed_roles_overwrite = seed_roles_overwrite
-        self.superuser_emails = superuser_emails or []
-
-        # Storage
-        self.storage = storage
-        self.uploads_url = uploads_url
-
-        # Flags
-        self.auto_discover = auto_discover
-
-        # Nav / sidebar
-        self.nav_groups = nav_groups or []
-        self.sidebar_builder = sidebar_builder
-        self.require_tags = require_tags
 
         # Built sidebar (populated during setup)
         self._nav_groups_built: list[Any] = []
@@ -202,6 +228,114 @@ class Admin:
         if app is not None and engine is not None:
             # Deferred setup — user will call await admin.setup() via lifespan
             pass
+
+    # ------------------------------------------------------------------
+    # Backward-compatible property accessors
+    # ------------------------------------------------------------------
+
+    @property
+    def title(self) -> str:
+        return self.config.ui.title
+
+    @property
+    def logo_url(self) -> str | None:
+        return self.config.ui.logo_url
+
+    @property
+    def favicon_url(self) -> str | None:
+        return self.config.ui.favicon_url
+
+    @property
+    def primary_color(self) -> str:
+        return self.config.ui.primary_color
+
+    @property
+    def primary_color_dark(self) -> str:
+        return self.config.ui.primary_color_dark
+
+    @property
+    def dark_mode_default(self) -> bool:
+        return self.config.ui.dark_mode_default
+
+    @property
+    def per_page_default(self) -> int:
+        return self.config.ui.per_page_default
+
+    @property
+    def admin_path(self) -> str:
+        return self.router.admin_path
+
+    @property
+    def secret_key(self) -> str:
+        return self.router.secret_key
+
+    @property
+    def engine(self) -> Engine | None:
+        return self.database.engine
+
+    @property
+    def base(self) -> type | None:
+        return self.database.base
+
+    @property
+    def session_ttl(self) -> int:
+        return self.config.auth.session_ttl
+
+    @property
+    def audit_retention_days(self) -> int:
+        return self.config.audit.audit_retention_days
+
+    @property
+    def dashboard_stats(self) -> list[str]:
+        return self.config.behavior.dashboard_stats
+
+    @property
+    def dashboard_charts(self) -> bool:
+        return self.config.behavior.dashboard_charts
+
+    @property
+    def auth_model(self) -> type | None:
+        return self.config.auth.auth_model
+
+    @property
+    def auth_backend(self) -> AuthBackend | None:
+        return self.config.auth.auth_backend
+
+    @property
+    def session_cookie_name(self) -> str:
+        return self.config.auth.session_cookie_name
+
+    @property
+    def session_secure(self) -> bool:
+        return self.config.auth.session_secure
+
+    @property
+    def superuser_emails(self) -> list[str]:
+        return self.config.auth.superuser_emails
+
+    @property
+    def storage(self) -> StorageBackend | None:
+        return self.config.storage.storage
+
+    @property
+    def uploads_url(self) -> str:
+        return self.config.storage.uploads_url
+
+    @property
+    def auto_discover(self) -> bool:
+        return self.config.behavior.auto_discover
+
+    @property
+    def nav_groups(self) -> list[NavGroupConfig]:
+        return self.config.nav.nav_groups
+
+    @property
+    def sidebar_builder(self) -> SidebarBuilder | None:
+        return self.config.nav.sidebar_builder
+
+    @property
+    def require_tags(self) -> bool:
+        return self.config.nav.require_tags
 
     # ------------------------------------------------------------------
     # Setup (async)
@@ -221,7 +355,7 @@ class Admin:
                 "Admin requires a FastAPI app instance. Pass app= or call setup(app=)."
             )
 
-        if self.engine is None:
+        if self.database.engine is None:
             raise ConfigError(
                 "Admin requires a SQLAlchemy engine. Pass engine= to Admin()."
             )
@@ -229,21 +363,27 @@ class Admin:
         app = self._app
 
         # 1. Validate auth_model satisfies AdminUserProtocol
-        self._validate_auth_model()
+        self.config.auth.validate_auth_model()
 
         # 2. Database tables should be created via Alembic migrations
-        # (Skip _create_tables if using migrations)
         skip_create_tables = (
             os.environ.get("SKIP_CREATE_TABLES", "true").lower() == "true"
         )
         if not skip_create_tables:
-            await self._create_tables()
+            await self.database._create_tables()
 
         # 3. Seed default roles
-        await self._seed_roles()
+        await self.database._seed_roles(
+            self.seed_roles, self.seed_roles_overwrite
+        )
 
         # 4. Create and store session backend
-        self._init_session_backend()
+        self._session_backend = self.database._init_session_backend(
+            secret_key=self.router.secret_key,
+            session_ttl=self.config.auth.session_ttl,
+            cookie_name=self.config.auth.session_cookie_name,
+            secure=self.config.auth.session_secure,
+        )
 
         # 5. Store backends and config on app.state
         self._wire_app_state(app)
@@ -255,11 +395,11 @@ class Admin:
         self._init_jinja(app)
 
         # 8. Auto-discover models
-        if self.auto_discover:
+        if self.config.behavior.auto_discover:
             self.registry.auto_discover()
 
         # 9. Validate require_tags
-        if self.require_tags:
+        if self.config.nav.require_tags:
             self._validate_tags()
 
         # 10. Build sidebar structure (once at startup)
@@ -294,10 +434,14 @@ class Admin:
         else:
             registered = self.registry.register(model)
         if self._jinja_env:
-            self._jinja_env.env.globals["registered_models"] = self.registry.all()
+            self._jinja_env.env.globals["registered_models"] = (
+                self.registry.all()
+            )
             if self._nav_groups_built:
                 self._nav_groups_built = self._build_sidebar()
-                self._jinja_env.env.globals["nav_groups"] = self._nav_groups_built
+                self._jinja_env.env.globals["nav_groups"] = (
+                    self._nav_groups_built
+                )
         if admin_class is not None:
             return registered
         return _RegistrationProxy(self, registered)
@@ -335,174 +479,59 @@ class Admin:
 
     def _validate_auth_model(self) -> None:
         """Validate that auth_model satisfies AdminUserProtocol."""
-        model = self.auth_model
-        if model is None:
-            # Default — no validation needed, built-in AdminUser is used
-            return
-
-        required_attrs = ["id", "email", "is_active", "is_superuser", "role_id"]
-        missing = [attr for attr in required_attrs if not hasattr(model, attr)]
-        if missing:
-            raise ConfigError(
-                f"auth_model {model.__name__!r} does not satisfy AdminUserProtocol. "
-                f"Missing attributes: {', '.join(missing)}"
-            )
-
-    async def _create_tables(self) -> None:
-        """Create all admin database tables (async-safe)."""
-        from sqlalchemy.ext.asyncio import AsyncEngine
-
-        from fastapi_admin.models.base import Base as AdminBase
-        # Import models to register them with metadata
-        from fastapi_admin.auth import models as _auth_models  # noqa: F401
-        from fastapi_admin.audit import models as _audit_models  # noqa: F401
-
-        if isinstance(self.engine, AsyncEngine):
-            # Async engine - use run_sync
-            async with self.engine.begin() as conn:
-                # Create admin tables
-                await conn.run_sync(AdminBase.metadata.create_all)
-                # Create user tables if Base is provided
-                if self.base is not None:
-                    await conn.run_sync(self.base.metadata.create_all)
-        else:
-            # Sync engine - direct call
-            AdminBase.metadata.create_all(bind=self.engine)
-            if self.base is not None:
-                self.base.metadata.create_all(bind=self.engine)
-
-    async def _seed_roles(self) -> None:
-        """Seed default roles if none exist (or if overwrite is enabled)."""
-        from sqlalchemy import select
-        from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
-        from sqlalchemy.orm import Session, sessionmaker
-
-        from fastapi_admin.auth.models import AdminPermission, AdminRole
-
-        is_async = isinstance(self.engine, AsyncEngine)
-
-        if is_async:
-            # Use AsyncSession for async engine
-            SessionLocal = sessionmaker(
-                self.engine, class_=AsyncSession, expire_on_commit=False
-            )
-            async with SessionLocal() as session:
-                # Check existing count
-                result = await session.execute(select(AdminRole))
-                existing_count = len(result.scalars().all())
-
-                if existing_count > 0 and not self.seed_roles_overwrite:
-                    return
-
-                if self.seed_roles_overwrite:
-                    await session.execute(select(AdminRole).delete())
-
-                for role_spec in self.seed_roles:
-                    role = AdminRole(
-                        name=role_spec.name, description=role_spec.description
-                    )
-                    session.add(role)
-                    await session.flush()  # get role.id
-
-                    if role_spec.permissions:
-                        for table_name, perms in role_spec.permissions.items():
-                            perm = AdminPermission(
-                                role_id=role.id,
-                                table_name=table_name,
-                                can_view=perms.get("view", False),
-                                can_create=perms.get("create", False),
-                                can_edit=perms.get("edit", False),
-                                can_delete=perms.get("delete", False),
-                            )
-                            session.add(perm)
-
-                await session.commit()
-        else:
-            # Use sync Session for sync engine
-            session = Session(bind=self.engine)
-            try:
-                existing_count = session.query(AdminRole).count()
-
-                if existing_count > 0 and not self.seed_roles_overwrite:
-                    return
-
-                if self.seed_roles_overwrite:
-                    session.query(AdminRole).delete()
-
-                for role_spec in self.seed_roles:
-                    role = AdminRole(
-                        name=role_spec.name, description=role_spec.description
-                    )
-                    session.add(role)
-                    session.flush()  # get role.id
-
-                    if role_spec.permissions:
-                        for table_name, perms in role_spec.permissions.items():
-                            perm = AdminPermission(
-                                role_id=role.id,
-                                table_name=table_name,
-                                can_view=perms.get("view", False),
-                                can_create=perms.get("create", False),
-                                can_edit=perms.get("edit", False),
-                                can_delete=perms.get("delete", False),
-                            )
-                            session.add(perm)
-
-                session.commit()
-            finally:
-                session.close()
-
-    def _init_session_backend(self) -> None:
-        """Create and store the signed-cookie session backend."""
-        from fastapi_admin.auth.session import SignedCookieSessionBackend
-
-        self._session_backend = SignedCookieSessionBackend(
-            secret_key=self.secret_key,
-            session_ttl=self.session_ttl,
-            cookie_name=self.session_cookie_name,
-            secure=self.session_secure,
-        )
+        self.config.auth.validate_auth_model()
 
     def _wire_app_state(self, app: FastAPI) -> None:
-        """Store backends and configuration on app.state."""
+        """Store backends and configuration on app.state as typed AdminState."""
+        from fastapi_admin.admin.state import AdminState
         from sqlalchemy.ext.asyncio import AsyncSession
 
-        app.state.admin_engine = self.engine
-        app.state.admin_session_backend = self._session_backend
-        app.state.admin_auth_backend = self.auth_backend
-        app.state.admin_storage = self.storage
-        app.state.admin_registry = self.registry
-
-        # Async session for views (reused per-request via dependency)
-        app.state.admin_db_session = AsyncSession(self.engine, expire_on_commit=False)
-
-        app.state.admin_config = {
-            "title": self.title,
-            "logo_url": self.logo_url,
-            "favicon_url": self.favicon_url,
-            "primary_color": self.primary_color,
-            "primary_color_dark": self.primary_color_dark,
-            "dark_mode_default": self.dark_mode_default,
-            "per_page_default": self.per_page_default,
-            "session_ttl": self.session_ttl,
-            "audit_retention_days": self.audit_retention_days,
-            "dashboard_stats": self.dashboard_stats,
-            "dashboard_charts": self.dashboard_charts,
-            "admin_path": self.admin_path,
-            "superuser_emails": self.superuser_emails,
+        admin_config = {
+            "title": self.config.ui.title,
+            "logo_url": self.config.ui.logo_url,
+            "favicon_url": self.config.ui.favicon_url,
+            "primary_color": self.config.ui.primary_color,
+            "primary_color_dark": self.config.ui.primary_color_dark,
+            "dark_mode_default": self.config.ui.dark_mode_default,
+            "per_page_default": self.config.ui.per_page_default,
+            "session_ttl": self.config.auth.session_ttl,
+            "audit_retention_days": self.config.audit.audit_retention_days,
+            "dashboard_stats": self.config.behavior.dashboard_stats,
+            "dashboard_charts": self.config.behavior.dashboard_charts,
+            "admin_path": self.router.admin_path,
+            "superuser_emails": self.config.auth.superuser_emails,
         }
-        app.state.admin = self
+
+        state = AdminState(
+            engine=self.database.engine,
+            session_backend=self._session_backend,
+            auth_backend=self.config.auth.auth_backend,
+            storage=self.config.storage.storage,
+            registry=self.registry,
+            db_session=AsyncSession(self.database.engine, expire_on_commit=False),
+            config=admin_config,
+            jinja_env=self._jinja_env,
+            admin_instance=self,
+        )
+
+        # Store typed state as single attribute
+        app.state.admin_state = state
+
+        # Also store individual attributes for backward compatibility
+        app.state.admin = self  # Admin instance (backward compat)
+        app.state.admin_engine = state.engine
+        app.state.admin_session_backend = state.session_backend
+        app.state.admin_auth_backend = state.auth_backend
+        app.state.admin_storage = state.storage
+        app.state.admin_registry = state.registry
+        app.state.admin_db_session = state.db_session
+        app.state.admin_config = state.config
+        app.state.admin_jinja_env = state.jinja_env
 
     def _mount_static(self, app: FastAPI) -> None:
-        """Mount the static files directory and uploads directory.
-
-        Templates reference ``/static/...`` directly, so we mount at the
-        root ``/static`` path.  The ``{admin_path}/static`` alias is kept
-        for backwards compatibility.
-        """
-        static_dir = Path(__file__).parent / "static"
+        """Mount the static files directory and uploads directory."""
+        static_dir = Path(__file__).parent.parent / "static"
         if static_dir.is_dir():
-            # Primary mount — matches template references (/static/...)
             app.mount(
                 "/static",
                 StaticFiles(directory=str(static_dir)),
@@ -511,11 +540,14 @@ class Admin:
 
         # Mount uploads directory if using LocalStorageBackend
         from fastapi_admin.storage.local import LocalStorageBackend
-        if isinstance(self.storage, LocalStorageBackend):
-            self.storage.ensure_dir()
+
+        if isinstance(self.config.storage.storage, LocalStorageBackend):
+            self.config.storage.storage.ensure_dir()
             app.mount(
-                self.uploads_url,
-                StaticFiles(directory=str(self.storage.upload_dir)),
+                self.config.storage.uploads_url,
+                StaticFiles(
+                    directory=str(self.config.storage.storage.upload_dir)
+                ),
                 name="admin_uploads",
             )
 
@@ -523,11 +555,14 @@ class Admin:
         """Initialise the Jinja2 template environment."""
         from starlette.templating import Jinja2Templates
 
-        templates_dir = Path(__file__).parent / "templates"
+        templates_dir = Path(__file__).parent.parent / "templates"
         self._jinja_env = Jinja2Templates(directory=str(templates_dir))
-        self._jinja_env.env.filters["slugify"] = lambda s: re.sub(r"[^\w]", "-", s, flags=re.A).strip("-").lower()
+        slugify = lambda s: (
+            re.sub(r"[^\w]", "-", s, flags=re.A).strip("-").lower()
+        )
+        self._jinja_env.env.filters["slugify"] = slugify
         self._jinja_env.env.globals["registered_models"] = self.registry.all()
-        self._jinja_env.env.globals["admin_path"] = self.admin_path
+        self._jinja_env.env.globals["admin_path"] = self.router.admin_path
         self._jinja_env.env.globals["nav_groups"] = self._nav_groups_built
         app.state.admin_jinja_env = self._jinja_env
 
@@ -536,31 +571,38 @@ class Admin:
         if self._router_built:
             return
 
-        from fastapi_admin.router import build_model_router
         from fastapi_admin.auth.router import router as auth_router
+        from fastapi_admin.router import build_model_router
         from fastapi_admin.views.audit import router as audit_router
         from fastapi_admin.views.roles import router as roles_router
 
         for registered in self.registry.all():
             model_router = build_model_router(registered)
-            app.include_router(model_router, prefix=self.admin_path)
+            app.include_router(model_router, prefix=self.router.admin_path)
 
         # Auth routes (login/logout)
-        app.include_router(auth_router, prefix=self.admin_path)
+        app.include_router(auth_router, prefix=self.router.admin_path)
 
         # Audit & role management routes
-        app.include_router(audit_router, prefix=self.admin_path)
-        app.include_router(roles_router, prefix=self.admin_path)
+        app.include_router(audit_router, prefix=self.router.admin_path)
+        app.include_router(roles_router, prefix=self.router.admin_path)
 
         # Dashboard route
         from fastapi_admin.views.dashboard import dashboard_view_factory
+
         dashboard_view = dashboard_view_factory(self)
         app.add_api_route(
-            self.admin_path,
+            self.router.admin_path,
             dashboard_view,
             methods=["GET"],
             tags=["admin"],
         )
+
+        # JSON API for external frontend apps
+        from fastapi_admin.api import AdminAPIRouter
+
+        api_router = AdminAPIRouter(registry=self.registry)
+        app.include_router(api_router.build_router())
 
         self._router_built = True
 
@@ -591,40 +633,23 @@ class Admin:
         """Build the sidebar group structure once at startup."""
         from fastapi_admin.nav import DefaultSidebarBuilder
 
-        builder = self.sidebar_builder or DefaultSidebarBuilder()
-        return builder.build(self.registry.all(), self.nav_groups, admin_path=self.admin_path)
+        builder = self.config.nav.sidebar_builder or DefaultSidebarBuilder()
+        return builder.build(
+            self.registry.all(),
+            self.config.nav.nav_groups,
+            admin_path=self.router.admin_path,
+        )
 
     def build_sidebar_context(self, request: Any, user: Any = None) -> dict:
         """Build per-request sidebar context (RBAC filter + permissions map)."""
-        if user is None:
-            user = getattr(request.state, "admin_user", None)
-
-        from sqlalchemy.orm import Session
-        from fastapi_admin.auth.permissions import PermissionChecker
-
-        session: Session = request.app.state.admin_db_session
-        checker = PermissionChecker(session=session, user=user) if user else None
-
-        permissions_map: dict[str, Any] = {}
-        nav_groups = self._nav_groups_built
-        if checker:
-            for group in nav_groups:
-                for item in group.items:
-                    table = item.permission_table
-                    if table and table not in permissions_map:
-                        permissions_map[table] = checker.permission_set(table)
-
-        return {
-            "nav_groups": nav_groups,
-            "permissions_map": permissions_map,
-            "current_user": user,
-        }
+        return self.template.build_sidebar_context(request, user=user)
 
     def sidebar_template_kwargs(self, request: Any) -> dict[str, Any]:
         """Thin wrapper — returns sidebar kwargs for TemplateResponse contexts."""
-        return self.build_sidebar_context(request)
+        return self.template.sidebar_template_kwargs(request)
 
-    def apply_sidebar_context(self, request: Any, user: Any, context: dict) -> dict:
+    def apply_sidebar_context(
+        self, request: Any, user: Any, context: dict
+    ) -> dict:
         """Inject nav_groups + permissions_map into a template context dict."""
-        context.update(self.build_sidebar_context(request, user=user))
-        return context
+        return self.template.apply_sidebar_context(request, user, context)

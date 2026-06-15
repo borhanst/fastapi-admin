@@ -5,8 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from fastapi import Depends, HTTPException, Request
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from fastapi_admin.auth.protocol import AdminUserProtocol
 from fastapi_admin.auth.session import SignedCookieSessionBackend
@@ -30,40 +29,17 @@ def _get_session_backend(request: Request) -> SignedCookieSessionBackend:
     return backend
 
 
-def _get_sync_engine(request: Request):
-    """Get or create a sync engine from the async engine in app.state."""
-    from sqlalchemy.ext.asyncio import AsyncEngine
-
-    async_engine = getattr(request.app.state, "admin_engine", None)
-    if async_engine is None:
+async def _get_db_session(request: Request) -> AsyncSession:
+    """Yield the async SQLAlchemy session from app.state."""
+    session: AsyncSession | None = getattr(
+        request.app.state, "admin_db_session", None
+    )
+    if session is None:
         raise HTTPException(
             status_code=500,
-            detail="Admin database engine not initialised.",
+            detail="Admin database session not initialised.",
         )
-
-    # If it's already a sync engine, use it directly
-    if not isinstance(async_engine, AsyncEngine):
-        return async_engine
-
-    # Extract the URL and create a sync engine
-    sync_url = str(async_engine.url).replace("+aiosqlite", "").replace("+asyncpg", "").replace("+asyncmy", "")
-    if not hasattr(request.app.state, "_admin_sync_engine"):
-        request.app.state._admin_sync_engine = create_engine(sync_url, echo=False)
-    return request.app.state._admin_sync_engine
-
-
-def _get_db_session(request: Request) -> Session:
-    """Yield a synchronous SQLAlchemy session.
-
-    Works with both sync and async engines by creating a sync engine
-    from the async URL when needed.
-    """
-    engine = _get_sync_engine(request)
-    session = Session(bind=engine)
-    try:
-        yield session  # type: ignore[misc]
-    finally:
-        session.close()  # type: ignore[union-attr]
+    yield session
 
 
 # ---------------------------------------------------------------------------
@@ -80,7 +56,7 @@ def get_session(request: Request) -> dict[str, Any] | None:
 
 async def get_current_admin_user(
     request: Request,
-    session: Session = Depends(_get_db_session),
+    session: AsyncSession = Depends(_get_db_session),
     session_payload: dict[str, Any] | None = Depends(get_session),
 ) -> AdminUserProtocol:
     """Resolve the logged-in admin user from the session cookie.
@@ -114,12 +90,12 @@ async def get_current_admin_user(
 
 async def get_permission_checker(
     user: AdminUserProtocol = Depends(get_current_admin_user),
-    session: Session = Depends(_get_db_session),
+    session: AsyncSession = Depends(_get_db_session),
 ) -> Any:
     """Build a ``PermissionChecker`` for the current user.
 
     The concrete ``PermissionChecker`` class is imported here to avoid
-    circular imports (it will be implemented in Phase 8).
+    circular imports.
     """
     from fastapi_admin.auth.permissions import PermissionChecker
 
@@ -139,7 +115,7 @@ def require_permission(table_name: str, action: str):  # type: ignore[no-untyped
     async def _check(
         checker: Any = Depends(get_permission_checker),
     ) -> None:
-        if not checker.has_permission(table_name, action):
+        if not await checker.has_permission(table_name, action):
             raise HTTPException(
                 status_code=403,
                 detail=f"You do not have permission to {action} {table_name}.",

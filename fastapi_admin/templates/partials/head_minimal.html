@@ -1,0 +1,14 @@
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Admin{% endblock %}</title>
+    <link rel="stylesheet" href="/static/css/tokens.css">
+    <link rel="stylesheet" href="/static/css/admin.css">
+    <script>
+      (function() {
+        var theme = localStorage.getItem('admin_dark_mode');
+        if (theme === 'true') {
+          document.documentElement.setAttribute('data-theme', 'dark');
+        }
+      })();
+    </script>
+    {% block head %}{% endblock %}
