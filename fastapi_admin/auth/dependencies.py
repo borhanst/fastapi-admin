@@ -7,9 +7,9 @@ from typing import Any
 from fastapi import Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from fastapi_admin.auth.csrf import require_csrf_token  # noqa: F401
 from fastapi_admin.auth.protocol import AdminUserProtocol
 from fastapi_admin.auth.session import SignedCookieSessionBackend
-
 
 # ---------------------------------------------------------------------------
 # Session helpers

@@ -148,7 +148,8 @@
                            class="table-action">Edit</a>
                         <span class="table-actions__separator"></span>
                         <form method="post" action="{{ admin_path }}/{{ model.table_name }}/{{ item.id }}/delete"
-                              class="inline" x-data="deleteConfirm()">
+                               class="inline" x-data="deleteConfirm()">
+                            <input type="hidden" name="csrf_token" value="{{ get_csrf_token(request) }}">
                             <button type="button" @click="openModal" class="table-action table-action--danger">Delete</button>
                             <button type="submit" x-ref="submitBtn" style="display:none" aria-hidden="true"></button>
                             <div x-show="open" class="modal-backdrop" x-transition.opacity style="display: none;"></div>

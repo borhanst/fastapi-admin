@@ -20,6 +20,7 @@
 </div>
 
 <form method="post">
+    <input type="hidden" name="csrf_token" value="{{ get_csrf_token(request) }}">
     <!-- Role details -->
     <div class="fieldset" style="margin-bottom: var(--space-5); max-width: var(--form-max-width);">
         <div class="fieldset__header">

@@ -153,6 +153,15 @@ class Admin:
         self.registry = AdminRegistry()
         self._app: FastAPI | None = app
 
+        # Add CSRF middleware early (must be before app starts)
+        if app is not None:
+            from fastapi_admin.auth.csrf import CSRFMiddleware
+
+            app.add_middleware(CSRFMiddleware)
+            self._csrf_middleware_added = True
+        else:
+            self._csrf_middleware_added = False
+
         # Build components from legacy kwargs if components not provided
         if config is None:
             config = AdminConfig(
@@ -361,6 +370,15 @@ class Admin:
             )
 
         app = self._app
+
+        # Add CSRF middleware if not already added in __init__
+        if not getattr(self, "_csrf_middleware_added", False):
+            from fastapi_admin.auth.csrf import CSRFMiddleware
+
+            try:
+                app.add_middleware(CSRFMiddleware)
+            except RuntimeError:
+                pass  # Already started — middleware was added in __init__
 
         # 1. Validate auth_model satisfies AdminUserProtocol
         self.config.auth.validate_auth_model()
@@ -574,6 +592,13 @@ class Admin:
         self._jinja_env.env.globals["registered_models"] = self.registry.all()
         self._jinja_env.env.globals["admin_path"] = self.router.admin_path
         self._jinja_env.env.globals["nav_groups"] = self._nav_groups_built
+
+        # CSRF token helper — reads from request.state (set by CSRFMiddleware)
+        def _get_csrf_token(request) -> str:
+            return getattr(request.state, "csrf_token", "")
+
+        self._jinja_env.env.globals["get_csrf_token"] = _get_csrf_token
+
         app.state.admin_jinja_env = self._jinja_env
 
     def _build_router(self, app: FastAPI) -> None:
