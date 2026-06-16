@@ -404,6 +404,7 @@ class Admin:
 
         # 10. Build sidebar structure (once at startup)
         self._nav_groups_built = self._build_sidebar()
+        self.template._nav_groups_built = self._nav_groups_built
         if self._jinja_env:
             self._jinja_env.env.globals["nav_groups"] = self._nav_groups_built
 
@@ -439,6 +440,7 @@ class Admin:
             )
             if self._nav_groups_built:
                 self._nav_groups_built = self._build_sidebar()
+                self.template._nav_groups_built = self._nav_groups_built
                 self._jinja_env.env.globals["nav_groups"] = (
                     self._nav_groups_built
                 )
@@ -484,7 +486,6 @@ class Admin:
     def _wire_app_state(self, app: FastAPI) -> None:
         """Store backends and configuration on app.state as typed AdminState."""
         from fastapi_admin.admin.state import AdminState
-        from sqlalchemy.ext.asyncio import AsyncSession
 
         admin_config = {
             "title": self.config.ui.title,
@@ -502,13 +503,22 @@ class Admin:
             "superuser_emails": self.config.auth.superuser_emails,
         }
 
+        # Create async session if engine is async, else None
+        db_session = None
+        engine = self.database.engine
+        if engine is not None:
+            from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
+
+            if isinstance(engine, AsyncEngine):
+                db_session = AsyncSession(engine, expire_on_commit=False)
+
         state = AdminState(
-            engine=self.database.engine,
+            engine=engine,
             session_backend=self._session_backend,
             auth_backend=self.config.auth.auth_backend,
             storage=self.config.storage.storage,
             registry=self.registry,
-            db_session=AsyncSession(self.database.engine, expire_on_commit=False),
+            db_session=db_session,
             config=admin_config,
             jinja_env=self._jinja_env,
             admin_instance=self,

@@ -12,7 +12,7 @@ from fastapi_admin.api.auth import _get_secret_key, decode_access_token
 from fastapi_admin.api.schemas import PaginatedResponse
 
 
-def _get_current_user(request: Request) -> Any:
+async def _get_current_user(request: Request) -> Any:
     """Extract and validate the current user from Bearer token."""
     auth_header = request.headers.get("Authorization", "")
     if not auth_header.startswith("Bearer "):
@@ -30,21 +30,17 @@ def _get_current_user(request: Request) -> Any:
     if user_id is None:
         raise HTTPException(status_code=401, detail="Invalid token payload.")
 
-    # Load user from database
     db_session = request.app.state.admin_db_session
-    import asyncio
+    from sqlalchemy import select
 
     from fastapi_admin.auth.models import AdminUser
 
-    async def _load():
-        result = await db_session.execute(
-            select(AdminUser).where(
-                AdminUser.id == int(user_id), AdminUser.is_active == True
-            )
+    result = await db_session.execute(
+        select(AdminUser).where(
+            AdminUser.id == int(user_id), AdminUser.is_active == True
         )
-        return result.scalar_one_or_none()
-
-    user = asyncio.get_event_loop().run_until_complete(_load())
+    )
+    user = result.scalar_one_or_none()
     if user is None:
         raise HTTPException(
             status_code=401, detail="User not found or inactive."
@@ -52,19 +48,21 @@ def _get_current_user(request: Request) -> Any:
     return user
 
 
-def _check_permission(user: Any, table_name: str, action: str) -> None:
+async def _check_permission(request: Request, user: Any, table_name: str, action: str) -> None:
     """Check if user has permission for the given action. Raises 403 if not."""
     if getattr(user, "is_superuser", False):
         return
 
-    # Simple permission check via role
+    from fastapi_admin.auth.permissions import PermissionChecker
 
-    db_session = None  # Would need async session
-    # For now, superusers bypass all checks
-    raise HTTPException(
-        status_code=403,
-        detail=f"You do not have permission to {action} {table_name}.",
-    )
+    db_session = request.app.state.admin_db_session
+    checker = PermissionChecker(session=db_session, user=user)
+    has_perm = await checker.has_permission(table_name, action)
+    if not has_perm:
+        raise HTTPException(
+            status_code=403,
+            detail=f"You do not have permission to {action} {table_name}.",
+        )
 
 
 def build_api_router(registry: Any) -> APIRouter:
@@ -95,7 +93,8 @@ def _register_model_routes(router: APIRouter, registered: Any) -> None:
         q: str = Query(""),
         order: str = Query(""),
     ):
-        user = _get_current_user(request)
+        user = await _get_current_user(request)
+        await _check_permission(request, user, table_name, "view")
         session = request.app.state.admin_db_session
 
         base = select(model)
@@ -161,7 +160,8 @@ def _register_model_routes(router: APIRouter, registered: Any) -> None:
         request: Request,
         item_id: str,
     ):
-        user = _get_current_user(request)
+        user = await _get_current_user(request)
+        await _check_permission(request, user, table_name, "view")
         session = request.app.state.admin_db_session
 
         obj = await session.get(model, item_id)
@@ -179,7 +179,8 @@ def _register_model_routes(router: APIRouter, registered: Any) -> None:
     async def create_item(
         request: Request,
     ):
-        user = _get_current_user(request)
+        user = await _get_current_user(request)
+        await _check_permission(request, user, table_name, "create")
         session = request.app.state.admin_db_session
         body = await request.json()
 
@@ -206,7 +207,8 @@ def _register_model_routes(router: APIRouter, registered: Any) -> None:
         request: Request,
         item_id: str,
     ):
-        user = _get_current_user(request)
+        user = await _get_current_user(request)
+        await _check_permission(request, user, table_name, "edit")
         session = request.app.state.admin_db_session
 
         obj = await session.get(model, item_id)
@@ -236,7 +238,8 @@ def _register_model_routes(router: APIRouter, registered: Any) -> None:
         request: Request,
         item_id: str,
     ):
-        user = _get_current_user(request)
+        user = await _get_current_user(request)
+        await _check_permission(request, user, table_name, "delete")
         session = request.app.state.admin_db_session
 
         obj = await session.get(model, item_id)

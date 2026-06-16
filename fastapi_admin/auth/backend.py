@@ -55,29 +55,34 @@ class BuiltinAuthBackend(AuthBackend):
     """Default backend that works with the built-in ``AdminUser`` model."""
 
     async def authenticate(
-        self, email: str, password: str, session: AsyncSession
+        self, email: str, password: str, session: Any
     ) -> AdminUserProtocol | None:
         from sqlalchemy import select
 
         from fastapi_admin.auth.models import AdminUser
 
         result = await session.execute(
-            select(AdminUser).where(AdminUser.email == email, AdminUser.is_active == True)
+            select(AdminUser).where(
+                AdminUser.email == email, AdminUser.is_active == True
+            )
         )
         user = result.scalar_one_or_none()
+
         if not user:
             return None
         if not pwd_context.verify(password, user.hashed_password):
             return None
         return user
 
-    async def get_user(self, user_id: int | str, session: AsyncSession) -> AdminUserProtocol | None:
+    async def get_user(self, user_id: int | str, session: Any) -> AdminUserProtocol | None:
         from sqlalchemy import select
 
         from fastapi_admin.auth.models import AdminUser
 
         result = await session.execute(
-            select(AdminUser).where(AdminUser.id == user_id, AdminUser.is_active == True)
+            select(AdminUser).where(
+                AdminUser.id == user_id, AdminUser.is_active == True
+            )
         )
         return result.scalar_one_or_none()
 

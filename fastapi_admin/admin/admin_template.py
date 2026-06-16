@@ -62,11 +62,23 @@ class AdminTemplate:
         permissions_map: dict[str, Any] = {}
         nav_groups = self._nav_groups_built
         if checker:
+            from fastapi_admin.types import PermissionSet
+
             for group in nav_groups:
                 for item in group.items:
                     table = item.permission_table
                     if table and table not in permissions_map:
-                        permissions_map[table] = checker.permission_set(table)
+                        if user and getattr(user, "is_superuser", False):
+                            permissions_map[table] = PermissionSet(
+                                can_view=True,
+                                can_create=True,
+                                can_edit=True,
+                                can_delete=True,
+                            )
+                        else:
+                            permissions_map[table] = checker.permission_set(
+                                table
+                            )
 
         return {
             "nav_groups": nav_groups,

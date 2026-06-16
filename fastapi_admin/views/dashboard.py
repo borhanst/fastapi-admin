@@ -6,24 +6,9 @@ from typing import Any
 
 from fastapi import Request, Depends
 from fastapi.responses import HTMLResponse
-from sqlalchemy import create_engine, select, func
-from sqlalchemy.orm import Session
+from sqlalchemy import select, func
 
 from fastapi_admin.auth.dependencies import get_current_admin_user
-
-
-def _get_sync_engine(request: Request):
-    """Get or create a sync engine from the async engine in app.state."""
-    from sqlalchemy.ext.asyncio import AsyncEngine
-
-    async_engine = request.app.state.admin_engine
-    if not isinstance(async_engine, AsyncEngine):
-        return async_engine
-
-    if not hasattr(request.app.state, "_admin_sync_engine"):
-        sync_url = str(async_engine.url).replace("+aiosqlite", "").replace("+asyncpg", "").replace("+asyncmy", "")
-        request.app.state._admin_sync_engine = create_engine(sync_url, echo=False)
-    return request.app.state._admin_sync_engine
 
 
 def dashboard_view_factory(admin: Any):
@@ -35,6 +20,7 @@ def dashboard_view_factory(admin: Any):
         templates = request.app.state.admin_jinja_env
         admin_instance = request.app.state.admin
         config = request.app.state.admin_config
+        session = request.app.state.admin_db_session
 
         # Get registered models
         registered_models = admin_instance.registry.all()
@@ -48,26 +34,21 @@ def dashboard_view_factory(admin: Any):
         else:
             models_for_stats = registered_models
 
-        # Get record counts for each model using a session
+        # Get record counts for each model
         stat_cards = []
-        engine = _get_sync_engine(request)
-        session = Session(engine)
-        try:
-            for model in models_for_stats:
-                count_query = select(func.count()).select_from(model.model)
-                count = session.execute(count_query).scalar()
-                stat_cards.append({
-                    "title": model.verbose_name_plural,
-                    "count": count,
-                    "url": f"{admin_instance.admin_path}/{model.table_name}/",
-                })
+        for model in models_for_stats:
+            count_query = select(func.count()).select_from(model.model)
+            count = (await session.execute(count_query)).scalar()
+            stat_cards.append({
+                "title": model.verbose_name_plural,
+                "count": count,
+                "url": f"{admin_instance.admin_path}/{model.table_name}/",
+            })
 
-            # Fetch last 10 audit entries
-            from fastapi_admin.audit.models import AuditLog
-            audit_query = select(AuditLog).order_by(AuditLog.timestamp.desc()).limit(10)
-            recent_audit = session.execute(audit_query).scalars().all()
-        finally:
-            session.close()
+        # Fetch last 10 audit entries
+        from fastapi_admin.audit.models import AuditLog
+        audit_query = select(AuditLog).order_by(AuditLog.timestamp.desc()).limit(10)
+        recent_audit = (await session.execute(audit_query)).scalars().all()
 
         # Check if charts are enabled
         show_charts = config.get("dashboard_charts", True)

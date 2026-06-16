@@ -104,6 +104,13 @@ class PermissionChecker:
         Note: This is a sync convenience wrapper. For async contexts,
         use the individual async methods directly.
         """
+        if self.user.is_superuser:
+            return PermissionSet(
+                can_view=True,
+                can_create=True,
+                can_edit=True,
+                can_delete=True,
+            )
         return PermissionSet(
             can_view=self._cache.get((table_name, "view"), False),
             can_create=self._cache.get((table_name, "create"), False),
