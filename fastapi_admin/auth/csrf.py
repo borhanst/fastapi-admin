@@ -89,7 +89,6 @@ def validate_csrf_token(
         form_token = request.headers.get(CSRF_HEADER)
     if form_token is None:
         form_token = getattr(request.state, "_csrf_token", None)
-    print(form_token < "=============")
     if not form_token:
         raise HTTPException(
             status_code=403,
@@ -115,11 +114,9 @@ def validate_csrf_token(
             status_code=403,
             detail="Invalid CSRF cookie. Please refresh the page and try again.",
         )
-    print("verify")
     # Compare the inner payloads (timestamp + random)
     form_parts = form_token.rsplit(".", 2)
     cookie_parts = cookie_token.rsplit(".", 2)
-    print(form_parts[0], "=============", cookie_parts[0])
     if form_parts[0] != cookie_parts[0] or form_parts[1] != cookie_parts[1]:
         raise HTTPException(
             status_code=403,
