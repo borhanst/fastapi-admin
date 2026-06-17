@@ -8,43 +8,27 @@ from typing import Any
 from fastapi import APIRouter, HTTPException, Query, Request
 from sqlalchemy import asc, desc, func, or_, select
 
-from fastapi_admin.api.auth import _get_secret_key, decode_access_token
 from fastapi_admin.api.schemas import PaginatedResponse
 
 
 async def _get_current_user(request: Request) -> Any:
-    """Extract and validate the current user from Bearer token."""
-    auth_header = request.headers.get("Authorization", "")
-    if not auth_header.startswith("Bearer "):
-        raise HTTPException(
-            status_code=401, detail="Missing or invalid Authorization header."
-        )
+    """Extract and validate the current user from a Bearer token.
 
-    token = auth_header[7:]
-    secret_key = _get_secret_key(request)
-    payload = decode_access_token(token, secret_key)
-    if payload is None:
-        raise HTTPException(status_code=401, detail="Invalid or expired token.")
+    Delegates credential decode + user loading to
+    :mod:`fastapi_admin.auth.identity`, the single current-user seam — so the
+    JWT API now honours the ``AuthBackend.get_user`` seam like the cookie path
+    and supports BYO user models, not just the built-in ``AdminUser``.
+    """
+    from fastapi_admin.auth.identity import get_current_user_from_bearer
 
-    user_id = payload.get("sub")
-    if user_id is None:
-        raise HTTPException(status_code=401, detail="Invalid token payload.")
-
-    db_session = request.app.state.admin_db_session
-    from sqlalchemy import select
-
-    from fastapi_admin.auth.models import AdminUser
-
-    result = await db_session.execute(
-        select(AdminUser).where(
-            AdminUser.id == int(user_id), AdminUser.is_active == True
-        )
-    )
-    user = result.scalar_one_or_none()
+    user = await get_current_user_from_bearer(request)
     if user is None:
-        raise HTTPException(
-            status_code=401, detail="User not found or inactive."
-        )
+        auth_header = request.headers.get("Authorization", "")
+        if not auth_header.startswith("Bearer "):
+            raise HTTPException(
+                status_code=401, detail="Missing or invalid Authorization header."
+            )
+        raise HTTPException(status_code=401, detail="Invalid or expired token.")
     return user
 
 

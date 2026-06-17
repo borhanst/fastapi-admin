@@ -26,43 +26,23 @@ async def _resolve_permission_checker(request: Request) -> Any:
     """Resolve a PermissionChecker for the current request.
 
     Returns None if the user is not authenticated or the checker cannot be built.
+    Delegates current-user resolution to :mod:`fastapi_admin.auth.identity`, the
+    single request-authentication seam — so the user is loaded per request on
+    ``request.state.admin_user`` and never cached on ``app.state`` (which
+    previously leaked identity across concurrent requests).
     """
-    from sqlalchemy import select
-
+    from fastapi_admin.auth.identity import get_current_user_from_cookie
     from fastapi_admin.auth.permissions import PermissionChecker
 
-    session_backend = getattr(request.app.state, "admin_session_backend", None)
-    if session_backend is None:
-        return None
-
-    token = request.cookies.get(session_backend.cookie_name)
-    session_payload = session_backend.decode(token) if token else None
-    if session_payload is None:
-        return None
-
-    user_id = session_payload.get("user_id")
-    if user_id is None:
+    user = await get_current_user_from_cookie(request)
+    if user is None:
         return None
 
     async_session = getattr(request.app.state, "admin_db_session", None)
     if async_session is None:
         return None
 
-    # Cache the user on app.state to avoid re-loading per request
-    cached_user = getattr(request.app.state, "_admin_permission_user", None)
-    if cached_user is None or getattr(cached_user, "id", None) != user_id:
-        from fastapi_admin.auth.models import AdminUser
-
-        result = await async_session.execute(
-            select(AdminUser).where(AdminUser.id == user_id, AdminUser.is_active == True)
-        )
-        user = result.scalar_one_or_none()
-        if user is None:
-            return None
-        request.app.state._admin_permission_user = user
-        cached_user = user
-
-    return PermissionChecker(session=async_session, user=cached_user)
+    return PermissionChecker(session=async_session, user=user)
 
 
 async def _handle_file_field(

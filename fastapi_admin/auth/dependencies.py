@@ -56,13 +56,13 @@ def get_session(request: Request) -> dict[str, Any] | None:
 
 async def get_current_admin_user(
     request: Request,
-    session: AsyncSession = Depends(_get_db_session),
     session_payload: dict[str, Any] | None = Depends(get_session),
 ) -> AdminUserProtocol:
     """Resolve the logged-in admin user from the session cookie.
 
     Raises ``401`` if the session is missing, invalid, or the user is
-    no longer active.
+    no longer active. Delegates credential decoding + user loading to
+    :mod:`fastapi_admin.auth.identity`, the single current-user seam.
     """
     if session_payload is None:
         raise HTTPException(
@@ -74,15 +74,11 @@ async def get_current_admin_user(
     if user_id is None:
         raise HTTPException(status_code=401, detail="Invalid session payload.")
 
-    auth_backend = getattr(request.app.state, "admin_auth_backend", None)
-    if auth_backend is None:
-        raise HTTPException(
-            status_code=500,
-            detail="Admin auth backend not initialised.",
-        )
+    # request.state.admin_user is populated as a side effect.
+    from fastapi_admin.auth.identity import resolve_user
 
-    user = await auth_backend.get_user(user_id, session)
-    if user is None or not user.is_active:
+    user = await resolve_user(request, user_id)
+    if user is None:
         raise HTTPException(status_code=401, detail="User not found or inactive.")
 
     return user
@@ -122,3 +118,16 @@ def require_permission(table_name: str, action: str):  # type: ignore[no-untyped
             )
 
     return _check
+
+
+async def require_superuser(
+    user: AdminUserProtocol = Depends(get_current_admin_user),
+) -> AdminUserProtocol:
+    """FastAPI dependency that enforces superuser access.
+
+    The single source of the "must be superuser" rule, shared by the roles
+    and audit views (previously copy-pasted in each).
+    """
+    if not getattr(user, "is_superuser", False):
+        raise HTTPException(status_code=403, detail="Superuser access required.")
+    return user

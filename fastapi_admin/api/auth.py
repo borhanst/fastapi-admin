@@ -12,14 +12,21 @@ from fastapi_admin.api.schemas import TokenRequest, TokenResponse
 
 router = APIRouter(prefix="/auth", tags=["api-auth"])
 
-# Default secret for JWT signing — should be overridden in production
-_DEFAULT_SECRET = "admin-api-secret-change-me"
-
 
 def _get_secret_key(request: Request) -> str:
-    """Get the JWT secret key from admin config."""
-    config = getattr(request.app.state, "admin_config", {})
-    return config.get("secret_key", "") or _DEFAULT_SECRET
+    """Get the JWT signing key from the unified signing-key source.
+
+    Reads ``app.state.admin_secret_key`` (the same key the signed-cookie
+    sessions and CSRF use). Fails closed with 500 if unset — JWT signing
+    must never silently fall back to a known constant.
+    """
+    secret_key = getattr(request.app.state, "admin_secret_key", "")
+    if not secret_key:
+        raise HTTPException(
+            status_code=500,
+            detail="JWT signing key not configured — admin secret_key not set.",
+        )
+    return secret_key
 
 
 def _get_token_ttl(request: Request) -> int:

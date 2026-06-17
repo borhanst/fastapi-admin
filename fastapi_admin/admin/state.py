@@ -33,6 +33,8 @@ class AdminState:
     config: dict[str, Any] = field(default_factory=dict)
     jinja_env: Environment | None = None
     admin_instance: Admin | None = None
+    # Unified signing-key source — used by signed-cookie sessions, CSRF, and JWT.
+    secret_key: str = ""
 
     @classmethod
     def from_request(cls, request: Any) -> AdminState:
@@ -69,4 +71,5 @@ class AdminState:
             config=getattr(app_state, "admin_config", {}),
             jinja_env=getattr(app_state, "admin_jinja_env", None),
             admin_instance=getattr(app_state, "admin", None),
+            secret_key=getattr(app_state, "admin_secret_key", ""),
         )

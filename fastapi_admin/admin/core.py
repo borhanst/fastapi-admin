@@ -540,6 +540,7 @@ class Admin:
             config=admin_config,
             jinja_env=self._jinja_env,
             admin_instance=self,
+            secret_key=self.router.secret_key,
         )
 
         # Store typed state as single attribute
@@ -555,6 +556,8 @@ class Admin:
         app.state.admin_db_session = state.db_session
         app.state.admin_config = state.config
         app.state.admin_jinja_env = state.jinja_env
+        # Unified signing-key source for sessions, CSRF, and JWT (see AdminState).
+        app.state.admin_secret_key = state.secret_key
 
     def _mount_static(self, app: FastAPI) -> None:
         """Mount the static files directory and uploads directory."""

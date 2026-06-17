@@ -17,11 +17,19 @@ CSRF_TOKEN_MAX_AGE = 3600  # 1 hour
 
 
 def _get_secret_key(request: Request) -> str | None:
-    """Resolve the session secret key from app state. Returns None if unavailable."""
+    """Resolve the CSRF signing key from app state.
+
+    Prefers an explicit ``app.state.admin_secret_key`` (the unified signing-key
+    source shared with sessions and JWT); falls back to the session backend's
+    public ``secret_key``. Returns ``None`` only when neither is configured.
+    """
+    explicit = getattr(request.app.state, "admin_secret_key", None)
+    if explicit:
+        return explicit
     session_backend = getattr(request.app.state, "admin_session_backend", None)
     if session_backend is None:
         return None
-    return session_backend._signer.secret_key
+    return getattr(session_backend, "secret_key", None)
 
 
 def generate_csrf_token(secret_key: str) -> str:
@@ -76,12 +84,17 @@ def validate_csrf_token(
 ) -> None:
     """Validate CSRF token from form body or header against the cookie.
 
-    Raises ``HTTPException(403)`` if invalid. Skips validation if the
-    session backend is not initialised (e.g. in tests).
+    Raises ``HTTPException(403)`` if the token is missing or invalid.
+    Fails *closed*: if no signing key is configured (the admin was not
+    set up properly), raises ``HTTPException(500)`` rather than silently
+    disabling CSRF protection — a missing key must never mean "protection off".
     """
     secret_key = _get_secret_key(request)
     if secret_key is None:
-        return  # No session backend — skip CSRF validation
+        raise HTTPException(
+            status_code=500,
+            detail="CSRF secret not configured — admin session backend not initialised.",
+        )
 
     # Read token from argument, header, or request state (set by middleware)
     form_token = csrf_token
