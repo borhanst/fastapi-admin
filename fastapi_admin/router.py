@@ -123,4 +123,81 @@ def build_model_router(registered: RegisteredModel) -> APIRouter:
         ],
     )
 
+    @router.patch("/{id}/field")
+    async def update_field(
+        request: Request,
+        id: str,
+        _csrf: bool = Depends(require_csrf_token),
+    ):
+        """Inline field update — used by toggle switches in list view."""
+        from fastapi_admin.auth.csrf import generate_csrf_token, _get_secret_key
+
+        content_type = request.headers.get("content-type", "")
+        if "application/json" in content_type:
+            body = await request.json()
+        else:
+            form = await request.form()
+            body = dict(form)
+
+        field_name = body.get("field")
+        new_value = body.get("value")
+
+        if not field_name:
+            raise HTTPException(status_code=400, detail="Missing field name")
+
+        # Only allow editing fields that are not readonly
+        readonly = getattr(registered.admin, "readonly_fields", []) or []
+        if field_name in readonly:
+            raise HTTPException(status_code=403, detail="Field is read-only")
+
+        # Validate field exists on model
+        col = next((c for c in registered.columns if c.name == field_name), None)
+        if col is None:
+            raise HTTPException(status_code=400, detail="Invalid field name")
+
+        # Parse boolean values
+        if col.type.__class__.__name__ == "Boolean":
+            new_value = str(new_value).lower() in ("true", "1", "yes")
+
+        session = request.app.state.admin_db_session
+        try:
+            obj = await session.get(registered.model, id)
+            if obj is None:
+                raise HTTPException(status_code=404, detail="Object not found")
+
+            setattr(obj, field_name, new_value)
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise
+
+        # Return updated toggle HTML
+        val = getattr(obj, field_name)
+        secret = _get_secret_key(request) or ""
+        csrf_token = generate_csrf_token(secret)
+        admin_path = request.app.state.admin_config["admin_path"]
+
+        if val:
+            toggle_html = (
+                f'<button class="toggle-switch toggle-switch--on"'
+                f' hx-patch="{admin_path}/{registered.table_name}/{obj.id}/field"'
+                f' hx-vals=\'{{"field": "{field_name}", "value": "false"}}\''
+                f' hx-target="this" hx-swap="outerHTML"'
+                f' hx-headers=\'{{"X-CSRF-Token": "{csrf_token}"}}\''
+                f' role="checkbox" aria-checked="true">'
+                f'<span class="toggle-switch__thumb"></span></button>'
+            )
+        else:
+            toggle_html = (
+                f'<button class="toggle-switch"'
+                f' hx-patch="{admin_path}/{registered.table_name}/{obj.id}/field"'
+                f' hx-vals=\'{{"field": "{field_name}", "value": "true"}}\''
+                f' hx-target="this" hx-swap="outerHTML"'
+                f' hx-headers=\'{{"X-CSRF-Token": "{csrf_token}"}}\''
+                f' role="checkbox" aria-checked="false">'
+                f'<span class="toggle-switch__thumb"></span></button>'
+            )
+        from fastapi.responses import HTMLResponse
+        return HTMLResponse(content=toggle_html)
+
     return router

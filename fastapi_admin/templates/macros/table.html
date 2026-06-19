@@ -54,11 +54,8 @@
     </a>
     {% endif %}
     {% if permissions.can_delete %}
-    <button hx-confirm="Are you sure you want to delete this?"
-            hx-delete="{{ admin_path }}/{{ model_name }}/{{ obj.id }}"
-            hx-target="closest tr"
-            hx-swap="outerHTML"
-            class="text-[var(--color-danger)] hover:text-red-700 font-medium transition-colors">
+    <button class="text-[var(--color-danger)] hover:text-red-700 font-medium transition-colors"
+            onclick="confirmAction('Delete', 'Are you sure you want to delete this?', () => htmx.ajax('DELETE', '{{ admin_path }}/{{ model_name }}/{{ obj.id }}', { target: this.closest('tr'), swap: 'outerHTML' }))">
       Delete
     </button>
     {% endif %}

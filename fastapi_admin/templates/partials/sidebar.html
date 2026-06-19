@@ -1,80 +1,109 @@
-            <!-- Sidebar -->
-            <aside class="admin-sidebar" :class="{ 'open': sidebarOpen }" @click.outside="sidebarOpen = false">
-                <div class="admin-sidebar__logo">
-                    <span class="admin-sidebar__logo-text">{{ title or 'Admin' }}</span>
-                </div>
-                <nav class="admin-sidebar__nav" aria-label="Main navigation">
-                    {% block sidebar %}
-                    {# Dashboard — always at top #}
-                    <a href="{{ admin_path }}/"
-                       class="nav-link {% if request.url.path == admin_path ~ '/' %}active{% endif %}">
-                        <svg class="nav-link__icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                            <use href="/static/icons/heroicons.svg#home-outline" />
-                        </svg>
-                        <span>Dashboard</span>
-                    </a>
+{# partials/sidebar.html — navigation sidebar with tag groups #}
+{% set _ui = ui_config | default({}) %}
+<aside class="admin-sidebar sidebar--{{ _ui.sidebar_style | default('default') }}{% if _ui.sidebar_position | default('left') == 'right' %} sidebar--right{% endif %}"
+       :class="{ 'open': sidebarOpen, 'collapsed': sidebarCollapsed && window.innerWidth >= 1024 }"
+       :style="sidebarCollapsed && window.innerWidth >= 1024 ? 'width: var(--sidebar-collapsed-width)' : 'width: var(--sidebar-width)'"
+       x-show="true">
 
-                    {# Nav groups — RBAC filtered at render time #}
-                    {% for group in nav_groups %}
+  {# Dashboard section (no label) #}
+  <nav class="sidebar-nav">
+    <ul class="sidebar-nav-list">
+      <li class="sidebar-nav-item">
+        <a href="{{ admin_path | default('/admin') }}/"
+           class="nav-link {% if request.url.path == admin_path | default('/admin') ~ '/' %}active{% endif %}">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="18" height="18">
+            <use href="/static/icons/heroicons.svg#home"/>
+          </svg>
+          <span class="nav-link-label">Dashboard</span>
+          <span class="nav-tooltip" x-show="sidebarCollapsed">Dashboard</span>
+        </a>
+      </li>
 
-                    {% set ns = namespace(has_visible=false) %}
-                    {% for item in group.items %}
-                      {% set perm = permissions_map.get(item.permission_table) if permissions_map is defined and permissions_map else none %}
-                      {% if item.permission_table is none or perm is none or perm.can_view %}
-                        {% set ns.has_visible = true %}
-                      {% endif %}
-                    {% endfor %}
+      {# Tag groups from nav_groups #}
+      {% for group in nav_groups %}
+      <li class="sidebar-nav-item" x-data="{ open: {{ 'false' if group.collapsed_by_default else 'true' }} }">
+        <button @click="open = !open" class="nav-link nav-group-toggle"
+                :aria-expanded="open.toString()">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="18" height="18">
+            <use href="/static/icons/heroicons.svg#{{ group.icon | default('folder') }}"/>
+          </svg>
+          <span class="nav-link-label">{{ group.label }}</span>
+          <svg class="nav-group-chevron" :class="{ 'rotate-180': open }"
+               fill="none" stroke="currentColor" viewBox="0 0 24 24" width="14" height="14">
+            <use href="/static/icons/heroicons.svg#chevron-right"/>
+          </svg>
+          <span class="nav-tooltip" x-show="sidebarCollapsed">{{ group.label }}</span>
+        </button>
+        <ul class="nav-group-items" x-show="open" x-collapse>
+          {% for item in group.items %}
+          <li>
+            <a href="{{ item.url }}"
+               class="nav-link nav-link--child {% if request.url.path.startswith(item.url) %}active{% endif %}">
+              {% if item.icon %}
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="18" height="18">
+                <use href="/static/icons/heroicons.svg#{{ item.icon }}"/>
+              </svg>
+              {% endif %}
+              <span class="nav-link-label">{{ item.label }}</span>
+            </a>
+          </li>
+          {% endfor %}
+        </ul>
+      </li>
+      {% endfor %}
 
-                    {% if ns.has_visible %}
-                    <div class="nav-group"
-                         x-data="navGroup('{{ group.tag | slugify }}', {{ 'true' if group.collapsed_by_default else 'false' }})">
-                      <button class="nav-group-toggle"
-                              @click="toggle()"
-                              :aria-expanded="!collapsed">
-                        <span class="nav-group-label">{{ group.label }}</span>
-                        <svg class="nav-group-chevron"
-                             xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                          <path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd"/>
-                        </svg>
-                      </button>
-                      <div x-show="!collapsed" x-collapse>
-                        <div class="nav-group-items">
-                        {% for item in group.items %}
-                        {% set perm = permissions_map.get(item.permission_table) if permissions_map is defined and permissions_map else none %}
-                        {% if item.permission_table is none or perm is none or perm.can_view %}
-                        {% set is_active = request.url.path.startswith(item.url) %}
-                        <a href="{{ item.url }}"
-                           class="nav-link {% if is_active %}active{% endif %}">
-                          {% if item.icon %}
-                          <svg class="nav-link__icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                            <use href="/static/icons/heroicons.svg#{{ item.icon }}-outline" />
-                          </svg>
-                          {% endif %}
-                          <span>{{ item.label }}</span>
-                          {% if item.badge_fn and not is_active %}
-                            {% set badge = item.badge_fn(request) %}
-                            {% if badge %}
-                            <span class="nav-link__badge">{{ badge }}</span>
-                            {% endif %}
-                          {% endif %}
-                        </a>
-                        {% for child in item.children %}
-                        {% set child_perm = permissions_map.get(child.permission_table) if permissions_map is defined and permissions_map else none %}
-                        {% if child.permission_table is none or child_perm is none or child_perm.can_view %}
-                        <a href="{{ child.url }}"
-                           class="nav-link {% if request.url.path.startswith(child.url) %}active{% endif %}"
-                           style="padding-left: 2.5rem; font-size: var(--text-xs);">
-                          {{ child.label }}
-                        </a>
-                        {% endif %}
-                        {% endfor %}
-                        {% endif %}
-                        {% endfor %}
-                        </div>
-                      </div>
-                    </div>
-                    {% endif %}
-                    {% endfor %}
-                    {% endblock %}
-                </nav>
-            </aside>
+      {# System section #}
+      <li class="sidebar-section">
+        <span class="sidebar-section-label">System</span>
+      </li>
+
+      <li class="sidebar-nav-item">
+        <a href="{{ admin_path | default('/admin') }}/audit-log/"
+           class="nav-link {% if request.url.path.startswith(admin_path | default('/admin') ~ '/audit-log') %}active{% endif %}">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="18" height="18">
+            <use href="/static/icons/heroicons.svg#clock"/>
+          </svg>
+          <span class="nav-link-label">Audit Log</span>
+          <span class="nav-tooltip" x-show="sidebarCollapsed">Audit Log</span>
+        </a>
+      </li>
+
+      {% if current_user and current_user.is_superuser %}
+      <li class="sidebar-nav-item">
+        <a href="{{ admin_path | default('/admin') }}/roles/"
+           class="nav-link {% if request.url.path.startswith(admin_path | default('/admin') ~ '/roles') %}active{% endif %}">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="18" height="18">
+            <use href="/static/icons/heroicons.svg#users"/>
+          </svg>
+          <span class="nav-link-label">Roles</span>
+          <span class="nav-tooltip" x-show="sidebarCollapsed">Roles</span>
+        </a>
+      </li>
+      {% endif %}
+    </ul>
+  </nav>
+
+  {# Bottom section (pushed to bottom) #}
+  <div class="sidebar-bottom">
+    <ul class="sidebar-nav-list">
+      <li class="sidebar-nav-item">
+        <a href="{{ admin_path | default('/admin') }}/settings/"
+           class="nav-link {% if request.url.path.startswith(admin_path | default('/admin') ~ '/settings') %}active{% endif %}">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="18" height="18">
+            <use href="/static/icons/heroicons.svg#cog-6-tooth"/>
+          </svg>
+          <span class="nav-link-label">Settings</span>
+          <span class="nav-tooltip" x-show="sidebarCollapsed">Settings</span>
+        </a>
+      </li>
+    </ul>
+  </div>
+</aside>
+
+{# Mobile sidebar overlay #}
+<div class="admin-sidebar-overlay"
+     :class="{ 'open': sidebarOpen }"
+     @click="sidebarOpen = false"
+     x-show="window.innerWidth < 1024 && sidebarOpen"
+     style="display: none;">
+</div>

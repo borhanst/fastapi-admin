@@ -38,7 +38,7 @@ def generate_csrf_token(secret_key: str) -> str:
     timestamp = str(int(time.time()))
     payload = f"{timestamp}.{random_bytes.hex()}"
     signature = hmac.new(
-        secret_key, payload.encode(), hashlib.sha256
+        secret_key.encode(), payload.encode(), hashlib.sha256
     ).hexdigest()[:32]
     return f"{payload}.{signature}"
 
@@ -51,7 +51,7 @@ def _verify_csrf_token(secret_key: str, token: str) -> bool:
     timestamp_str, random_hex, provided_sig = parts
     payload = f"{timestamp_str}.{random_hex}"
     expected_sig = hmac.new(
-        secret_key, payload.encode(), hashlib.sha256
+        secret_key.encode(), payload.encode(), hashlib.sha256
     ).hexdigest()[:32]
     if not hmac.compare_digest(provided_sig, expected_sig):
         return False

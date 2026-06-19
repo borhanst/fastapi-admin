@@ -1,5 +1,6 @@
 {# partials/sidebar.html — navigation sidebar #}
-<aside class="admin-sidebar"
+{% set _ui = ui_config | default({}) %}
+<aside class="admin-sidebar sidebar--{{ _ui.sidebar_style | default('default') }}{% if _ui.sidebar_position | default('left') == 'right' %} sidebar--right{% endif %}"
        :class="{ 'open': sidebarOpen, 'collapsed': sidebarCollapsed }"
        :style="sidebarCollapsed ? 'width: var(--sidebar-collapsed-width)' : 'width: var(--sidebar-width)'"
        x-show="true">

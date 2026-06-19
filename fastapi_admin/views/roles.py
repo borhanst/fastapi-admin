@@ -45,7 +45,7 @@ async def role_list_view(
 
     return templates.TemplateResponse(
         request,
-        "pages/roles/list.html",
+        "pages/roles.html",
         inject_sidebar_context(request, {
             "roles": role_data,
         }),
@@ -64,7 +64,7 @@ async def role_create_view(
     models = registry.all()
     return templates.TemplateResponse(
         request,
-        "pages/roles/form.html",
+        "pages/role_form.html",
         inject_sidebar_context(request, {
             "role": None,
             "models": models,
@@ -103,7 +103,7 @@ async def role_edit_view(
 
     return templates.TemplateResponse(
         request,
-        "pages/roles/form.html",
+        "pages/role_form.html",
         inject_sidebar_context(request, {
             "role": role,
             "models": models,

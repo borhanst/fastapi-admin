@@ -166,7 +166,7 @@ class ViewFactory:
         return parsed, errors
 
     def create_list_view(self, registered: RegisteredModel):
-        """Create a list view handler for the given registered model."""
+        """Create a list view handler for the given model."""
         async def list_view(request: Request, q: str = "", page: int = 1, _: Any = None):
             templates = request.app.state.admin_jinja_env
             checker = await _resolve_permission_checker(request)
@@ -175,6 +175,9 @@ class ViewFactory:
             ctx = await self.context_builder.build_list_context(
                 registered, request, q=q, page=page, permission_checker=checker
             )
+            is_htmx = request.headers.get("HX-Request") == "true"
+            if is_htmx:
+                return templates.TemplateResponse(request, "partials/list_table.html", ctx)
             return templates.TemplateResponse(request, "pages/list.html", ctx)
         list_view.__name__ = f"list_{registered.table_name}"
         return list_view
@@ -208,6 +211,7 @@ class ViewFactory:
             )
 
             if errors:
+                await session.rollback()
                 ctx = self.context_builder.build_form_context(
                     registered, request, values=parsed, errors=errors, is_create=True,
                     permission_checker=checker,
@@ -261,6 +265,7 @@ class ViewFactory:
             )
 
             if errors:
+                await session.rollback()
                 ctx = self.context_builder.build_form_context(
                     registered, request, obj=obj, values=parsed, errors=errors, is_create=False,
                     permission_checker=checker,
@@ -285,11 +290,15 @@ class ViewFactory:
             obj = await session.get(registered.model, id)
             if not obj:
                 raise HTTPException(status_code=404, detail="Not found")
-            registered.admin.on_delete(obj, request)
-            await session.delete(obj)
-            await session.commit()
-            registered.admin.after_delete(obj, request)
-            add_flash(request, "success", f"{registered.verbose_name} deleted.")
+            try:
+                registered.admin.on_delete(obj, request)
+                await session.delete(obj)
+                await session.commit()
+                registered.admin.after_delete(obj, request)
+                add_flash(request, "success", f"{registered.verbose_name} deleted.")
+            except Exception:
+                await session.rollback()
+                raise
             url = f"{request.app.state.admin_config['admin_path']}/{registered.table_name}/"
             return RedirectResponse(url=url, status_code=303)
         delete_submit.__name__ = f"delete_{registered.table_name}"
@@ -298,13 +307,23 @@ class ViewFactory:
     def create_bulk_view(self, registered: RegisteredModel):
         """Create a bulk action handler for multiple objects."""
         async def bulk_action(request: Request, _: Any = None):
+            templates = request.app.state.admin_jinja_env
             session = request.app.state.admin_db_session
             form = await request.form()
             action = form.get("action", "")
             ids = form.getlist("ids[]")
+
+            is_htmx = request.headers.get("HX-Request") == "true"
+
             if not ids:
+                if is_htmx:
+                    ctx = await self.context_builder.build_list_context(
+                        registered, request, permission_checker=None
+                    )
+                    return templates.TemplateResponse(request, "partials/list_table.html", ctx)
                 url = f"{request.app.state.admin_config['admin_path']}/{registered.table_name}/"
                 return RedirectResponse(url=url, status_code=303)
+
             if action == "delete_selected":
                 for pid in ids:
                     obj = await session.get(registered.model, pid)
@@ -312,8 +331,6 @@ class ViewFactory:
                         registered.admin.on_delete(obj, request)
                         await session.delete(obj)
                 await session.commit()
-                msg = f"{len(ids)} {registered.verbose_name_plural} deleted."
-                add_flash(request, "success", msg)
             else:
                 action_fn = getattr(registered.admin, f"action_{action}", None)
                 if not action_fn:
@@ -325,7 +342,13 @@ class ViewFactory:
                     if obj:
                         action_fn(obj)
                 await session.commit()
-                add_flash(request, "success", f"Action '{action}' applied to {len(ids)} records.")
+
+            if is_htmx:
+                ctx = await self.context_builder.build_list_context(
+                    registered, request, permission_checker=None
+                )
+                return templates.TemplateResponse(request, "partials/list_table.html", ctx)
+
             url = f"{request.app.state.admin_config['admin_path']}/{registered.table_name}/"
             return RedirectResponse(url=url, status_code=303)
         bulk_action.__name__ = f"bulk_{registered.table_name}"

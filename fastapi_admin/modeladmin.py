@@ -44,6 +44,11 @@ class ModelAdmin:
     nav_order: int = 999
     nav_children: list["NavItemConfig"] | None = None
 
+    # Per-model UI overrides
+    list_style: str | None = None
+    form_style: str | None = None
+    card_color: str | None = None
+
     # Badge hook — return str e.g. "12" or None
     def get_nav_badge(self, request: Any = None) -> str | None:
         return None

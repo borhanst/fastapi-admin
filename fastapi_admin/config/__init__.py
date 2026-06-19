@@ -5,6 +5,7 @@ from fastapi_admin.config.auth import AuthConfig
 from fastapi_admin.config.behavior import BehaviorConfig
 from fastapi_admin.config.nav import NavConfig
 from fastapi_admin.config.storage import StorageConfig
+from fastapi_admin.config.theme import ThemeConfig
 from fastapi_admin.config.ui import UIConfig
 
 __all__ = [
@@ -14,4 +15,5 @@ __all__ = [
     "BehaviorConfig",
     "StorageConfig",
     "NavConfig",
+    "ThemeConfig",
 ]

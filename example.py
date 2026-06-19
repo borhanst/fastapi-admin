@@ -27,6 +27,7 @@ from fastapi_admin.audit.models import (
 )
 from fastapi_admin.auth.backend import BuiltinAuthBackend
 from fastapi_admin.auth.models import AdminUser
+from fastapi_admin.config import ThemeConfig, UIConfig
 from fastapi_admin.models import Base as AdminBase
 
 # ============================================================================
@@ -184,6 +185,9 @@ class ProductAdmin(ModelAdmin):
     verbose_name_plural = "Products"
     per_page = 20
     tag = "product"
+    # Per-model UI overrides
+    list_style = "bordered"
+    card_color = "#6366F1"
 
 
 class UserAdmin(ModelAdmin):
@@ -212,6 +216,9 @@ class OrderAdmin(ModelAdmin):
     verbose_name = "Order"
     verbose_name_plural = "Orders"
     tag = "Order"
+    # Per-model UI overrides
+    list_style = "compact"
+    form_style = "one-column"
 
 
 # ============================================================================
@@ -376,6 +383,33 @@ admin = Admin(
     per_page_default=25,
     secret_key=SECRET_KEY,
     auth_backend=BuiltinAuthBackend(),
+    # Theme configuration — pick a preset or customize individual values
+    theme=ThemeConfig(
+        preset="paper",           # editorial | modern | midnight | paper | forest | minimal
+        primary_color="#6366F1",   # Override primary accent (indigo)
+        show_grain_texture=False,  # Disable grain overlay for clean look
+        show_accent_line=True,     # Topbar accent line
+    ),
+    # UI component configuration
+    sidebar_style="compact",       # default | compact | minimal
+    table_style="striped",         # default | striped | bordered | compact
+    form_layout="two-column",      # one-column | two-column
+    form_spacing="normal",         # compact | normal | relaxed
+    dashboard_grid="auto",         # auto | 2col | 3col | 4col
+    dashboard_card_style="default",# default | outlined | flat
+    dashboard_stat_size="normal",  # small | normal | large
+    topbar_style="default",        # default | minimal | transparent
+    content_width="default",       # narrow | default | wide | full
+    sidebar_position="left",       # left | right
+    # Feature toggles
+    show_history=True,
+    show_view_on_site=True,
+    environment_label="Development",
+    environment_color="info",      # info | danger | warning | success
+    # Custom CSS injection
+    custom_css="",
+    # Mobile
+    mobile_sidebar="overlay",      # overlay | drawer | hidden
 )
 
 
@@ -417,12 +451,19 @@ async def health():
 #
 # Then visit:
 #   Admin Panel: http://localhost:8000/admin
+#   Theme Settings: http://localhost:8000/admin/settings/theme
 #   API Docs:   http://localhost:8000/docs
 #   Health:     http://localhost:8000/health
 #
 # Default admin login:
 #   Email:    admin@example.com
 #   Password: admin
+#
+# Theme features to try:
+#   - Click the swatch icon in the topbar to switch themes (modern, midnight, etc.)
+#   - Toggle dark mode with the moon/sun icon
+#   - Visit /admin/settings/theme for the visual theme builder
+#   - Product list uses "bordered" table style, Order list uses "compact"
 
 
 if __name__ == "__main__":

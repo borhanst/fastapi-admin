@@ -162,13 +162,14 @@ hx-vals='{"field_name": "{{ field_ctx.meta.name }}"}'
 {% set val = field_ctx.widget_context.value %}
 {{ _field_wrapper_open(field_ctx) }}
   {{ _label(field_ctx) }}
-  <div class="toggle-switch"
-       :class="{ 'active': $refs.{{ name }}.checked }">
-    <input type="hidden" name="{{ name }}" value="0">
+  <div x-data="{ on: {{ 'true' if val else 'false' }} }"
+       class="toggle-switch cursor-pointer"
+       :class="on ? 'active' : ''"
+       @click="on = !on">
+    <input type="hidden" name="{{ name }}" :value="on ? '1' : '0'">
     <input type="checkbox" id="{{ name }}" name="{{ name }}" value="1"
            {% if val %}checked{% endif %}
            {% if field_ctx.meta.readonly %}disabled{% endif %}
-           x-ref="{{ name }}"
            class="sr-only">
     <span class="toggle-knob"></span>
   </div>

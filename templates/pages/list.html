@@ -158,7 +158,8 @@
 
   <div id="table-wrapper" class="table-wrapper">
     <div class="overflow-x-auto">
-      <table class="w-full">
+      {% set _ui = ui_config | default({}) %}
+      <table class="w-full table--{{ _ui.table_style | default('default') }}{% if _ui.table_row_height | default('normal') == 'compact' %} table--compact{% endif %}{% if _ui.table_row_height | default('normal') == 'relaxed' %} table--relaxed{% endif %}">
         <thead>
           <tr>
             {% if permissions.can_delete %}

@@ -162,16 +162,18 @@ hx-vals='{"field_name": "{{ field_ctx.meta.name }}"}'
 {% set val = field_ctx.widget_context.value %}
 {{ _field_wrapper_open(field_ctx) }}
   {{ _label(field_ctx) }}
-  <div class="toggle-switch relative inline-flex h-6 w-11 items-center rounded-full"
-       :class="{ 'bg-[var(--color-primary-600)]': $refs.{{ name }}.checked, 'bg-[var(--color-gray-300)]': !$refs.{{ name }}.checked }">
-    <input type="hidden" name="{{ name }}" value="0">
+  <div x-data="{ on: {{ 'true' if val else 'false' }} }"
+       class="toggle-switch relative inline-flex h-6 w-11 items-center rounded-full cursor-pointer"
+       :class="on ? 'bg-[var(--color-primary-600)]' : 'bg-[var(--color-gray-300)]'"
+       @click="on = !on">
+    <input type="hidden" name="{{ name }}" :value="on ? '1' : '0'">
     <input type="checkbox" id="{{ name }}" name="{{ name }}" value="1"
            {% if val %}checked{% endif %}
            {% if field_ctx.meta.readonly %}disabled{% endif %}
            x-ref="{{ name }}"
            class="sr-only">
     <span class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform"
-          :class="{ 'translate-x-6': $refs.{{ name }}.checked, 'translate-x-1': !$refs.{{ name }}.checked }"></span>
+          :class="on ? 'translate-x-6' : 'translate-x-1'"></span>
   </div>
   {{ _errors(field_ctx) }}
   {{ _help_text(field_ctx) }}

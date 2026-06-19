@@ -44,7 +44,10 @@ async def login_get(
     jinja_env = request.app.state.admin_jinja_env
     template = jinja_env.get_template("pages/login.html")
     csrf_token = getattr(request.state, "csrf_token", "")
-    return HTMLResponse(template.render({"csrf_token": csrf_token}))
+    return HTMLResponse(template.render({
+        "request": request,
+        "csrf_token": csrf_token,
+    }))
 
 
 @router.post("/login", response_model=None)
@@ -92,12 +95,11 @@ async def login_post(
     template = jinja_env.get_template("pages/login.html")
     csrf_token = getattr(request.state, "csrf_token", "")
     return HTMLResponse(
-        template.render(
-            {
-                "error": "Invalid email or password. Please try again.",
-                "csrf_token": csrf_token,
-            }
-        ),
+        template.render({
+            "request": request,
+            "error": "Invalid email or password. Please try again.",
+            "csrf_token": csrf_token,
+        }),
         status_code=status.HTTP_200_OK,
     )
 

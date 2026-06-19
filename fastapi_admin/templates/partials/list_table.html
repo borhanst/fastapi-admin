@@ -1,0 +1,120 @@
+{# partials/list_table.html — table wrapper fragment for HTMX requests #}
+<div id="table-wrapper" class="table-wrapper">
+  <input type="hidden" name="action" value="delete_selected">
+  <input type="hidden" name="csrf_token" value="{{ get_csrf_token(request) }}">
+  <div class="overflow-x-auto">
+    {% set _ui = ui_config | default({}) %}
+    <table class="w-full table--{{ _ui.table_style | default('default') }}{% if _ui.table_row_height | default('normal') == 'compact' %} table--compact{% endif %}{% if _ui.table_row_height | default('normal') == 'relaxed' %} table--relaxed{% endif %}">
+      <thead>
+        <tr>
+          {% if permissions.can_delete %}
+          <th class="px-4 py-3 text-left" style="width: 44px">
+            <input type="checkbox" id="select-all"
+                   onclick="document.querySelectorAll('input[name=&quot;ids[]&quot;]').forEach(c => c.checked = this.checked)">
+          </th>
+          {% endif %}
+          {% for col in registered.columns %}
+          {% if not col.primary_key or registered.columns | length > 1 %}
+          <th class="px-4 py-3 text-left">
+            <a href="?ordering={% if ordering == col.name %}-{% endif %}{{ col.name }}"
+               class="table-sort-btn{% if ordering == col.name or ordering == '-' ~ col.name %} active{% endif %}">
+              {{ col.name | replace('_', ' ') | title }}
+              {% if ordering == col.name %}
+              <svg class="w-3 h-3 rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <use href="/static/icons/heroicons.svg#chevron-right"/>
+              </svg>
+              {% elif ordering == '-' ~ col.name %}
+              <svg class="w-3 h-3 -rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <use href="/static/icons/heroicons.svg#chevron-right"/>
+              </svg>
+              {% endif %}
+            </a>
+          </th>
+          {% endif %}
+          {% endfor %}
+          <th class="px-4 py-3 text-right" style="width: 120px">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if items %}
+        {% for obj in items %}
+        <tr>
+          {% if permissions.can_delete %}
+          <td class="px-4 py-3">
+            <input type="checkbox" name="ids[]" value="{{ obj.id }}">
+          </td>
+          {% endif %}
+          {% for col in registered.columns %}
+          {% if not col.primary_key or registered.columns | length > 1 %}
+            <td class="px-4 py-3">
+              {% set val = attr(obj, col.name) %}
+              {% if val is none %}
+                -
+              {% elif col.type is defined and col.type.__class__.__name__ == 'Boolean' and permissions.can_edit %}
+                <button class="toggle-switch{% if val %} toggle-switch--on{% endif %}"
+                        hx-patch="{{ admin_path | default('/admin') }}/{{ registered.table_name }}/{{ obj.id }}/field"
+                        hx-vals='{"field": "{{ col.name }}", "value": {{ "false" if val else "true" }}}'
+                        hx-target="this"
+                        hx-swap="outerHTML"
+                        hx-headers='{"X-CSRF-Token": "{{ get_csrf_token(request) }}"}'
+                        role="checkbox"
+                        aria-checked="{{ val | string | lower }}">
+                  <span class="toggle-switch__thumb"></span>
+                </button>
+              {% else %}
+                {{ val }}
+              {% endif %}
+            </td>
+          {% endif %}
+          {% endfor %}
+          <td class="px-4 py-3 text-right">
+            <div class="flex items-center justify-end gap-1">
+              {% if permissions.can_edit %}
+              <a href="{{ admin_path | default('/admin') }}/{{ registered.table_name }}/{{ obj.id }}"
+                 class="btn btn-ghost btn-sm">
+                Edit
+              </a>
+              {% endif %}
+              {% if permissions.can_delete %}
+              <button class="btn btn-ghost btn-sm"
+                      onclick="confirmAction('Delete', 'Are you sure you want to delete this {{ registered.verbose_name | lower }}?', () => htmx.ajax('DELETE', '{{ admin_path | default('/admin') }}/{{ registered.table_name }}/{{ obj.id }}', { target: this.closest('tr'), swap: 'outerHTML' }))">
+                Delete
+              </button>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+        {% else %}
+        <tr>
+          <td colspan="{{ registered.columns | length + 2 }}" class="px-4 py-16 text-center">
+            <svg class="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--text-disabled)">
+              <use href="/static/icons/heroicons.svg#document-text"/>
+            </svg>
+            <p class="mt-4" style="color: var(--text-secondary)">No {{ registered.verbose_name_plural | lower }} found</p>
+            {% if permissions.can_create %}
+            <a href="{{ admin_path | default('/admin') }}/{{ registered.table_name }}/create"
+               class="btn btn-primary" style="margin-top: 16px">
+              + Create your first {{ registered.verbose_name | lower }}
+            </a>
+            {% endif %}
+          </td>
+        </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if permissions.can_delete %}
+  <div class="px-4 py-3" style="border-top: 1px solid var(--surface-border); display: flex; align-items: center; gap: 12px">
+    <span style="font-size: var(--text-sm); color: var(--text-secondary)">With selected:</span>
+    <button type="button" class="btn btn-secondary btn-sm"
+            onclick="confirmAction('Delete Selected', 'Are you sure you want to delete the selected items?', () => document.getElementById('bulk-form').dispatchEvent(new Event('submit', {cancelable: true})))">
+      Delete Selected
+    </button>
+  </div>
+  {% endif %}
+
+  {% from "partials/pagination.html" import render_pagination %}
+  {{ render_pagination(page, total_pages, total, registered.admin.per_page) }}
+</div>

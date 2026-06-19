@@ -4,6 +4,7 @@
 {% block title %}{{ title | default("Admin") }} — Dashboard{% endblock %}
 
 {% block content %}
+{% set _ui = ui_config | default({}) %}
 <div class="space-y-6">
   <div class="page-header">
     <div class="page-header-left">
@@ -11,12 +12,12 @@
     </div>
   </div>
 
-  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+  <div class="stat-cards dashboard--{{ _ui.dashboard_grid | default('auto') }}">
     {% for card in stat_cards %}
     <a href="{{ card.url }}"
-       class="block p-6 bg-white rounded-xl border border-[var(--color-gray-200)] hover:shadow-md transition-shadow">
-      <div class="text-sm font-medium text-[var(--color-gray-500)]">{{ card.title }}</div>
-      <div class="mt-2 text-3xl font-bold text-[var(--color-gray-900)]">{{ card.count }}</div>
+       class="stat-card stat-card--{{ _ui.dashboard_card_style | default('default') }} stat-card--{{ _ui.dashboard_stat_size | default('normal') }}">
+      <div class="stat-card__label">{{ card.title }}</div>
+      <div class="stat-card__value">{{ card.count }}</div>
     </a>
     {% endfor %}
   </div>
