@@ -80,3 +80,91 @@ class EnumFilter(Filter):
         for val in self._enum_choices:
             choices.append((val, val.replace("_", " ").title()))
         return choices
+
+
+class NumericFilter(Filter):
+    """Numeric range filter (gte/lte)."""
+
+    def apply(self, query: Any, value: str) -> Any:
+        model = query.column_descriptions[0]["entity"]
+        if not hasattr(model, self.field_name):
+            return query
+        col = getattr(model, self.field_name)
+        if isinstance(value, dict):
+            if value.get("gte"):
+                query = query.where(col >= value["gte"])
+            if value.get("lte"):
+                query = query.where(col <= value["lte"])
+        return query
+
+
+class DateRangeFilter(Filter):
+    """Date range filter (from/to)."""
+
+    def apply(self, query: Any, value: str) -> Any:
+        from datetime import date
+
+        model = query.column_descriptions[0]["entity"]
+        if not hasattr(model, self.field_name):
+            return query
+        col = getattr(model, self.field_name)
+        if isinstance(value, dict):
+            if value.get("from"):
+                try:
+                    d = date.fromisoformat(value["from"])
+                    query = query.where(col >= d)
+                except (ValueError, TypeError):
+                    pass
+            if value.get("to"):
+                try:
+                    d = date.fromisoformat(value["to"])
+                    query = query.where(col <= d)
+                except (ValueError, TypeError):
+                    pass
+        return query
+
+
+class DatetimeRangeFilter(Filter):
+    """Datetime range filter (from/to)."""
+
+    def apply(self, query: Any, value: str) -> Any:
+        from datetime import datetime
+
+        model = query.column_descriptions[0]["entity"]
+        if not hasattr(model, self.field_name):
+            return query
+        col = getattr(model, self.field_name)
+        if isinstance(value, dict):
+            if value.get("from"):
+                try:
+                    dt = datetime.fromisoformat(value["from"])
+                    query = query.where(col >= dt)
+                except (ValueError, TypeError):
+                    pass
+            if value.get("to"):
+                try:
+                    dt = datetime.fromisoformat(value["to"])
+                    query = query.where(col <= dt)
+                except (ValueError, TypeError):
+                    pass
+        return query
+
+
+class AutocompleteFilter(Filter):
+    """Autocomplete search filter for related fields."""
+
+    def __init__(
+        self,
+        field_name: str,
+        label: str = "",
+        search_fields: list[str] | None = None,
+    ) -> None:
+        super().__init__(field_name, label)
+        self.search_fields = search_fields or ["name"]
+
+    def apply(self, query: Any, value: str) -> Any:
+        model = query.column_descriptions[0]["entity"]
+        if not hasattr(model, self.field_name):
+            return query
+        col = getattr(model, self.field_name)
+        return query.where(col == value)

@@ -123,6 +123,134 @@ def build_model_router(registered: RegisteredModel) -> APIRouter:
         ],
     )
 
+    # ── Custom Actions ─────────────────────────────────────────────
+
+    @router.post("/action/{action_name}")
+    async def execute_list_action(
+        request: Request,
+        action_name: str,
+        _csrf: bool = Depends(require_csrf_token),
+    ):
+        """Execute a list-level action on selected objects."""
+        session = request.app.state.admin_db_session
+        form = await request.form()
+        ids = form.getlist("ids[]")
+
+        action_obj = None
+        for a in registered.admin.get_list_actions():
+            if a.name == action_name:
+                action_obj = a
+                break
+
+        if not action_obj:
+            raise HTTPException(status_code=404, detail=f"Unknown action: {action_name}")
+
+        objects = []
+        for pid in ids:
+            obj = await session.get(registered.model, pid)
+            if obj:
+                objects.append(obj)
+
+        if objects:
+            await action_obj.execute(objects, request)
+            await session.commit()
+
+        from fastapi.responses import HTMLResponse
+        return HTMLResponse(content="OK")
+
+    @router.post("/action/{action_name}/{id}")
+    async def execute_row_action(
+        request: Request,
+        action_name: str,
+        id: str,
+        _csrf: bool = Depends(require_csrf_token),
+    ):
+        """Execute a row-level action on a single object."""
+        session = request.app.state.admin_db_session
+
+        action_obj = None
+        for a in registered.admin.get_row_actions():
+            if a.name == action_name:
+                action_obj = a
+                break
+
+        if not action_obj:
+            raise HTTPException(status_code=404, detail=f"Unknown action: {action_name}")
+
+        obj = await session.get(registered.model, id)
+        if not obj:
+            raise HTTPException(status_code=404, detail="Not found")
+
+        await action_obj.execute([obj], request)
+        await session.commit()
+
+        from fastapi.responses import HTMLResponse
+        return HTMLResponse(content="OK")
+
+    # ── Sortable Endpoint ──────────────────────────────────────────
+
+    @router.post("/sort")
+    async def sort_items(
+        request: Request,
+        _csrf: bool = Depends(require_csrf_token),
+    ):
+        """Handle drag-drop sort updates."""
+        body = await request.json()
+        ordering_field = getattr(registered.admin, "ordering_field", None)
+        if not ordering_field:
+            raise HTTPException(status_code=400, detail="Sorting not configured")
+
+        session = request.app.state.admin_db_session
+        items = body.get("items", [])
+        for idx, item_id in enumerate(items):
+            obj = await session.get(registered.model, item_id)
+            if obj:
+                setattr(obj, ordering_field, idx)
+        await session.commit()
+
+        from fastapi.responses import HTMLResponse
+        return HTMLResponse(content="OK")
+
+    # ── Autocomplete Endpoint ──────────────────────────────────────
+
+    @router.get("/autocomplete/")
+    async def autocomplete(
+        request: Request,
+        q: str = "",
+        _csrf: bool = Depends(require_permission(registered.table_name, "view")),
+    ):
+        """Search-as-you-type endpoint for relation pickers."""
+        import json as _json
+        from fastapi.responses import JSONResponse
+
+        session = request.app.state.admin_db_session
+        model = registered.model
+        results = []
+
+        # Search on name/title or configured search fields
+        search_fields = getattr(registered.admin, "search_fields", None) or ["name", "title"]
+        clauses = []
+        for sf in search_fields:
+            if hasattr(model, sf):
+                col = getattr(model, sf)
+                if hasattr(col, "ilike"):
+                    clauses.append(col.ilike(f"%{q}%"))
+
+        if clauses:
+            from sqlalchemy import select, or_
+            query = select(model).where(or_(*clauses)).limit(20)
+            result = await session.execute(query)
+            for obj in result.scalars():
+                label = str(
+                    getattr(obj, "name", None)
+                    or getattr(obj, "title", None)
+                    or f"#{getattr(obj, 'id', '?')}"
+                )
+                results.append({"id": str(obj.id), "label": label})
+
+        return JSONResponse(content=results)
+
+    # ── Inline Field Update (existing) ─────────────────────────────
     @router.patch("/{id}/field")
     async def update_field(
         request: Request,

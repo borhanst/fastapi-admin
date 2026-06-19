@@ -1,4 +1,4 @@
-{# pages/form.html — create/edit form with fieldsets #}
+{# pages/form.html — create/edit form with fieldsets, actions, conditional fields #}
 {% extends "base.html" %}
 {% from "macros/form_fields.html" import render_field %}
 
@@ -13,7 +13,9 @@
 {% endblock %}
 
 {% block content %}
-<div x-data="{ unsaved: false }" @change="unsaved = true">
+<div x-data="{ unsaved: false }"
+     {% if warn_unsaved_form %}@beforeunload.window="if (unsaved) { event.preventDefault(); event.returnValue = ''; }"{% endif %}
+     @change="unsaved = true">
   <div class="page-header">
     <div class="page-header-left">
       <a href="{{ admin_path | default('/admin') }}/{{ registered.table_name }}/" class="page-header-back">
@@ -44,6 +46,25 @@
       {% endif %}
     </div>
   </div>
+
+  {# Detail Actions #}
+  {% set _detail_actions = detail_actions | default([]) %}
+  {% if _detail_actions %}
+  <div class="flex items-center gap-2 mb-4">
+    {% for action in _detail_actions %}
+    <button type="button"
+            onclick="executeDetailAction('{{ action.name }}', '{{ admin_path | default('/admin') }}/{{ registered.table_name }}{% if obj %}/{{ obj.id }}{% endif %}')"
+            class="btn btn-{{ action.variant | default('secondary') }} btn-sm inline-flex items-center gap-1">
+      {% if action.icon %}
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <use href="/static/icons/heroicons.svg#{{ action.icon }}"/>
+      </svg>
+      {% endif %}
+      {{ action.label }}
+    </button>
+    {% endfor %}
+  </div>
+  {% endif %}
 
   {% if errors %}
   <div class="mb-6 p-4 rounded-lg bg-red-50 border border-red-200">
@@ -92,14 +113,32 @@
     {% endif %}
 
     <div class="sticky bottom-0 bg-white border border-[var(--color-gray-200)] rounded-xl p-4 flex items-center justify-between">
-      <div class="text-sm text-[var(--color-gray-500)]" x-show="unsaved" x-transition>
-        You have unsaved changes
+      <div class="flex items-center gap-3">
+        <div class="text-sm text-[var(--color-gray-500)]" x-show="unsaved" x-transition>
+          You have unsaved changes
+        </div>
+        {# Submit Line Actions #}
+        {% set _submit_actions = submit_line_actions | default([]) %}
+        {% for action in _submit_actions %}
+        <button type="button"
+                formaction="{{ admin_path | default('/admin') }}/{{ registered.table_name }}/action/{{ action.name }}{% if obj %}/{{ obj.id }}{% endif %}"
+                class="btn btn-{{ action.variant | default('secondary') }} btn-sm inline-flex items-center gap-1">
+          {% if action.icon %}
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <use href="/static/icons/heroicons.svg#{{ action.icon }}"/>
+          </svg>
+          {% endif %}
+          {{ action.label }}
+        </button>
+        {% endfor %}
       </div>
       <div class="flex items-center gap-3 ml-auto">
+        {% if change_form_show_cancel_button %}
         <a href="{{ admin_path | default('/admin') }}/{{ registered.table_name }}/"
            class="px-4 py-2 rounded-lg border border-[var(--color-gray-300)] text-sm text-[var(--color-gray-700)] hover:bg-[var(--color-gray-50)] transition-colors">
           Cancel
         </a>
+        {% endif %}
         <button type="submit"
                 @click="unsaved = false"
                 class="btn-primary px-4 py-2 rounded-lg bg-[var(--color-primary-600)] text-white text-sm font-medium hover:bg-[var(--color-primary-500)] transition-colors">
@@ -109,4 +148,17 @@
     </div>
   </form>
 </div>
+
+<script>
+function executeDetailAction(actionName, baseUrl) {
+  fetch(baseUrl + '/action/' + actionName + '/' + (window.location.pathname.split('/').pop() || ''), {
+    method: 'POST',
+    headers: {
+      'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content
+    }
+  }).then(() => {
+    window.location.reload();
+  });
+}
+</script>
 {% endblock %}

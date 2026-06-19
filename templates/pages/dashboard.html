@@ -1,4 +1,4 @@
-{# pages/dashboard.html — dashboard with stats and recent activity #}
+{# pages/dashboard.html — dashboard with stats, components, and recent activity #}
 {% extends "base.html" %}
 
 {% block title %}{{ title | default("Admin") }} — Dashboard{% endblock %}
@@ -21,6 +21,83 @@
     </a>
     {% endfor %}
   </div>
+
+  {# Dashboard Components #}
+  {% if dashboard_components %}
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    {% for component in dashboard_components %}
+    {% if component.type == 'card' %}
+    <div class="bg-white rounded-xl border border-[var(--color-gray-200)] p-6">
+      {% if component.title %}
+      <h3 class="text-lg font-semibold text-[var(--color-gray-900)] mb-2">{{ component.title }}</h3>
+      {% endif %}
+      <div class="text-3xl font-bold text-[var(--primary-600)]">{{ component.value | default('-') }}</div>
+      {% if component.description %}
+      <p class="text-sm text-[var(--color-gray-500)] mt-1">{{ component.description }}</p>
+      {% endif %}
+    </div>
+
+    {% elif component.type == 'progress' %}
+    <div class="bg-white rounded-xl border border-[var(--color-gray-200)] p-6">
+      {% if component.title %}
+      <h3 class="text-lg font-semibold text-[var(--color-gray-900)] mb-2">{{ component.title }}</h3>
+      {% endif %}
+      <div class="w-full bg-[var(--color-gray-200)] rounded-full h-2.5">
+        <div class="bg-[var(--primary-600)] h-2.5 rounded-full" style="width: {{ component.value | default(0) }}%"></div>
+      </div>
+      <p class="text-sm text-[var(--color-gray-500)] mt-1">{{ component.value | default(0) }}%</p>
+    </div>
+
+    {% elif component.type == 'table' %}
+    <div class="lg:col-span-2 bg-white rounded-xl border border-[var(--color-gray-200)]">
+      {% if component.title %}
+      <div class="px-6 py-4 border-b border-[var(--color-gray-200)]">
+        <h3 class="text-lg font-semibold text-[var(--color-gray-900)]">{{ component.title }}</h3>
+      </div>
+      {% endif %}
+      {% if component.headers %}
+      <table class="w-full">
+        <thead>
+          <tr>
+            {% for header in component.headers %}
+            <th class="px-6 py-3 text-left text-xs font-medium text-[var(--color-gray-500)] uppercase">{{ header }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-[var(--color-gray-100)]">
+          {% for row in component.rows | default([]) %}
+          <tr>
+            {% for cell in row %}
+            <td class="px-6 py-4 text-sm text-[var(--color-gray-900)]">{{ cell }}</td>
+            {% endfor %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% endif %}
+    </div>
+
+    {% elif component.type == 'button' %}
+    <a href="{{ component.url | default('#') }}"
+       class="bg-white rounded-xl border border-[var(--color-gray-200)] p-6 hover:border-[var(--primary-500)] transition-colors block">
+      <div class="flex items-center gap-3">
+        {% if component.icon %}
+        <svg class="w-6 h-6 text-[var(--primary-600)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <use href="/static/icons/heroicons.svg#{{ component.icon }}"/>
+        </svg>
+        {% endif %}
+        <div>
+          <div class="font-medium text-[var(--color-gray-900)]">{{ component.title | default('') }}</div>
+          {% if component.description %}
+          <div class="text-sm text-[var(--color-gray-500)]">{{ component.description }}</div>
+          {% endif %}
+        </div>
+      </div>
+    </a>
+    {% endif %}
+    {% endfor %}
+  </div>
+  {% endif %}
 
   <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
     <div class="lg:col-span-2">

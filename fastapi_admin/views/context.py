@@ -242,6 +242,68 @@ class ViewContextBuilder:
 
                 if filter_value:
                     active_filters[filter_field] = filter_value
+
+            # Support range filters: filter_field__gte, filter_field__lte, filter_field__from, filter_field__to
+            for filter_field in registered.admin.list_filter:
+                gte_val = request.query_params.get(f"filter_{filter_field}__gte", "")
+                lte_val = request.query_params.get(f"filter_{filter_field}__lte", "")
+                from_val = request.query_params.get(f"filter_{filter_field}__from", "")
+                to_val = request.query_params.get(f"filter_{filter_field}__to", "")
+
+                if (gte_val or lte_val) and hasattr(model, filter_field):
+                    col = getattr(model, filter_field)
+                    if gte_val:
+                        try:
+                            filter_clauses.append(col >= type(col.property.columns[0].type)().coerce(gte_val))
+                        except Exception:
+                            pass
+                    if lte_val:
+                        try:
+                            filter_clauses.append(col <= type(col.property.columns[0].type)().coerce(lte_val))
+                        except Exception:
+                            pass
+
+                if (from_val or to_val) and hasattr(model, filter_field):
+                    col = getattr(model, filter_field)
+                    field_type = self._get_field_type(model, filter_field)
+                    if field_type == "date" and from_val:
+                        try:
+                            from datetime import date as _date
+                            d = _date.fromisoformat(from_val)
+                            filter_clauses.append(col >= d)
+                        except (ValueError, TypeError):
+                            pass
+                    if field_type == "date" and to_val:
+                        try:
+                            from datetime import date as _date
+                            d = _date.fromisoformat(to_val)
+                            filter_clauses.append(col <= d)
+                        except (ValueError, TypeError):
+                            pass
+                    if field_type == "datetime" and from_val:
+                        try:
+                            from datetime import datetime as _dt
+                            dt = _dt.fromisoformat(from_val)
+                            filter_clauses.append(col >= dt)
+                        except (ValueError, TypeError):
+                            pass
+                    if field_type == "datetime" and to_val:
+                        try:
+                            from datetime import datetime as _dt
+                            dt = _dt.fromisoformat(to_val)
+                            filter_clauses.append(col <= dt)
+                        except (ValueError, TypeError):
+                            pass
+
+                if gte_val:
+                    active_filters[f"{filter_field}__gte"] = gte_val
+                if lte_val:
+                    active_filters[f"{filter_field}__lte"] = lte_val
+                if from_val:
+                    active_filters[f"{filter_field}__from"] = from_val
+                if to_val:
+                    active_filters[f"{filter_field}__to"] = to_val
+
             if filter_clauses:
                 base = base.where(and_(*filter_clauses))
 
@@ -304,6 +366,14 @@ class ViewContextBuilder:
             "permissions": permission_checker.permission_set(registered.table_name)
             if permission_checker
             else PermissionSet(can_view=True, can_create=True, can_edit=True, can_delete=True),
+            "list_actions": registered.admin.get_list_actions(),
+            "row_actions": registered.admin.get_row_actions(),
+            "list_tabs": getattr(registered.admin, "list_tabs", []),
+            "list_sections": getattr(registered.admin, "list_sections", []),
+            "ordering_field": getattr(registered.admin, "ordering_field", None),
+            "hide_ordering_field": getattr(registered.admin, "hide_ordering_field", False),
+            "list_filter_options": getattr(registered.admin, "list_filter_options", {}),
+            "list_filter_horizontal": getattr(registered.admin, "list_filter_horizontal", False),
         }
         inject_sidebar_context(request, template_context)
         return template_context
@@ -343,6 +413,12 @@ class ViewContextBuilder:
             "permissions": permission_checker.permission_set(registered.table_name)
             if permission_checker
             else PermissionSet(can_view=True, can_create=True, can_edit=True, can_delete=True),
+            "detail_actions": registered.admin.get_detail_actions(),
+            "submit_line_actions": registered.admin.get_submit_line_actions(),
+            "conditional_fields": getattr(registered.admin, "conditional_fields", {}),
+            "warn_unsaved_form": getattr(registered.admin, "warn_unsaved_form", True),
+            "compressed_fields": getattr(registered.admin, "compressed_fields", True),
+            "change_form_show_cancel_button": getattr(registered.admin, "change_form_show_cancel_button", True),
         }
         inject_sidebar_context(request, template_context)
         return template_context

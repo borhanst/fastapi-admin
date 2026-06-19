@@ -270,3 +270,69 @@ class ImageUploadWidget(Widget):
     def validate(self, value: Any, field: FieldMeta) -> list[str]:
         errors = super().validate(value, field)
         return errors
+
+
+class WysiwygWidget(Widget):
+    """Wysiwyg rich text editor widget (contenteditable-based)."""
+
+    macro_name = "wysiwyg"
+
+    def __init__(self, height: int = 200):
+        self.height = height
+
+    def render_context(self, field: FieldMeta, value: Any) -> dict:
+        ctx = super().render_context(field, value)
+        ctx["height"] = self.height
+        return ctx
+
+    def parse(self, raw: str | None) -> str | None:
+        if not raw:
+            return None
+        return raw
+
+    def validate(self, value: Any, field: FieldMeta) -> list[str]:
+        return []
+
+
+class ArrayWidget(Widget):
+    """Array/list input widget — dynamic add/remove items."""
+
+    macro_name = "array_input"
+
+    def __init__(self, min_items: int = 0, max_items: int | None = None):
+        self.min_items = min_items
+        self.max_items = max_items
+
+    def render_context(self, field: FieldMeta, value: Any) -> dict:
+        ctx = super().render_context(field, value)
+        if isinstance(value, str):
+            try:
+                import json
+                ctx["value"] = json.loads(value)
+            except (json.JSONDecodeError, TypeError):
+                ctx["value"] = []
+        ctx["min_items"] = self.min_items
+        ctx["max_items"] = self.max_items
+        return ctx
+
+    def parse(self, raw: str | list | None) -> list:
+        if raw is None:
+            return []
+        if isinstance(raw, list):
+            return raw
+        if isinstance(raw, str):
+            try:
+                import json
+                return json.loads(raw)
+            except (json.JSONDecodeError, TypeError):
+                return [raw] if raw else []
+        return []
+
+    def validate(self, value: Any, field: FieldMeta) -> list[str]:
+        errors = super().validate(value, field)
+        if isinstance(value, list):
+            if self.min_items and len(value) < self.min_items:
+                errors.append(f"{field.label} requires at least {self.min_items} items.")
+            if self.max_items and len(value) > self.max_items:
+                errors.append(f"{field.label} allows at most {self.max_items} items.")
+        return errors

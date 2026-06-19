@@ -25,6 +25,15 @@ class ModelAdmin:
     search_fields: list[str] | None = None
     ordering: list[str] | None = None
     per_page: int = 20
+    list_filter_options: dict[str, dict[str, Any]] = {}
+    list_filter_horizontal: bool = False
+
+    # Actions config
+    actions_list: list[str] = []
+    actions_row: list[str] = []
+    actions_detail: list[str] = []
+    actions_submit_line: list[str] = []
+    actions_list_hide_default: bool = False
 
     # Form config
     fields: list[str] | None = None
@@ -35,6 +44,14 @@ class ModelAdmin:
     fieldsets: list[Any] = []  # FieldsetSpec accepted but not strictly enforced here
     field_placeholders: dict[str, str] = {}  # {field_name: placeholder_text}
 
+    # Conditional fields
+    conditional_fields: dict[str, dict[str, Any]] = {}
+
+    # Form UX config
+    warn_unsaved_form: bool = True
+    compressed_fields: bool = True
+    change_form_show_cancel_button: bool = True
+
     # Labels and display
     verbose_name: str | None = None
     verbose_name_plural: str | None = None
@@ -42,12 +59,28 @@ class ModelAdmin:
     tag: str | None = None
     tags: list[str] | None = None
     nav_order: int = 999
-    nav_children: list["NavItemConfig"] | None = None
+    nav_children: list[NavItemConfig] | None = None
 
     # Per-model UI overrides
     list_style: str | None = None
     form_style: str | None = None
     card_color: str | None = None
+
+    # Tabs
+    list_tabs: list = []
+
+    # Expandable sections
+    list_sections: list = []
+
+    # Sortable
+    ordering_field: str | None = None
+    hide_ordering_field: bool = False
+
+    # Readonly preprocessing
+    readonly_preprocess_fields: dict[str, Any] = {}
+
+    # Sortable inlines
+    sortable_inline_field: str | None = None
 
     # Badge hook — return str e.g. "12" or None
     def get_nav_badge(self, request: Any = None) -> str | None:
@@ -188,6 +221,51 @@ class ModelAdmin:
             return ordered
 
         return form_fields
+
+    # ── Action helpers ─────────────────────────────────────────────
+
+    def get_actions_for_location(self, location: str) -> list[Any]:
+        """Get resolved Action instances for a given location (list/row/detail/submit_line)."""
+        from fastapi_admin.actions.base import Action
+
+        action_names = getattr(self, f"actions_{location}", [])
+        resolved = []
+        for name in action_names:
+            action_fn = getattr(self, name, None)
+            if not action_fn:
+                continue
+            if hasattr(action_fn, "_admin_action"):
+                resolved.append(action_fn._admin_action())
+            elif callable(action_fn):
+                label = name.replace("_", " ").title()
+                _fn = action_fn
+                _admin = self
+
+                class _FallbackAction(Action):
+                    def __init__(action_self):
+                        super().__init__(name=name, label=label)
+
+                    async def execute(action_self, objects, request):
+                        import inspect
+                        if inspect.iscoroutinefunction(_fn):
+                            await _fn(_admin, objects, request)
+                        else:
+                            _fn(_admin, objects, request)
+
+                resolved.append(_FallbackAction())
+        return resolved
+
+    def get_list_actions(self) -> list[Any]:
+        return self.get_actions_for_location("list")
+
+    def get_row_actions(self) -> list[Any]:
+        return self.get_actions_for_location("row")
+
+    def get_detail_actions(self) -> list[Any]:
+        return self.get_actions_for_location("detail")
+
+    def get_submit_line_actions(self) -> list[Any]:
+        return self.get_actions_for_location("submit_line")
 
     # ── Permission helpers ───────────────────────────────────────────
 

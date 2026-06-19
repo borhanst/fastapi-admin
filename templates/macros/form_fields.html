@@ -15,6 +15,15 @@
 
 {% macro render_field(field_ctx, model_name) %}
   {% set m = field_ctx.widget_macro %}
+  {% set field_name = field_ctx.meta.name %}
+  {# Check for conditional field visibility #}
+  {% set cond = conditional_fields | default({}) %}
+  {% set show_when = cond.get(field_name, {}).get('show_when', '') %}
+  {% set show_values = cond.get(field_name, {}).get('values', []) %}
+  {% if show_when %}
+  <div x-show="['{{ show_values | join("','") }}'].includes($refs['form_{{ show_when }}']?.value)"
+       x-transition class="contents">
+  {% endif %}
   {% if   m == "text_input"      %}{{ _text_input(field_ctx, model_name) }}
   {% elif m == "textarea"        %}{{ _textarea(field_ctx, model_name) }}
   {% elif m == "number_input"    %}{{ _number_input(field_ctx, model_name) }}
@@ -37,7 +46,12 @@
   {% elif m == "tag_input"       %}{{ _tag_input(field_ctx) }}
   {% elif m == "relation_picker" %}{{ _relation_picker(field_ctx) }}
   {% elif m == "multi_relation"  %}{{ _multi_relation(field_ctx) }}
+  {% elif m == "wysiwyg"         %}{{ _wysiwyg(field_ctx) }}
+  {% elif m == "array_input"     %}{{ _array_input(field_ctx) }}
   {% else %}                        {{ _text_input(field_ctx, model_name) }}
+  {% endif %}
+  {% if show_when %}
+  </div>
   {% endif %}
 {% endmacro %}
 
@@ -594,6 +608,74 @@ hx-vals='{"field_name": "{{ field_ctx.meta.name }}"}'
         </template>
       </div>
     </div>
+  </div>
+  {{ _errors(field_ctx) }}
+  {{ _help_text(field_ctx) }}
+{{ _field_wrapper_close() }}
+{% endmacro %}
+
+{# ─── Wysiwyg Editor ──────────────────────────────────────────────────── #}
+
+{% macro _wysiwyg(field_ctx) %}
+{% set name = field_ctx.meta.name %}
+{% set val = field_ctx.widget_context.value | default('') %}
+{{ _field_wrapper_open(field_ctx) }}
+  {{ _label(field_ctx) }}
+  <div id="wysiwyg-{{ name }}" class="border border-[var(--color-gray-300)] rounded-lg overflow-hidden">
+    <div class="wysiwyg-toolbar flex items-center gap-1 px-3 py-2 bg-[var(--color-gray-50)] border-b border-[var(--color-gray-200)]">
+      <button type="button" onclick="document.execCommand('bold')" class="p-1 rounded hover:bg-[var(--color-gray-200)]" title="Bold"><b>B</b></button>
+      <button type="button" onclick="document.execCommand('italic')" class="p-1 rounded hover:bg-[var(--color-gray-200)]" title="Italic"><i>I</i></button>
+      <button type="button" onclick="document.execCommand('underline')" class="p-1 rounded hover:bg-[var(--color-gray-200)]" title="Underline"><u>U</u></button>
+      <div class="w-px h-4 bg-[var(--color-gray-300)] mx-1"></div>
+      <button type="button" onclick="document.execCommand('insertUnorderedList')" class="p-1 rounded hover:bg-[var(--color-gray-200)]" title="Bullet list">&#8226;</button>
+      <button type="button" onclick="document.execCommand('insertOrderedList')" class="p-1 rounded hover:bg-[var(--color-gray-200)]" title="Numbered list">1.</button>
+      <div class="w-px h-4 bg-[var(--color-gray-300)] mx-1"></div>
+      <button type="button" onclick="document.execCommand('formatBlock', false, 'h2')" class="p-1 rounded hover:bg-[var(--color-gray-200)]" title="Heading">H2</button>
+      <button type="button" onclick="document.execCommand('formatBlock', false, 'h3')" class="p-1 rounded hover:bg-[var(--color-gray-200)]" title="Subheading">H3</button>
+    </div>
+    <div contenteditable="true"
+         id="wysiwyg-editor-{{ name }}"
+         class="min-h-[200px] p-4 prose prose-sm max-w-none focus:outline-none"
+         data-field="{{ name }}"
+         oninput="document.getElementById('wysiwyg-hidden-{{ name }}').value = this.innerHTML">{{ val }}</div>
+    <input type="hidden" id="wysiwyg-hidden-{{ name }}" name="{{ name }}" value="{{ val }}">
+  </div>
+  {{ _errors(field_ctx) }}
+  {{ _help_text(field_ctx) }}
+{{ _field_wrapper_close() }}
+{% endmacro %}
+
+{# ─── Array Input ──────────────────────────────────────────────────────── #}
+
+{% macro _array_input(field_ctx) %}
+{% set name = field_ctx.meta.name %}
+{% set items = field_ctx.widget_context.value | default([]) %}
+{{ _field_wrapper_open(field_ctx) }}
+  {{ _label(field_ctx) }}
+  <div x-data="arrayInput({{ items | tojson }})">
+    <input type="hidden" name="{{ name }}" :value="JSON.stringify(items)">
+    <div class="space-y-2 mb-2">
+      <template x-for="(item, index) in items" :key="index">
+        <div class="flex items-center gap-2">
+          <input type="text" x-model="items[index]"
+                 class="form-input {{ _input_base }} flex-1"
+                 placeholder="Enter value...">
+          <button type="button" @click="remove(index)"
+                  class="p-2 text-[var(--color-danger)] hover:bg-red-50 rounded-lg transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <use href="/static/icons/heroicons.svg#trash"/>
+            </svg>
+          </button>
+        </div>
+      </template>
+    </div>
+    <button type="button" @click="add()"
+            class="px-3 py-1.5 text-sm text-[var(--primary-600)] hover:bg-[var(--primary-50)] rounded-lg transition-colors inline-flex items-center gap-1">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <use href="/static/icons/heroicons.svg#plus"/>
+      </svg>
+      Add item
+    </button>
   </div>
   {{ _errors(field_ctx) }}
   {{ _help_text(field_ctx) }}
