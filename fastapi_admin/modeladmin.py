@@ -82,6 +82,17 @@ class ModelAdmin:
     # Sortable inlines
     sortable_inline_field: str | None = None
 
+    # Per-model extra CSS/JS assets (SRP: asset declaration only)
+    extra: Any = None  # AdminExtra instance
+
+    # View classes — OCP: override per-model via subclassing (DIP: depend on abstractions)
+    list_view_class: Any = None
+    create_view_class: Any = None
+    edit_view_class: Any = None
+    delete_view_class: Any = None
+    bulk_view_class: Any = None
+    search_view_class: Any = None
+
     # Badge hook — return str e.g. "12" or None
     def get_nav_badge(self, request: Any = None) -> str | None:
         return None

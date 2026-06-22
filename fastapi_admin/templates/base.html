@@ -56,6 +56,12 @@
   {% for js_url in extra_js | default([]) %}
   <script src="{{ js_url }}"></script>
   {% endfor %}
+  {% if extra_css_inline | default('') %}
+  <style>{{ extra_css_inline }}</style>
+  {% endif %}
+  {% if extra_js_inline | default('') %}
+  <script>{{ extra_js_inline }}</script>
+  {% endif %}
 </head>
 <body x-data="{
         sidebarOpen: false,

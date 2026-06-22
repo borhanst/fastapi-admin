@@ -7,36 +7,44 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi_admin.auth.csrf import require_csrf_token
 from fastapi_admin.auth.dependencies import require_permission
 from fastapi_admin.registry import RegisteredModel
-from fastapi_admin.views import (
-    bulk_factory,
-    create_form_factory,
-    create_submit_factory,
-    delete_factory,
-    edit_form_factory,
-    edit_submit_factory,
-    list_view_factory,
-    search_factory,
+from fastapi_admin.views.class_views import (
+    BulkView,
+    CreateView,
+    DeleteView,
+    EditView,
+    ListView,
+    SearchView,
+    _resolve_view_class,
 )
 
 
 def build_model_router(registered: RegisteredModel) -> APIRouter:
     router = APIRouter(prefix=f"/{registered.table_name}")
 
+    # DIP: view classes resolved from ModelAdmin config with defaults
+    admin = registered.admin
+    list_v = _resolve_view_class(admin, "list_view_class", ListView)(registered)
+    create_v = _resolve_view_class(admin, "create_view_class", CreateView)(registered)
+    edit_v = _resolve_view_class(admin, "edit_view_class", EditView)(registered)
+    delete_v = _resolve_view_class(admin, "delete_view_class", DeleteView)(registered)
+    bulk_v = _resolve_view_class(admin, "bulk_view_class", BulkView)(registered)
+    search_v = _resolve_view_class(admin, "search_view_class", SearchView)(registered)
+
     router.add_api_route(
         "/",
-        list_view_factory(registered),
+        list_v.html_response,
         methods=["GET"],
         dependencies=[Depends(require_permission(registered.table_name, "view"))],
     )
     router.add_api_route(
         "/create",
-        create_form_factory(registered),
+        create_v.html_response,
         methods=["GET"],
         dependencies=[Depends(require_permission(registered.table_name, "create"))],
     )
     router.add_api_route(
         "/create",
-        create_submit_factory(registered),
+        create_v.html_response,
         methods=["POST"],
         dependencies=[
             Depends(require_permission(registered.table_name, "create")),
@@ -45,13 +53,13 @@ def build_model_router(registered: RegisteredModel) -> APIRouter:
     )
     router.add_api_route(
         "/search",
-        search_factory(registered),
+        search_v.html_response,
         methods=["GET"],
         dependencies=[Depends(require_permission(registered.table_name, "view"))],
     )
     router.add_api_route(
         "/bulk",
-        bulk_factory(registered),
+        bulk_v.html_response,
         methods=["POST"],
         dependencies=[
             Depends(require_permission(registered.table_name, "edit")),
@@ -101,13 +109,13 @@ def build_model_router(registered: RegisteredModel) -> APIRouter:
 
     router.add_api_route(
         "/{id}",
-        edit_form_factory(registered),
+        edit_v.html_response,
         methods=["GET"],
         dependencies=[Depends(require_permission(registered.table_name, "edit"))],
     )
     router.add_api_route(
         "/{id}",
-        edit_submit_factory(registered),
+        edit_v.html_response,
         methods=["POST"],
         dependencies=[
             Depends(require_permission(registered.table_name, "edit")),
@@ -116,7 +124,7 @@ def build_model_router(registered: RegisteredModel) -> APIRouter:
     )
     router.add_api_route(
         "/{id}/delete",
-        delete_factory(registered),
+        delete_v.html_response,
         methods=["POST"],
         dependencies=[
             Depends(require_permission(registered.table_name, "delete")),
@@ -221,14 +229,12 @@ def build_model_router(registered: RegisteredModel) -> APIRouter:
         _csrf: bool = Depends(require_permission(registered.table_name, "view")),
     ):
         """Search-as-you-type endpoint for relation pickers."""
-        import json as _json
         from fastapi.responses import JSONResponse
 
         session = request.app.state.admin_db_session
         model = registered.model
         results = []
 
-        # Search on name/title or configured search fields
         search_fields = getattr(registered.admin, "search_fields", None) or ["name", "title"]
         clauses = []
         for sf in search_fields:
@@ -238,7 +244,7 @@ def build_model_router(registered: RegisteredModel) -> APIRouter:
                     clauses.append(col.ilike(f"%{q}%"))
 
         if clauses:
-            from sqlalchemy import select, or_
+            from sqlalchemy import or_, select
             query = select(model).where(or_(*clauses)).limit(20)
             result = await session.execute(query)
             for obj in result.scalars():
@@ -259,7 +265,7 @@ def build_model_router(registered: RegisteredModel) -> APIRouter:
         _csrf: bool = Depends(require_csrf_token),
     ):
         """Inline field update — used by toggle switches in list view."""
-        from fastapi_admin.auth.csrf import generate_csrf_token, _get_secret_key
+        from fastapi_admin.auth.csrf import _get_secret_key, generate_csrf_token
 
         content_type = request.headers.get("content-type", "")
         if "application/json" in content_type:
@@ -274,17 +280,14 @@ def build_model_router(registered: RegisteredModel) -> APIRouter:
         if not field_name:
             raise HTTPException(status_code=400, detail="Missing field name")
 
-        # Only allow editing fields that are not readonly
         readonly = getattr(registered.admin, "readonly_fields", []) or []
         if field_name in readonly:
             raise HTTPException(status_code=403, detail="Field is read-only")
 
-        # Validate field exists on model
         col = next((c for c in registered.columns if c.name == field_name), None)
         if col is None:
             raise HTTPException(status_code=400, detail="Invalid field name")
 
-        # Parse boolean values
         if col.type.__class__.__name__ == "Boolean":
             new_value = str(new_value).lower() in ("true", "1", "yes")
 
@@ -300,7 +303,6 @@ def build_model_router(registered: RegisteredModel) -> APIRouter:
             await session.rollback()
             raise
 
-        # Return updated toggle HTML
         val = getattr(obj, field_name)
         secret = _get_secret_key(request) or ""
         csrf_token = generate_csrf_token(secret)
