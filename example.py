@@ -485,7 +485,7 @@ async def custom_dashboard_data(request, session):
 # ============================================================================
 
 # Database configuration
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./example.db")
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./test_debug.db")
 SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key-change-in-production")
 
 engine = create_async_engine(DATABASE_URL, echo=False)

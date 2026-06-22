@@ -178,8 +178,9 @@ class Admin:
 
         # Add CSRF middleware early (must be before app starts)
         if app is not None:
-            from fastapi_admin.auth.csrf import CSRFMiddleware
+            from fastapi_admin.auth.csrf import CSRFMiddleware, auth_redirect_handler
 
+            app.add_exception_handler(401, auth_redirect_handler)
             app.add_middleware(CSRFMiddleware)
             self._csrf_middleware_added = True
         else:
@@ -417,9 +418,10 @@ class Admin:
 
         # Add CSRF middleware if not already added in __init__
         if not getattr(self, "_csrf_middleware_added", False):
-            from fastapi_admin.auth.csrf import CSRFMiddleware
+            from fastapi_admin.auth.csrf import CSRFMiddleware, auth_redirect_handler
 
             try:
+                app.add_exception_handler(401, auth_redirect_handler)
                 app.add_middleware(CSRFMiddleware)
             except RuntimeError:
                 pass  # Already started — middleware was added in __init__

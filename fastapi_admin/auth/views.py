@@ -62,6 +62,7 @@ async def login_post(
     """POST /admin/login — process login form."""
     auth_backend = request.app.state.admin_auth_backend
     user = await auth_backend.authenticate(email, password, session)
+    print("user=====", user)
     if user is not None:
         user.last_login = datetime.now(UTC)
         await session.merge(user)

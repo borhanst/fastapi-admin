@@ -9,6 +9,7 @@ import time
 
 from fastapi import HTTPException, Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import RedirectResponse
 
 CSRF_COOKIE_NAME = "admin_csrf_token"
 CSRF_FORM_FIELD = "csrf_token"
@@ -209,3 +210,26 @@ class CSRFMiddleware(BaseHTTPMiddleware):
             )
 
         return response
+
+
+# ---------------------------------------------------------------------------
+# Auth Redirect Exception Handler — redirects HTML requests to login on 401
+# ---------------------------------------------------------------------------
+
+
+async def auth_redirect_handler(request: Request, exc: HTTPException) -> Response:
+    """Exception handler that catches 401 HTTPExceptions and redirects
+    HTML requests to the login page instead of returning a JSON error.
+    """
+    if exc.status_code == 401:
+        accept = request.headers.get("accept", "")
+        if "text/html" in accept:
+            login_url = "/admin/login"
+            current_path = request.url.path
+            if current_path != "/admin/login":
+                if request.url.query:
+                    login_url += f"?next={current_path}%3F{request.url.query}"
+                else:
+                    login_url += f"?next={current_path}"
+            return RedirectResponse(url=login_url, status_code=302)
+    raise exc
