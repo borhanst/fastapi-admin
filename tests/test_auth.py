@@ -139,7 +139,7 @@ class TestSignedCookieSessionBackend:
 
     def test_decode_returns_none_for_expired_token(self):
         short_ttl = SignedCookieSessionBackend(
-            secret_key="test-key", session_ttl=1
+            secret_key="test-secret-key-long-enough-for-security!", session_ttl=1
         )
         token = short_ttl.encode({"user_id": 1})
         time.sleep(2)

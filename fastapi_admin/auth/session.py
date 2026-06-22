@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import time
 from abc import ABC, abstractmethod
 from typing import Any
 
@@ -56,7 +57,12 @@ class SignedCookieSessionBackend(SessionBackend):
         return self._secret_key
 
     def encode(self, payload: dict[str, Any]) -> str:
-        """Sign *payload* and return the signed token."""
+        """Sign *payload* and return the signed token.
+
+        Automatically adds ``iat`` (issued-at) timestamp if not present.
+        """
+        if "iat" not in payload:
+            payload["iat"] = time.time()
         data = json.dumps(payload, separators=(",", ":")).encode()
         return self._signer.sign(data).decode()
 

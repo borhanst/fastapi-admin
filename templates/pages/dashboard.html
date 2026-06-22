@@ -1,74 +1,119 @@
-{# pages/dashboard.html — dashboard with stats, components, and recent activity #}
+{# pages/dashboard.html — premium dashboard #}
 {% extends "base.html" %}
 
 {% block title %}{{ title | default("Admin") }} — Dashboard{% endblock %}
 
 {% block content %}
 {% set _ui = ui_config | default({}) %}
-<div class="space-y-6">
+{% set _icons = {
+  'Categories': 'folder',
+  'Products': 'shopping-bag',
+  'Users': 'users',
+  'Orders': 'shopping-cart',
+  'Order Itemss': 'list-bullet',
+  'Admin Field Permissionss': 'shield-check',
+  'Admin Permissionss': 'key',
+  'Admin Userss': 'user-group',
+  'Admin Audit Logs': 'document-text',
+  'Admin Roless': 'cog-6-tooth'
+} %}
+
+<div class="dashboard-wrapper" style="display: flex; flex-direction: column; gap: 28px;">
+  {# ─── Page Header ─── #}
   <div class="page-header">
     <div class="page-header-left">
       <h1 class="page-header-title">Dashboard</h1>
+      <p class="page-header-subtitle" style="color: var(--text-tertiary); font-size: var(--text-sm);">
+        Welcome back. Here's an overview of your system.
+      </p>
+    </div>
+    <div class="page-header-right">
+      <span class="badge badge-info" style="font-size: var(--text-2xs);">
+        <span style="width: 6px; height: 6px; background: var(--info-500); border-radius: 50%; display: inline-block; margin-right: 6px; animation: pulse 2s infinite;"></span>
+        System Online
+      </span>
     </div>
   </div>
 
-  <div class="stat-cards dashboard--{{ _ui.dashboard_grid | default('auto') }}">
+  {# ─── Stat Cards ─── #}
+  <div class="stat-cards" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 16px;">
     {% for card in stat_cards %}
     <a href="{{ card.url }}"
-       class="stat-card stat-card--{{ _ui.dashboard_card_style | default('default') }} stat-card--{{ _ui.dashboard_stat_size | default('normal') }}">
-      <div class="stat-card__label">{{ card.title }}</div>
-      <div class="stat-card__value">{{ card.count }}</div>
+       class="stat-card"
+       style="display: flex; flex-direction: column; gap: 12px; padding: 20px; border-radius: var(--radius-lg); text-decoration: none; color: var(--text-primary); background: var(--surface-raised); border: 1px solid var(--surface-border); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); position: relative; overflow: hidden;"
+       onmouseenter="this.style.transform='translateY(-4px)'; this.style.boxShadow='var(--shadow-card-hover)'; this.style.borderColor='rgba(20, 184, 166, 0.3)'"
+       onmouseleave="this.style.transform=''; this.style.boxShadow=''; this.style.borderColor=''">
+      {# Accent gradient top border #}
+      <div style="position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--primary-500), var(--accent-500)); opacity: 0.7;"></div>
+      
+      {# Icon + Label #}
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <div style="width: 36px; height: 36px; border-radius: var(--radius-md); background: var(--primary-50); display: flex; align-items: center; justify-content: center;">
+          <svg style="width: 18px; height: 18px; color: var(--primary-600);" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+            <use href="/static/icons/heroicons.svg#{{ _icons[card.title] | default('cube') }}"/>
+          </svg>
+        </div>
+        <span style="font-size: var(--text-2xs); font-weight: var(--font-semibold); text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-tertiary);">{{ card.title }}</span>
+      </div>
+      
+      {# Value #}
+      <div style="font-family: var(--font-display); font-size: var(--text-3xl); font-weight: 700; color: var(--text-primary); line-height: 1; letter-spacing: -0.03em;">
+        {{ card.count }}
+      </div>
     </a>
     {% endfor %}
   </div>
 
-  {# Dashboard Components #}
+  {# ─── Dashboard Components ─── #}
   {% if dashboard_components %}
-  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+  <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
     {% for component in dashboard_components %}
     {% if component.type == 'card' %}
-    <div class="bg-white rounded-xl border border-[var(--color-gray-200)] p-6">
+    <div style="padding: 24px; border-radius: var(--radius-lg); background: var(--surface-raised); border: 1px solid var(--surface-border); transition: all 0.3s ease;"
+         onmouseenter="this.style.transform='translateY(-2px)'; this.style.boxShadow='var(--shadow-lg)'"
+         onmouseleave="this.style.transform=''; this.style.boxShadow=''">
       {% if component.title %}
-      <h3 class="text-lg font-semibold text-[var(--color-gray-900)] mb-2">{{ component.title }}</h3>
+      <h3 style="font-size: var(--text-sm); font-weight: var(--font-semibold); color: var(--text-tertiary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.04em;">{{ component.title }}</h3>
       {% endif %}
-      <div class="text-3xl font-bold text-[var(--primary-600)]">{{ component.value | default('-') }}</div>
+      <div style="font-family: var(--font-display); font-size: var(--text-3xl); font-weight: 700; color: var(--primary-500); line-height: 1;">{{ component.value | default('-') }}</div>
       {% if component.description %}
-      <p class="text-sm text-[var(--color-gray-500)] mt-1">{{ component.description }}</p>
+      <p style="font-size: var(--text-sm); color: var(--text-tertiary); margin-top: 8px;">{{ component.description }}</p>
       {% endif %}
     </div>
 
     {% elif component.type == 'progress' %}
-    <div class="bg-white rounded-xl border border-[var(--color-gray-200)] p-6">
+    <div style="padding: 24px; border-radius: var(--radius-lg); background: var(--surface-raised); border: 1px solid var(--surface-border);">
       {% if component.title %}
-      <h3 class="text-lg font-semibold text-[var(--color-gray-900)] mb-2">{{ component.title }}</h3>
+      <h3 style="font-size: var(--text-sm); font-weight: var(--font-semibold); color: var(--text-tertiary); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.04em;">{{ component.title }}</h3>
       {% endif %}
-      <div class="w-full bg-[var(--color-gray-200)] rounded-full h-2.5">
-        <div class="bg-[var(--primary-600)] h-2.5 rounded-full" style="width: {{ component.value | default(0) }}%"></div>
+      <div style="width: 100%; height: 8px; background: var(--surface-overlay); border-radius: var(--radius-full); overflow: hidden;">
+        <div style="height: 100%; background: linear-gradient(90deg, var(--primary-500), var(--accent-500)); border-radius: var(--radius-full); width: {{ component.value | default(0) }}%; transition: width 0.6s ease;"></div>
       </div>
-      <p class="text-sm text-[var(--color-gray-500)] mt-1">{{ component.value | default(0) }}%</p>
+      <p style="font-size: var(--text-sm); color: var(--text-tertiary); margin-top: 10px; font-family: var(--font-mono);">{{ component.value | default(0) }}%</p>
     </div>
 
     {% elif component.type == 'table' %}
-    <div class="lg:col-span-2 bg-white rounded-xl border border-[var(--color-gray-200)]">
+    <div style="grid-column: span 2; background: var(--surface-raised); border: 1px solid var(--surface-border); border-radius: var(--radius-lg); overflow: hidden;">
       {% if component.title %}
-      <div class="px-6 py-4 border-b border-[var(--color-gray-200)]">
-        <h3 class="text-lg font-semibold text-[var(--color-gray-900)]">{{ component.title }}</h3>
+      <div style="padding: 18px 24px; border-bottom: 1px solid var(--surface-border); display: flex; align-items: center; justify-content: space-between;">
+        <h3 style="font-size: var(--text-md); font-family: var(--font-display); font-weight: 700; color: var(--text-primary);">{{ component.title }}</h3>
       </div>
       {% endif %}
       {% if component.headers %}
-      <table class="w-full">
+      <table style="width: 100%; border-collapse: collapse;">
         <thead>
           <tr>
             {% for header in component.headers %}
-            <th class="px-6 py-3 text-left text-xs font-medium text-[var(--color-gray-500)] uppercase">{{ header }}</th>
+            <th style="padding: 12px 24px; text-align: left; font-size: var(--text-2xs); font-weight: var(--font-semibold); text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-tertiary); background: var(--surface-overlay); border-bottom: 1px solid var(--surface-border);">{{ header }}</th>
             {% endfor %}
           </tr>
         </thead>
-        <tbody class="divide-y divide-[var(--color-gray-100)]">
+        <tbody>
           {% for row in component.rows | default([]) %}
-          <tr>
+          <tr style="transition: background 0.15s;"
+              onmouseenter="this.style.background='var(--primary-50)'" onmouseleave="this.style.background=''">
             {% for cell in row %}
-            <td class="px-6 py-4 text-sm text-[var(--color-gray-900)]">{{ cell }}</td>
+            <td style="padding: 14px 24px; font-size: var(--text-sm); color: var(--text-primary); border-bottom: 1px solid var(--surface-border);">{{ cell }}</td>
             {% endfor %}
           </tr>
           {% endfor %}
@@ -79,19 +124,21 @@
 
     {% elif component.type == 'button' %}
     <a href="{{ component.url | default('#') }}"
-       class="bg-white rounded-xl border border-[var(--color-gray-200)] p-6 hover:border-[var(--primary-500)] transition-colors block">
-      <div class="flex items-center gap-3">
-        {% if component.icon %}
-        <svg class="w-6 h-6 text-[var(--primary-600)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+       style="display: flex; align-items: center; gap: 14px; padding: 20px 24px; border-radius: var(--radius-lg); background: var(--surface-raised); border: 1px solid var(--surface-border); text-decoration: none; color: var(--text-primary); transition: all 0.3s ease;"
+       onmouseenter="this.style.borderColor='var(--primary-500)'; this.style.transform='translateY(-2px)'; this.style.boxShadow='var(--shadow-lg)'"
+       onmouseleave="this.style.borderColor=''; this.style.transform=''; this.style.boxShadow=''">
+      {% if component.icon %}
+      <div style="width: 44px; height: 44px; border-radius: var(--radius-md); background: var(--primary-50); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+        <svg style="width: 22px; height: 22px; color: var(--primary-600);" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
           <use href="/static/icons/heroicons.svg#{{ component.icon }}"/>
         </svg>
+      </div>
+      {% endif %}
+      <div>
+        <div style="font-weight: var(--font-semibold); color: var(--text-primary);">{{ component.title | default('') }}</div>
+        {% if component.description %}
+        <div style="font-size: var(--text-sm); color: var(--text-tertiary); margin-top: 2px;">{{ component.description }}</div>
         {% endif %}
-        <div>
-          <div class="font-medium text-[var(--color-gray-900)]">{{ component.title | default('') }}</div>
-          {% if component.description %}
-          <div class="text-sm text-[var(--color-gray-500)]">{{ component.description }}</div>
-          {% endif %}
-        </div>
       </div>
     </a>
     {% endif %}
@@ -99,66 +146,111 @@
   </div>
   {% endif %}
 
-  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-    <div class="lg:col-span-2">
-      <div class="bg-white rounded-xl border border-[var(--color-gray-200)]">
-        <div class="px-6 py-4 border-b border-[var(--color-gray-200)]">
-          <h2 class="text-lg font-semibold text-[var(--color-gray-900)]">Recent Activity</h2>
-        </div>
-        <div class="divide-y divide-[var(--color-gray-100)]">
-          {% if recent_audit %}
-          {% for entry in recent_audit %}
-          <div class="px-6 py-4 flex items-center gap-4">
-            <div class="shrink-0">
-              {% if entry.action == 'CREATE' %}
-              <span class="badge badge-success inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Created</span>
-              {% elif entry.action == 'UPDATE' %}
-              <span class="badge badge-warning inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">Updated</span>
-              {% elif entry.action == 'DELETE' %}
-              <span class="badge badge-danger inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">Deleted</span>
-              {% endif %}
-            </div>
-            <div class="flex-1 min-w-0">
-              <div class="text-sm text-[var(--color-gray-900)]">
-                <span class="font-medium">{{ entry.user_email | default("System") }}</span>
-                {{ entry.action | lower }}d
-                <span class="font-medium">{{ entry.model_name }}</span>
-                <span class="text-[var(--color-gray-500)]">#{{ entry.object_id }}</span>
-              </div>
-              <div class="text-xs text-[var(--color-gray-500)] mt-1">{{ entry.timestamp }}</div>
-            </div>
-          </div>
-          {% endfor %}
-          {% else %}
-          <div class="px-6 py-12 text-center">
-            <svg class="w-12 h-12 mx-auto text-[var(--color-gray-400)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <use href="/static/icons/heroicons.svg#clock"/>
-            </svg>
-            <p class="mt-4 text-sm text-[var(--color-gray-500)]">No recent activity</p>
-          </div>
-          {% endif %}
-        </div>
+  {# ─── Bottom Grid: Activity + Quick Actions ─── #}
+  <div style="display: grid; grid-template-columns: 1fr 340px; gap: 24px; align-items: start;">
+    {# Recent Activity #}
+    <div style="background: var(--surface-raised); border: 1px solid var(--surface-border); border-radius: var(--radius-lg); overflow: hidden;">
+      <div style="padding: 20px 24px; border-bottom: 1px solid var(--surface-border); display: flex; align-items: center; justify-content: space-between;">
+        <h2 style="font-family: var(--font-display); font-size: var(--text-lg); font-weight: 700; color: var(--text-primary);">Recent Activity</h2>
+        {% if recent_audit %}
+        <span style="font-size: var(--text-2xs); color: var(--text-tertiary); font-family: var(--font-mono);">{{ recent_audit | length }} events</span>
+        {% endif %}
       </div>
+      
+      {% if recent_audit %}
+      <div>
+        {% for entry in recent_audit %}
+        <div style="padding: 16px 24px; display: flex; align-items: flex-start; gap: 14px; border-bottom: 1px solid var(--surface-border); transition: background 0.15s;"
+             onmouseenter="this.style.background='var(--primary-50)'" onmouseleave="this.style.background=''">
+          <div style="flex-shrink: 0; margin-top: 2px;">
+            {% if entry.action == 'CREATE' %}
+            <div style="width: 32px; height: 32px; border-radius: var(--radius-full); background: rgba(34, 197, 94, 0.1); display: flex; align-items: center; justify-content: center;">
+              <svg style="width: 16px; height: 16px; color: var(--success-500);" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                <use href="/static/icons/heroicons.svg#plus"/>
+              </svg>
+            </div>
+            {% elif entry.action == 'UPDATE' %}
+            <div style="width: 32px; height: 32px; border-radius: var(--radius-full); background: rgba(245, 158, 11, 0.1); display: flex; align-items: center; justify-content: center;">
+              <svg style="width: 16px; height: 16px; color: var(--warning-500);" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                <use href="/static/icons/heroicons.svg#pencil"/>
+              </svg>
+            </div>
+            {% elif entry.action == 'DELETE' %}
+            <div style="width: 32px; height: 32px; border-radius: var(--radius-full); background: rgba(239, 68, 68, 0.1); display: flex; align-items: center; justify-content: center;">
+              <svg style="width: 16px; height: 16px; color: var(--danger-500);" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                <use href="/static/icons/heroicons.svg#trash"/>
+              </svg>
+            </div>
+            {% endif %}
+          </div>
+          <div style="flex: 1; min-width: 0;">
+            <div style="font-size: var(--text-sm); color: var(--text-primary); line-height: 1.5;">
+              <span style="font-weight: var(--font-semibold);">{{ entry.user_email | default("System") }}</span>
+              <span style="color: var(--text-tertiary);"> {{ entry.action | lower }}d </span>
+              <span style="font-weight: var(--font-semibold);">{{ entry.model_name }}</span>
+              <span style="font-family: var(--font-mono); color: var(--text-tertiary); font-size: var(--text-xs);"> #{{ entry.object_id }}</span>
+            </div>
+            <div style="font-size: var(--text-xs); color: var(--text-tertiary); margin-top: 4px; font-family: var(--font-mono);">{{ entry.timestamp }}</div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div style="padding: 48px 24px; text-align: center;">
+        <div style="width: 56px; height: 56px; border-radius: var(--radius-full); background: var(--surface-overlay); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
+          <svg style="width: 28px; height: 28px; color: var(--text-tertiary);" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+            <use href="/static/icons/heroicons.svg#clock"/>
+          </svg>
+        </div>
+        <p style="font-size: var(--text-sm); color: var(--text-tertiary); font-weight: var(--font-medium);">No recent activity</p>
+        <p style="font-size: var(--text-xs); color: var(--text-tertiary); margin-top: 4px; opacity: 0.7;">Activity will appear here as you use the system</p>
+      </div>
+      {% endif %}
     </div>
 
-    <div>
-      <div class="bg-white rounded-xl border border-[var(--color-gray-200)]">
-        <div class="px-6 py-4 border-b border-[var(--color-gray-200)]">
-          <h2 class="text-lg font-semibold text-[var(--color-gray-900)]">Quick Actions</h2>
-        </div>
-        <div class="p-6 space-y-3">
-          {% for registered in registered_models %}
-          <a href="{{ admin_path | default('/admin') }}/{{ registered.table_name }}/"
-             class="flex items-center gap-3 p-3 rounded-lg hover:bg-[var(--color-gray-50)] transition-colors">
-            <svg class="w-5 h-5 text-[var(--color-primary-600)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <use href="/static/icons/heroicons.svg#{{ registered.admin.icon | default('document-text') }}"/>
+    {# Quick Actions #}
+    <div style="background: var(--surface-raised); border: 1px solid var(--surface-border); border-radius: var(--radius-lg); overflow: hidden;">
+      <div style="padding: 20px 24px; border-bottom: 1px solid var(--surface-border);">
+        <h2 style="font-family: var(--font-display); font-size: var(--text-lg); font-weight: 700; color: var(--text-primary);">Quick Actions</h2>
+      </div>
+      <div style="padding: 12px;">
+        {% for registered in registered_models %}
+        <a href="{{ admin_path | default('/admin') }}/{{ registered.table_name }}/"
+           style="display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: var(--radius-md); text-decoration: none; color: var(--text-primary); transition: all 0.15s; border: 1px solid transparent;"
+           onmouseenter="this.style.background='var(--primary-50)'; this.style.borderColor='var(--primary-200)'"
+           onmouseleave="this.style.background=''; this.style.borderColor='transparent'">
+          <div style="width: 34px; height: 34px; border-radius: var(--radius-md); background: var(--primary-50); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <svg style="width: 17px; height: 17px; color: var(--primary-600);" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+              <use href="/static/icons/heroicons.svg#{{ registered.admin.icon | default('cube') }}"/>
             </svg>
-            <span class="text-sm font-medium text-[var(--color-gray-700)]">{{ registered.verbose_name_plural }}</span>
-          </a>
-          {% endfor %}
-        </div>
+          </div>
+          <span style="font-size: var(--text-sm); font-weight: var(--font-medium);">{{ registered.verbose_name_plural }}</span>
+          <svg style="width: 14px; height: 14px; color: var(--text-tertiary); margin-left: auto;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+            <use href="/static/icons/heroicons.svg#chevron-right"/>
+          </svg>
+        </a>
+        {% endfor %}
       </div>
     </div>
   </div>
 </div>
+
+<style>
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  @media (max-width: 1024px) {
+    .stat-cards {
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)) !important;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .stat-cards {
+      grid-template-columns: repeat(2, 1fr) !important;
+    }
+  }
+</style>
 {% endblock %}

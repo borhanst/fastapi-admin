@@ -24,20 +24,20 @@
       {% for group in nav_groups %}
       <li class="sidebar-section" x-data="{ collapsed: {{ 'true' if group.collapsed_by_default else 'false' }} }">
         <button type="button" @click="collapsed = !collapsed"
-                class="sidebar-section-label w-full flex items-center justify-between px-3 py-2 text-xs font-semibold uppercase tracking-wider text-[var(--text-disabled)] hover:text-[var(--text-secondary)] transition-colors">
-          <span class="flex items-center gap-2">
+                class="sidebar-section-label sidebar-section-toggle">
+          <span class="sidebar-section-label-text">
             {% if group.icon and sidebar_show_icons %}
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <use href="/static/icons/heroicons.svg#{{ group.icon }}"/>
             </svg>
             {% endif %}
             {{ group.label }}
           </span>
-          <svg class="w-3 h-3 transition-transform" :class="{ '-rotate-90': collapsed }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="sidebar-chevron" :class="{ 'collapsed': collapsed }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <use href="/static/icons/heroicons.svg#chevron-right"/>
           </svg>
         </button>
-        <ul class="sidebar-nav-list" x-show="!collapsed" x-collapse>
+        <ul class="sidebar-nav-list" x-show="!collapsed" x-collapse x-cloak>
           {% for item in group.items %}
           <li class="sidebar-nav-item" x-data="{ childOpen: false }">
             <a href="{{ item.url }}"
@@ -63,25 +63,18 @@
               {% endif %}
               {% endif %}
               {% if item.children %}
-              <button type="button" @click.stop="childOpen = !childOpen" class="ml-auto">
-                <svg class="w-3 h-3 transition-transform" :class="{ 'rotate-90': childOpen }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <use href="/static/icons/heroicons.svg#chevron-right"/>
-                </svg>
-              </button>
+              <svg class="nav-chevron" :class="{ 'expanded': childOpen }" @click.stop="childOpen = !childOpen" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <use href="/static/icons/heroicons.svg#chevron-right"/>
+              </svg>
               {% endif %}
               <span class="nav-tooltip" x-show="sidebarCollapsed">{{ item.label }}</span>
             </a>
             {% if item.children %}
-            <ul class="sidebar-nav-list ml-4" x-show="childOpen" x-collapse>
+            <ul class="sidebar-nav-list sidebar-nav-children" x-show="childOpen" x-collapse x-cloak>
               {% for child in item.children %}
-              <li class="sidebar-nav-item">
+              <li class="sidebar-nav-item sidebar-nav-item--child">
                 <a href="{{ child.url }}"
-                   class="nav-link {% if request.url.path == child.url %}active{% endif %}">
-                  {% if child.icon and sidebar_show_icons %}
-                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <use href="/static/icons/heroicons.svg#{{ child.icon }}"/>
-                  </svg>
-                  {% endif %}
+                   class="nav-link nav-link-child {% if request.url.path == child.url %}active{% endif %}">
                   <span class="nav-link-label">{{ child.label }}</span>
                 </a>
               </li>
@@ -96,7 +89,7 @@
       {% elif registered_models %}
       {# Fallback: use registered_models if no nav_groups configured #}
       <li class="sidebar-section">
-        <span class="sidebar-section-label">Models</span>
+        <span class="sidebar-section-label-text">Models</span>
       </li>
       {% for registered in registered_models %}
       <li class="sidebar-nav-item">
@@ -117,7 +110,7 @@
 
       {# System section #}
       <li class="sidebar-section">
-        <span class="sidebar-section-label">System</span>
+        <span class="sidebar-section-label-text">System</span>
       </li>
 
       <li class="sidebar-nav-item">

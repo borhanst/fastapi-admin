@@ -8,6 +8,7 @@ from fastapi import APIRouter
 
 from fastapi_admin.api.auth import router as auth_router
 from fastapi_admin.api.crud import build_api_router
+from fastapi_admin.api.roles import router as roles_router
 
 
 class AdminAPIRouter:
@@ -29,8 +30,11 @@ class AdminAPIRouter:
         """Build the complete API router with auth and CRUD endpoints."""
         router = APIRouter(prefix=self.prefix)
 
-        # Auth routes (token obtain)
+        # Auth routes (token obtain, refresh, logout, me)
         router.include_router(auth_router)
+
+        # Role management routes (superuser only)
+        router.include_router(roles_router)
 
         # CRUD routes for all registered models
         if self.registry is not None:

@@ -18,8 +18,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from fastapi_admin.auth.csrf import CSRF_COOKIE_NAME, require_csrf_token
 from fastapi_admin.auth.dependencies import _get_db_session, get_session
+from fastapi_admin.auth.ratelimit import RateLimiter, _client_ip, check_rate_limit
 
 router = APIRouter()
+
+_login_rate_limiter = RateLimiter(max_attempts=5, window_seconds=900)
 
 
 def _is_safe_url(url: str | None) -> bool:
@@ -60,10 +63,14 @@ async def login_post(
     _csrf: bool = Depends(require_csrf_token),
 ) -> HTMLResponse | RedirectResponse:
     """POST /admin/login — process login form."""
+    client_ip = _client_ip(request)
+    check_rate_limit(_login_rate_limiter, client_ip)
+
     auth_backend = request.app.state.admin_auth_backend
     user = await auth_backend.authenticate(email, password, session)
-    print("user=====", user)
+
     if user is not None:
+        _login_rate_limiter.reset(client_ip)
         user.last_login = datetime.now(UTC)
         await session.merge(user)
         await session.commit()
@@ -77,6 +84,7 @@ async def login_post(
         else:
             redirect_url = "/admin/"
 
+        samesite = getattr(request.app.state.admin_state, "session_samesite", "strict")
         response = RedirectResponse(
             url=redirect_url, status_code=status.HTTP_302_FOUND
         )
@@ -87,18 +95,23 @@ async def login_post(
             path="/",
             secure=session_backend.secure,
             httponly=True,
-            samesite="lax",
+            samesite=samesite,
         )
         return response
 
-    # Login failed — re-render with error
+    _login_rate_limiter.record_attempt(client_ip)
+
     jinja_env = request.app.state.admin_jinja_env
     template = jinja_env.get_template("pages/login.html")
     csrf_token = getattr(request.state, "csrf_token", "")
+    remaining = _login_rate_limiter.remaining_seconds(client_ip)
+    error_msg = "Invalid email or password. Please try again."
+    if _login_rate_limiter.is_rate_limited(client_ip):
+        error_msg = f"Too many failed attempts. Try again in {remaining} seconds."
     return HTMLResponse(
         template.render({
             "request": request,
-            "error": "Invalid email or password. Please try again.",
+            "error": error_msg,
             "csrf_token": csrf_token,
         }),
         status_code=status.HTTP_200_OK,
@@ -118,6 +131,7 @@ async def logout_post(
             await auth_backend.on_logout(session_payload.get("user_id"))
 
     session_backend = request.app.state.admin_session_backend
+    samesite = getattr(request.app.state.admin_state, "session_samesite", "strict")
     response = RedirectResponse(
         url="/admin/login", status_code=status.HTTP_302_FOUND
     )
@@ -126,7 +140,7 @@ async def logout_post(
         path="/",
         secure=session_backend.secure,
         httponly=True,
-        samesite="lax",
+        samesite=samesite,
     )
     response.delete_cookie(
         key=CSRF_COOKIE_NAME,

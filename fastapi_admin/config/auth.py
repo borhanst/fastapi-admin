@@ -19,6 +19,12 @@ class AuthConfig:
         session_cookie_name: str = "admin_session",
         session_secure: bool = False,
         superuser_emails: list[str] | None = None,
+        password_min_length: int = 12,
+        password_require_uppercase: bool = True,
+        password_require_lowercase: bool = True,
+        password_require_digit: bool = True,
+        password_require_special: bool = True,
+        session_samesite: str = "strict",
     ):
         self.auth_model = auth_model
         self.auth_backend = auth_backend
@@ -26,6 +32,12 @@ class AuthConfig:
         self.session_cookie_name = session_cookie_name
         self.session_secure = session_secure
         self.superuser_emails = superuser_emails or []
+        self.password_min_length = password_min_length
+        self.password_require_uppercase = password_require_uppercase
+        self.password_require_lowercase = password_require_lowercase
+        self.password_require_digit = password_require_digit
+        self.password_require_special = password_require_special
+        self.session_samesite = session_samesite
 
     def validate_auth_model(self) -> None:
         """Validate that auth_model satisfies AdminUserProtocol."""

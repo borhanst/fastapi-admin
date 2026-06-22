@@ -35,6 +35,7 @@ class AdminState:
     admin_instance: Admin | None = None
     # Unified signing-key source — used by signed-cookie sessions, CSRF, and JWT.
     secret_key: str = ""
+    session_samesite: str = "strict"
 
     @classmethod
     def from_request(cls, request: Any) -> AdminState:

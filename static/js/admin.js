@@ -12,8 +12,23 @@ document.addEventListener('alpine:init', function() {
     },
 
     init() {
-      // Apply stored theme on load
       document.documentElement.setAttribute('data-theme', this.dark ? 'dark' : 'light');
+    }
+  });
+
+  // Theme presets store
+  Alpine.store('themes', {
+    current: localStorage.getItem('theme-preset') || 'editorial',
+
+    apply(preset) {
+      this.current = preset;
+      localStorage.setItem('theme-preset', preset);
+      document.documentElement.setAttribute('data-preset', preset);
+      window.location.reload();
+    },
+
+    init() {
+      document.documentElement.setAttribute('data-preset', this.current);
     }
   });
 

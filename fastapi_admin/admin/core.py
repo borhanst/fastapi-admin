@@ -141,6 +141,7 @@ class Admin:
         auth_backend: AuthBackend | None = None,
         session_cookie_name: str = "admin_session",
         session_secure: bool = False,
+        session_samesite: str = "strict",
         seed_roles: list[SeedRole] | None = None,
         seed_roles_overwrite: bool = False,
         superuser_emails: list[str] | None = None,
@@ -226,6 +227,7 @@ class Admin:
                     session_cookie_name=session_cookie_name,
                     session_secure=session_secure,
                     superuser_emails=superuser_emails,
+                    session_samesite=session_samesite,
                 ),
                 audit=AuditConfig(audit_retention_days=audit_retention_days),
                 behavior=BehaviorConfig(
@@ -426,6 +428,18 @@ class Admin:
             except RuntimeError:
                 pass  # Already started — middleware was added in __init__
 
+        # 0. Validate secret_key strength
+        if not self.router.secret_key:
+            raise ConfigError(
+                "Admin secret_key is required. Pass a strong secret (≥32 chars) "
+                "via Admin(secret_key=...) or the SECRET_KEY environment variable."
+            )
+        if len(self.router.secret_key) < 32:
+            raise ConfigError(
+                f"Admin secret_key is too short ({len(self.router.secret_key)} chars). "
+                "Must be at least 32 characters for secure signing."
+            )
+
         # 1. Validate auth_model satisfies AdminUserProtocol
         self.config.auth.validate_auth_model()
 
@@ -590,6 +604,7 @@ class Admin:
             jinja_env=self._jinja_env,
             admin_instance=self,
             secret_key=self.router.secret_key,
+            session_samesite=self.config.auth.session_samesite,
         )
 
         # Store typed state as single attribute
@@ -703,8 +718,11 @@ class Admin:
         from fastapi_admin.auth.router import router as auth_router
         from fastapi_admin.router import build_model_router
         from fastapi_admin.views.audit import router as audit_router
+        from fastapi_admin.views.profile import router as profile_router
         from fastapi_admin.views.roles import router as roles_router
         from fastapi_admin.views.settings import router as settings_router
+        from fastapi_admin.views.totp import router as totp_router
+        from fastapi_admin.views.users import router as users_router
 
         for registered in self.registry.all():
             model_router = build_model_router(registered)
@@ -713,10 +731,13 @@ class Admin:
         # Auth routes (login/logout)
         app.include_router(auth_router, prefix=self.router.admin_path)
 
-        # Audit, role management, and settings routes
+        # Audit, role management, settings, user management, profile, and 2FA routes
         app.include_router(audit_router, prefix=self.router.admin_path)
         app.include_router(roles_router, prefix=self.router.admin_path)
         app.include_router(settings_router, prefix=self.router.admin_path)
+        app.include_router(users_router, prefix=self.router.admin_path)
+        app.include_router(profile_router, prefix=self.router.admin_path)
+        app.include_router(totp_router, prefix=self.router.admin_path)
 
         # Dashboard route
         from fastapi_admin.views.dashboard import dashboard_view_factory

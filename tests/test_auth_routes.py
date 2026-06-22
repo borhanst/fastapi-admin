@@ -65,7 +65,7 @@ def client(engine, admin_user):
         engine=engine,
         auth_model=AdminUser,
         auth_backend=BuiltinAuthBackend(),
-        secret_key="test-secret-key",
+        secret_key="test-secret-key-long-enough-for-security!",
     )
     app = FastAPI()
     # Run the async setup

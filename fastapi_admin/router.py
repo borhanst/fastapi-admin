@@ -63,6 +63,7 @@ def build_model_router(registered: RegisteredModel) -> APIRouter:
     async def validate_field_endpoint(
         request: Request,
         _csrf: bool = Depends(require_csrf_token),
+        _: None = Depends(require_permission(registered.table_name, "view")),
     ):
         templates = request.app.state.admin_jinja_env
         form = await request.form()

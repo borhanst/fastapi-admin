@@ -11,38 +11,24 @@ from sqlalchemy import asc, desc, func, or_, select
 from fastapi_admin.api.schemas import PaginatedResponse
 
 
-async def _get_current_user(request: Request) -> Any:
+async def _get_current_user(request: Request) -> dict[str, Any]:
     """Extract and validate the current user from a Bearer token.
 
-    Delegates credential decode + user loading to
-    :mod:`fastapi_admin.auth.identity`, the single current-user seam — so the
-    JWT API now honours the ``AuthBackend.get_user`` seam like the cookie path
-    and supports BYO user models, not just the built-in ``AdminUser``.
+    Uses JWT-embedded permissions for fast permission checks.
     """
-    from fastapi_admin.auth.identity import get_current_user_from_bearer
+    from fastapi_admin.api.deps import get_api_current_user
 
-    user = await get_current_user_from_bearer(request)
-    if user is None:
-        auth_header = request.headers.get("Authorization", "")
-        if not auth_header.startswith("Bearer "):
-            raise HTTPException(
-                status_code=401, detail="Missing or invalid Authorization header."
-            )
-        raise HTTPException(status_code=401, detail="Invalid or expired token.")
-    return user
+    return await get_api_current_user(request)
 
 
-async def _check_permission(request: Request, user: Any, table_name: str, action: str) -> None:
-    """Check if user has permission for the given action. Raises 403 if not."""
-    if getattr(user, "is_superuser", False):
+async def _check_permission(request: Request, user: dict[str, Any], table_name: str, action: str) -> None:
+    """Check if user has permission from JWT payload (no DB hit for non-superusers)."""
+    if user.get("is_superuser"):
         return
 
-    from fastapi_admin.auth.permissions import PermissionChecker
-
-    db_session = request.app.state.admin_db_session
-    checker = PermissionChecker(session=db_session, user=user)
-    has_perm = await checker.has_permission(table_name, action)
-    if not has_perm:
+    permissions = user.get("permissions", {})
+    table_perms = permissions.get(table_name, [])
+    if action not in table_perms:
         raise HTTPException(
             status_code=403,
             detail=f"You do not have permission to {action} {table_name}.",
