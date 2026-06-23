@@ -82,10 +82,10 @@ class BaseView:
                 item_dict[col.name] = str(getattr(obj, col.name, ""))
         return item_dict
 
-    async def html_response(self, request: Request, **kwargs) -> Response:
+    async def html_response(self, request: Request) -> Response:
         raise NotImplementedError
 
-    async def api_response(self, request: Request, **kwargs) -> Response:
+    async def api_response(self, request: Request) -> Response:
         raise NotImplementedError
 
 
@@ -196,7 +196,7 @@ class ListView(BaseView):
         return template_context
 
     async def html_response(
-        self, request: Request, q: str = "", page: int = 1, **kwargs: Any
+        self, request: Request, q: str = "", page: int = 1
     ) -> Response:
         checker = await _resolve_permission_checker(request)
         if checker:
@@ -211,7 +211,6 @@ class ListView(BaseView):
         per_page: int = 25,
         q: str = "",
         order: str = "",
-        **kwargs: Any,
     ) -> Any:
         items, total, page, per_page = await self.query_provider.get_list(
             request, q, page
@@ -305,7 +304,7 @@ class CreateView(BaseView):
         )
         return RedirectResponse(url=url, status_code=303)
 
-    async def html_response(self, request: Request, **kwargs: Any) -> Response:
+    async def html_response(self, request: Request) -> Response:
         checker = await _resolve_permission_checker(request)
         if checker:
             await checker.load_permissions(self.registered.table_name)
@@ -332,7 +331,7 @@ class CreateView(BaseView):
 
         return await self._create_object(request, parsed)
 
-    async def api_response(self, request: Request, **kwargs: Any) -> Any:
+    async def api_response(self, request: Request) -> Any:
         parser = JSONBodyParser(self.registered)
         parsed, errors = await parser.parse(request)
         if errors:
@@ -423,7 +422,7 @@ class EditView(BaseView):
         return RedirectResponse(url=url, status_code=303)
 
     async def html_response(
-        self, request: Request, id: Any = None, **kwargs: Any
+        self, request: Request, id: Any = None
     ) -> Response:
         obj = await self.query_provider.get_object(request, id)
         if not obj:
@@ -461,7 +460,6 @@ class EditView(BaseView):
         request: Request,
         id: Any = None,
         item_id: Any = None,
-        **kwargs: Any,
     ) -> Any:
         pk = id or item_id
         obj = await self.query_provider.get_object(request, pk)
@@ -487,7 +485,7 @@ class DeleteView(BaseView):
     """Orchestrates delete: fetch -> delete -> respond."""
 
     async def html_response(
-        self, request: Request, id: Any = None, **kwargs: Any
+        self, request: Request, id: Any = None
     ) -> Response:
         obj = await self.query_provider.get_object(request, id)
         if not obj:
@@ -516,7 +514,6 @@ class DeleteView(BaseView):
         request: Request,
         id: Any = None,
         item_id: Any = None,
-        **kwargs: Any,
     ) -> Response:
         pk = id or item_id
         obj = await self.query_provider.get_object(request, pk)
@@ -535,7 +532,7 @@ class BulkView(BaseView):
 
     html_renderer_class = ListHTMLRenderer
 
-    async def html_response(self, request: Request, **kwargs: Any) -> Response:
+    async def html_response(self, request: Request) -> Response:
         session = request.app.state.admin_db_session
         form = await request.form()
         action = form.get("action", "")
@@ -586,7 +583,7 @@ class BulkView(BaseView):
         )
         return RedirectResponse(url=url, status_code=303)
 
-    async def api_response(self, request: Request, **kwargs: Any) -> Any:
+    async def api_response(self, request: Request) -> Any:
         from fastapi.responses import JSONResponse
 
         session = request.app.state.admin_db_session
@@ -627,12 +624,12 @@ class SearchView(BaseView):
     """Orchestrates search/autocomplete for relation pickers."""
 
     async def html_response(
-        self, request: Request, q: str = "", **kwargs: Any
+        self, request: Request, q: str = ""
     ) -> Any:
         return await self._search(request, q)
 
     async def api_response(
-        self, request: Request, q: str = "", **kwargs: Any
+        self, request: Request, q: str = ""
     ) -> Any:
         return await self._search(request, q)
 

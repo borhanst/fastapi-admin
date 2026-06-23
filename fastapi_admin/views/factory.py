@@ -287,6 +287,10 @@ class ViewFactory:
         """Create a delete handler for removing objects."""
         async def delete_submit(request: Request, id: str, _: Any = None):
             session = request.app.state.admin_db_session
+            try:
+                await session.rollback()
+            except Exception:
+                pass
             obj = await session.get(registered.model, id)
             if not obj:
                 raise HTTPException(status_code=404, detail="Not found")
@@ -296,9 +300,9 @@ class ViewFactory:
                 await session.commit()
                 registered.admin.after_delete(obj, request)
                 add_flash(request, "success", f"{registered.verbose_name} deleted.")
-            except Exception:
+            except Exception as e:
                 await session.rollback()
-                raise
+                add_flash(request, "error", f"Cannot delete: {str(e)}")
             url = f"{request.app.state.admin_config['admin_path']}/{registered.table_name}/"
             return RedirectResponse(url=url, status_code=303)
         delete_submit.__name__ = f"delete_{registered.table_name}"
@@ -309,6 +313,10 @@ class ViewFactory:
         async def bulk_action(request: Request, _: Any = None):
             templates = request.app.state.admin_jinja_env
             session = request.app.state.admin_db_session
+            try:
+                await session.rollback()
+            except Exception:
+                pass
             form = await request.form()
             action = form.get("action", "")
             ids = form.getlist("ids[]")
@@ -324,24 +332,30 @@ class ViewFactory:
                 url = f"{request.app.state.admin_config['admin_path']}/{registered.table_name}/"
                 return RedirectResponse(url=url, status_code=303)
 
-            if action == "delete_selected":
-                for pid in ids:
-                    obj = await session.get(registered.model, pid)
-                    if obj:
-                        registered.admin.on_delete(obj, request)
-                        await session.delete(obj)
-                await session.commit()
-            else:
-                action_fn = getattr(registered.admin, f"action_{action}", None)
-                if not action_fn:
-                    raise HTTPException(
-                        status_code=400, detail=f"Unknown action: {action}"
-                    )
-                for pid in ids:
-                    obj = await session.get(registered.model, pid)
-                    if obj:
-                        action_fn(obj)
-                await session.commit()
+            try:
+                if action == "delete_selected":
+                    for pid in ids:
+                        obj = await session.get(registered.model, pid)
+                        if obj:
+                            registered.admin.on_delete(obj, request)
+                            await session.delete(obj)
+                    await session.commit()
+                    add_flash(request, "success", f"{len(ids)} {registered.verbose_name}(s) deleted.")
+                else:
+                    action_fn = getattr(registered.admin, f"action_{action}", None)
+                    if not action_fn:
+                        raise HTTPException(
+                            status_code=400, detail=f"Unknown action: {action}"
+                        )
+                    for pid in ids:
+                        obj = await session.get(registered.model, pid)
+                        if obj:
+                            action_fn(obj)
+                    await session.commit()
+                    add_flash(request, "success", f"Action '{action}' applied to {len(ids)} item(s).")
+            except Exception as e:
+                await session.rollback()
+                add_flash(request, "error", f"Action failed: {str(e)}")
 
             if is_htmx:
                 ctx = await self.context_builder.build_list_context(

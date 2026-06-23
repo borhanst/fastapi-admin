@@ -85,7 +85,7 @@ class Product(Base):
 
     # Relationships
     category = relationship("Category", back_populates="products")
-    orders = relationship("OrderItem", back_populates="product")
+    orders = relationship("OrderItem", back_populates="product", cascade="all, delete-orphan")
 
     def __str__(self) -> str:
         return self.name
@@ -175,6 +175,7 @@ class CategoryAdmin(ModelAdmin):
     verbose_name = "Category"
     verbose_name_plural = "Categories"
     icon = "folder"
+    tag = "catalog"
 
     # Actions
     actions_list = ["export_categories"]
@@ -225,7 +226,7 @@ class ProductAdmin(ModelAdmin):
     verbose_name = "Product"
     verbose_name_plural = "Products"
     per_page = 20
-    tag = "product"
+    tag = "catalog"
     icon = "cube"
 
     # Per-model UI overrides
@@ -282,6 +283,7 @@ class ProductAdmin(ModelAdmin):
     async def deactivate_selected(self, objects, request):
         for obj in objects:
             obj.is_active = False
+            
 
     @action(
         description="Toggle active status",
@@ -638,6 +640,8 @@ app = FastAPI(
 )
 
 
+from fastapi_admin.nav import NavGroupConfig
+
 # Initialize admin with full UnfoldAdmin configuration
 admin = Admin(
     app=app,
@@ -669,7 +673,7 @@ admin = Admin(
     topbar_style="default",
     content_width="default",
     sidebar_position="left",
-    # Feature toggles — UnfoldAdmin style
+    # Feature toggles
     show_history=True,
     show_view_on_site=True,
     environment_label="Development",
@@ -678,6 +682,13 @@ admin = Admin(
     custom_css="",
     # Mobile
     mobile_sidebar="overlay",
+    # Navigation groups
+    nav_groups=[
+        NavGroupConfig(tag="order", label="ORDER MANAGEMENT", icon="shopping-cart", order=1),
+        NavGroupConfig(tag="catalog", label="CATALOG", icon="folder", order=2),
+        NavGroupConfig(tag="user", label="USER MANAGEMENT", icon="users", order=3),
+        NavGroupConfig(tag="admin", label="ADMIN AREA", icon="shield-check", order=4),
+    ],
 )
 
 
