@@ -63,6 +63,9 @@ dmypy.json
 # uv
 uv.lock
 
+# MkDocs
+site/
+
 # OS
 .DS_Store
 Thumbs.db
