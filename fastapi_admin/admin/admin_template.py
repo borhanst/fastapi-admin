@@ -53,8 +53,9 @@ class AdminTemplate:
         from sqlalchemy.orm import Session
 
         from fastapi_admin.auth.permissions import PermissionChecker
+        from fastapi_admin.db import get_db_session
 
-        session: Session = request.app.state.admin_db_session
+        session: Session = get_db_session(request)
         checker = (
             PermissionChecker(session=session, user=user) if user else None
         )

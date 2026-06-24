@@ -10,6 +10,7 @@ from sqlalchemy import select
 
 from fastapi_admin.auth.csrf import require_csrf_token
 from fastapi_admin.auth.dependencies import get_current_admin_user
+from fastapi_admin.db import get_db_session
 from fastapi_admin.auth.protocol import AdminUserProtocol
 from fastapi_admin.views.sidebar import inject_sidebar_context
 
@@ -41,7 +42,7 @@ async def profile_update(
     """Update profile (full_name, email)."""
     from fastapi_admin.auth.backend import pwd_context
 
-    session = request.app.state.admin_db_session
+    session = get_db_session(request)
     form = await request.form()
 
     email = form.get("email", "").strip()
@@ -116,7 +117,7 @@ async def password_change_post(
     from fastapi_admin.auth.backend import pwd_context
     from fastapi_admin.auth.password import validate_password_strength
 
-    session = request.app.state.admin_db_session
+    session = get_db_session(request)
     form = await request.form()
 
     current_password = form.get("current_password", "")

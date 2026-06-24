@@ -10,6 +10,7 @@ from sqlalchemy import select
 
 from fastapi_admin.auth.csrf import require_csrf_token
 from fastapi_admin.auth.dependencies import get_current_admin_user
+from fastapi_admin.db import get_db_session
 from fastapi_admin.auth.models import AdminUserTOTP
 from fastapi_admin.auth.protocol import AdminUserProtocol
 from fastapi_admin.auth.totp import (
@@ -31,7 +32,7 @@ async def totp_setup_view(
 ):
     """Show 2FA setup page with QR code."""
     templates = request.app.state.admin_jinja_env
-    session = request.app.state.admin_db_session
+    session = get_db_session(request)
 
     result = await session.execute(
         select(AdminUserTOTP).where(AdminUserTOTP.user_id == user.id)
@@ -77,7 +78,7 @@ async def totp_enable_post(
     _csrf: bool = Depends(require_csrf_token),
 ):
     """Verify TOTP code and enable 2FA."""
-    session = request.app.state.admin_db_session
+    session = get_db_session(request)
     form = await request.form()
 
     code = form.get("code", "").strip()
@@ -133,7 +134,7 @@ async def totp_disable_post(
     """Disable 2FA after verifying TOTP code and password."""
     from fastapi_admin.auth.backend import pwd_context
 
-    session = request.app.state.admin_db_session
+    session = get_db_session(request)
     form = await request.form()
 
     code = form.get("code", "").strip()
@@ -183,7 +184,7 @@ async def totp_regenerate_backup_codes(
     _csrf: bool = Depends(require_csrf_token),
 ):
     """Generate new backup codes (invalidates old ones)."""
-    session = request.app.state.admin_db_session
+    session = get_db_session(request)
 
     result = await session.execute(
         select(AdminUserTOTP).where(AdminUserTOTP.user_id == user.id)

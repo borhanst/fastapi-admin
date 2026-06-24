@@ -21,6 +21,7 @@ def build_form_context(
     errors: dict[str, list[str]] | None = None,
     request: Any = None,
     is_create: bool = False,
+    rel_labels: dict[str, str] | None = None,
 ) -> FormContext:
     values = values or {}
     errors = errors or {}
@@ -38,12 +39,25 @@ def build_form_context(
         if value is None and obj is not None:
             if hasattr(obj, "__dict__"):
                 value = obj.__dict__.get(field_meta.name)
-            # Avoid getattr on relationship fields — triggers lazy load in async context
-            if value is None and col is not None:
+            # For relationship fields, read the FK column value to avoid lazy load
+            if value is None and rel is not None:
+                try:
+                    from sqlalchemy import inspect as sa_inspect
+                    mapper = sa_inspect(type(obj))
+                    rel_prop = mapper.relationships.get(rel.name)
+                    if rel_prop is not None:
+                        local_cols = [c.key for c in rel_prop.local_columns]
+                        if local_cols:
+                            value = getattr(obj, local_cols[0], None)
+                except Exception:
+                    pass
+            elif value is None and col is not None:
                 value = getattr(obj, field_meta.name, None)
 
         widget_macro = widget.macro_name
         widget_ctx = widget.render_context(field_meta, value)
+        if rel is not None and rel_labels:
+            widget_ctx["label_text"] = rel_labels.get(rel.name, "")
         field_errors = errors.get(field_meta.name, [])
         rendered.append(
             FieldRenderContext(

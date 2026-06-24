@@ -10,6 +10,7 @@ from fastapi_admin.auth.csrf import require_csrf_token
 from fastapi_admin.auth.dependencies import get_current_admin_user
 from fastapi_admin.auth.models import AdminRole, AdminUser
 from fastapi_admin.auth.protocol import AdminUserProtocol
+from fastapi_admin.db import get_db_session
 from fastapi_admin.views.sidebar import inject_sidebar_context
 
 router = APIRouter()
@@ -30,7 +31,7 @@ async def user_list_view(
 ):
     """List admin users (superuser only)."""
     templates = request.app.state.admin_jinja_env
-    session = request.app.state.admin_db_session
+    session = get_db_session(request)
 
     result = await session.execute(select(AdminUser).order_by(AdminUser.id))
     users = list(result.scalars().all())
@@ -51,7 +52,7 @@ async def user_create_view(
 ):
     """Show user create form."""
     templates = request.app.state.admin_jinja_env
-    session = request.app.state.admin_db_session
+    session = get_db_session(request)
 
     result = await session.execute(select(AdminRole).order_by(AdminRole.name))
     roles = list(result.scalars().all())
@@ -76,7 +77,7 @@ async def user_create_post(
     from fastapi_admin.auth.backend import pwd_context
     from fastapi_admin.auth.password import validate_password_strength
 
-    session = request.app.state.admin_db_session
+    session = get_db_session(request)
     form = await request.form()
 
     email = form.get("email", "").strip()
@@ -130,7 +131,7 @@ async def user_edit_view(
 ):
     """Show user edit form."""
     templates = request.app.state.admin_jinja_env
-    session = request.app.state.admin_db_session
+    session = get_db_session(request)
 
     user = await session.get(AdminUser, user_id)
     if user is None:
@@ -160,7 +161,7 @@ async def user_edit_post(
     from fastapi_admin.auth.backend import pwd_context
     from fastapi_admin.auth.password import validate_password_strength
 
-    session = request.app.state.admin_db_session
+    session = get_db_session(request)
     user = await session.get(AdminUser, user_id)
     if user is None:
         raise HTTPException(status_code=404, detail="User not found.")
@@ -219,7 +220,7 @@ async def user_delete_post(
     _csrf: bool = Depends(require_csrf_token),
 ):
     """Soft-delete user (set is_active=False)."""
-    session = request.app.state.admin_db_session
+    session = get_db_session(request)
     user = await session.get(AdminUser, user_id)
     if user is None:
         raise HTTPException(status_code=404, detail="User not found.")

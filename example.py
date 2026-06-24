@@ -105,8 +105,8 @@ class User(Base):
     # Relationships
     orders = relationship("Order", back_populates="user")
 
-    def __str__(self) -> str:
-        return self.email
+    # def __str__(self) -> str:
+    #     return self.email
 
 
 class Order(Base):

@@ -92,6 +92,7 @@ class ModelAdmin:
     delete_view_class: Any = None
     bulk_view_class: Any = None
     search_view_class: Any = None
+    detail_view_class: Any = None
 
     # Badge hook — return str e.g. "12" or None
     def get_nav_badge(self, request: Any = None) -> str | None:

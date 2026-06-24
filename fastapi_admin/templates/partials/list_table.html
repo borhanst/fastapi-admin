@@ -13,12 +13,11 @@
                    onchange="document.querySelectorAll('input[name=&quot;ids[]&quot;]').forEach(c => c.checked = this.checked); this.dispatchEvent(new Event('change', {bubbles: true}));">
           </th>
           {% endif %}
-          {% for col in registered.columns %}
-          {% if not col.primary_key or registered.columns | length > 1 %}
+          {% for col in display_columns %}
           <th class="col-header">
             <a href="?ordering={% if ordering == col.name %}-{% endif %}{{ col.name }}"
                class="col-header-link{% if ordering == col.name or ordering == '-' ~ col.name %} active{% endif %}">
-              {{ col.name | replace('_', ' ') | title }}
+              {{ col.label }}
               {% if ordering == col.name %}
               <svg class="sort-icon sort-icon--asc" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <use href="/static/icons/heroicons.svg#chevron-up"/>
@@ -30,7 +29,6 @@
               {% endif %}
             </a>
           </th>
-          {% endif %}
           {% endfor %}
           <th class="col-actions">Actions</th>
         </tr>
@@ -44,61 +42,81 @@
             <input type="checkbox" name="ids[]" value="{{ obj.id }}" class="row-checkbox">
           </td>
           {% endif %}
-          {% for col in registered.columns %}
-          {% if not col.primary_key or registered.columns | length > 1 %}
+          {% set _detail_url = admin_path | default('/admin') ~ '/' ~ registered.table_name ~ '/' ~ obj.id %}
+          {% set _first_col = true %}
+          {% for col in display_columns %}
             <td class="col-cell">
               {% set val = attr(obj, col.name) %}
-              {% if val is none %}
-                <span class="text-muted">-</span>
-              {% elif col.type is defined and col.type.__class__.__name__ == 'Boolean' %}
-                {# Boolean fields — show status badge instead of toggle #}
-                {% if val %}
-                <span class="status-badge status-badge--success">
-                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="14" height="14">
-                    <use href="/static/icons/heroicons.svg#check-circle"/>
-                  </svg>
+              {% if _first_col %}
+                {% set _first_col = false %}
+                <a href="{{ _detail_url }}" class="text-[var(--color-primary-600)] hover:text-[var(--color-primary-700)] transition-colors">
+                {% if val is none %}
+                  -
+                {% elif val is sameas true %}
                   Active
-                </span>
+                {% elif val is sameas false %}
+                  Inactive
+                {% elif val is string %}
+                  {{ val }}
                 {% else %}
-                <span class="status-badge status-badge--muted">
-                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="14" height="14">
-                    <use href="/static/icons/heroicons.svg#x-circle"/>
-                  </svg>
-                  Inactive
-                </span>
+                  {{ model_display_name(val) }}
                 {% endif %}
-              {% elif val is sameas true %}
-                <span class="status-badge status-badge--success">
-                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="14" height="14">
-                    <use href="/static/icons/heroicons.svg#check-circle"/>
-                  </svg>
-                  Active
-                </span>
-              {% elif val is sameas false %}
-                <span class="status-badge status-badge--muted">
-                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="14" height="14">
-                    <use href="/static/icons/heroicons.svg#x-circle"/>
-                  </svg>
-                  Inactive
-                </span>
-              {% elif val is string %}
-                {# Strip HTML tags from string values #}
-                {% set clean_val = val | striptags | truncate(100) %}
-                {{ clean_val if clean_val else '-' }}
+                </a>
               {% else %}
-                {{ val }}
+                {% if val is none %}
+                  <span class="text-muted">-</span>
+                {% elif val is sameas true %}
+                  <span class="status-badge status-badge--success">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="14" height="14">
+                      <use href="/static/icons/heroicons.svg#check-circle"/>
+                    </svg>
+                    Active
+                  </span>
+                {% elif val is sameas false %}
+                  <span class="status-badge status-badge--muted">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="14" height="14">
+                      <use href="/static/icons/heroicons.svg#x-circle"/>
+                    </svg>
+                    Inactive
+                  </span>
+                {% elif val is string %}
+                  {{ val }}
+                {% else %}
+                  {{ model_display_name(val) }}
+                {% endif %}
               {% endif %}
             </td>
-          {% endif %}
           {% endfor %}
           <td class="col-actions">
-            <div class="actions-dropdown" x-data="{ open: false }">
-              <button type="button" class="actions-trigger" @click.stop="open = !open" title="Actions">
+            <div class="actions-dropdown" x-data="{ open: false, menuStyle: '' }"
+                 @actions-close.window="open = false">
+              <button type="button" class="actions-trigger" @click.stop="
+                open = !open;
+                if (open) {
+                  $dispatch('actions-close');
+                  open = true;
+                  $nextTick(() => {
+                    const btn = $el;
+                    const menu = $el.nextElementSibling;
+                    const rect = btn.getBoundingClientRect();
+                    const menuRect = menu.getBoundingClientRect();
+                    const viewportH = window.innerHeight;
+                    let top = rect.bottom + 4;
+                    let left = rect.right - menuRect.width;
+                    if (top + menuRect.height > viewportH) {
+                      top = rect.top - menuRect.height - 4;
+                    }
+                    if (left < 8) left = 8;
+                    menuStyle = 'position:fixed;top:' + top + 'px;left:' + left + 'px;z-index:9999;';
+                  });
+                }
+              " title="Actions">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16">
                   <use href="/static/icons/heroicons.svg#ellipsis-vertical"/>
                 </svg>
               </button>
               <div class="actions-menu" x-show="open" x-cloak
+                   :style="menuStyle"
                    @click.outside="open = false"
                    x-transition>
                 {% if permissions.can_edit %}
@@ -149,7 +167,7 @@
         {% endfor %}
         {% else %}
         <tr>
-          <td colspan="{{ registered.columns | length + 2 }}" class="empty-cell">
+          <td colspan="{{ display_columns | length + 2 }}" class="empty-cell">
             <div class="empty-state">
               <svg class="empty-state-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <use href="/static/icons/heroicons.svg#document-text"/>

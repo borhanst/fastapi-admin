@@ -99,3 +99,18 @@ def is_required(col: ColumnMeta) -> bool:
         and col.server_default is None
         and not col.primary_key
     )
+
+
+def model_display_name(obj: Any) -> str:
+    """Return a human-readable label for an ORM object.
+
+    Uses the model's ``__str__`` if it has a custom implementation.
+    Falls back to ``ClassName:pk`` when ``__str__`` is the default
+    ``object.__str__``.
+    """
+    if type(obj).__str__ is not object.__str__:
+        return str(obj)
+    pk = getattr(obj, "id", None)
+    return (
+        f"{type(obj).__name__}:{pk}" if pk is not None else type(obj).__name__
+    )

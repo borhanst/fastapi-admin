@@ -9,6 +9,7 @@ from fastapi import Request
 from sqlalchemy import and_, asc, desc, func, or_, select
 from sqlalchemy.orm import joinedload
 
+from fastapi_admin.db import get_db_session
 from fastapi_admin.registry import RegisteredModel
 from fastapi_admin.types import PermissionSet
 from fastapi_admin.views.sidebar import inject_sidebar_context
@@ -185,7 +186,7 @@ class ViewContextBuilder:
 
         Returns a dict suitable for passing to TemplateResponse.
         """
-        session = request.app.state.admin_db_session
+        session = get_db_session(request)
         model = registered.model
         base = select(model)
 
@@ -387,6 +388,7 @@ class ViewContextBuilder:
         errors: dict[str, list[str]] | None = None,
         is_create: bool = False,
         permission_checker: Any = None,
+        rel_labels: dict[str, str] | None = None,
     ) -> dict[str, Any]:
         """Build the template context for a form view.
 
@@ -401,6 +403,7 @@ class ViewContextBuilder:
             errors=errors,
             request=request,
             is_create=is_create,
+            rel_labels=rel_labels,
         )
         template_context = {
             "form_context": ctx,

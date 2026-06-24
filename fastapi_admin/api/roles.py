@@ -10,6 +10,7 @@ from sqlalchemy import select
 
 from fastapi_admin.api.deps import require_api_superuser
 from fastapi_admin.auth.models import AdminRole
+from fastapi_admin.db import get_db_session
 
 router = APIRouter(prefix="/roles", tags=["api-roles"])
 
@@ -37,7 +38,7 @@ async def list_roles(
     user: dict[str, Any] = Depends(require_api_superuser()),
 ) -> list[RoleResponse]:
     """GET /api/roles/ — list all roles (superuser only)."""
-    db_session = request.app.state.admin_db_session
+    db_session = get_db_session(request)
     result = await db_session.execute(select(AdminRole))
     roles = result.scalars().all()
     return [
@@ -58,7 +59,7 @@ async def create_role(
     user: dict[str, Any] = Depends(require_api_superuser()),
 ) -> RoleResponse:
     """POST /api/roles/ — create a role (superuser only)."""
-    db_session = request.app.state.admin_db_session
+    db_session = get_db_session(request)
 
     existing = await db_session.execute(
         select(AdminRole).where(AdminRole.name == body.name)
@@ -82,7 +83,7 @@ async def update_role(
     user: dict[str, Any] = Depends(require_api_superuser()),
 ) -> RoleResponse:
     """PUT /api/roles/{id} — update a role (superuser only)."""
-    db_session = request.app.state.admin_db_session
+    db_session = get_db_session(request)
     role = await db_session.get(AdminRole, role_id)
     if role is None:
         raise HTTPException(status_code=404, detail="Role not found.")
@@ -110,7 +111,7 @@ async def delete_role(
     user: dict[str, Any] = Depends(require_api_superuser()),
 ) -> None:
     """DELETE /api/roles/{id} — delete a role (superuser only)."""
-    db_session = request.app.state.admin_db_session
+    db_session = get_db_session(request)
     role = await db_session.get(AdminRole, role_id)
     if role is None:
         raise HTTPException(status_code=404, detail="Role not found.")

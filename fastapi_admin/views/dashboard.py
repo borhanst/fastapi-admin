@@ -10,6 +10,8 @@ from fastapi import Depends, Request
 from fastapi.responses import HTMLResponse
 from sqlalchemy import func, select
 
+from fastapi_admin.db import get_db_session
+
 from fastapi_admin.auth.dependencies import get_current_admin_user
 
 
@@ -34,7 +36,7 @@ def dashboard_view_factory(admin: Any):
         templates = request.app.state.admin_jinja_env
         admin_instance = request.app.state.admin
         config = request.app.state.admin_config
-        session = request.app.state.admin_db_session
+        session = get_db_session(request)
 
         # Get registered models
         registered_models = admin_instance.registry.all()

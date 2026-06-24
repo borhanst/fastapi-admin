@@ -10,6 +10,7 @@ from fastapi.responses import HTMLResponse
 from sqlalchemy import desc, select
 
 from fastapi_admin.audit.models import AuditLog
+from fastapi_admin.db import get_db_session
 from fastapi_admin.auth.dependencies import get_current_admin_user
 from fastapi_admin.auth.protocol import AdminUserProtocol
 from fastapi_admin.views.sidebar import inject_sidebar_context
@@ -40,7 +41,7 @@ async def audit_list_view(
 ):
     """List audit log entries with filters."""
     templates = request.app.state.admin_jinja_env
-    session = request.app.state.admin_db_session
+    session = get_db_session(request)
 
     query = select(AuditLog)
 
@@ -114,7 +115,7 @@ async def audit_detail_view(
 ):
     """Show detailed audit entry with diff snapshot."""
     templates = request.app.state.admin_jinja_env
-    session = request.app.state.admin_db_session
+    session = get_db_session(request)
 
     entry = await session.get(AuditLog, entry_id)
     if entry is None:

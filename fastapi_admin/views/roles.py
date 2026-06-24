@@ -10,6 +10,7 @@ from fastapi_admin.auth.csrf import require_csrf_token
 from fastapi_admin.auth.dependencies import get_current_admin_user
 from fastapi_admin.auth.models import AdminFieldPermission, AdminPermission, AdminRole
 from fastapi_admin.auth.protocol import AdminUserProtocol
+from fastapi_admin.db import get_db_session
 from fastapi_admin.views.sidebar import inject_sidebar_context
 
 router = APIRouter()
@@ -30,7 +31,7 @@ async def role_list_view(
 ):
     """List roles with user counts."""
     templates = request.app.state.admin_jinja_env
-    session = request.app.state.admin_db_session
+    session = get_db_session(request)
 
     result = await session.execute(select(AdminRole))
     roles = list(result.scalars().all())
@@ -82,7 +83,7 @@ async def role_edit_view(
 ):
     """Show edit form with permission matrix."""
     templates = request.app.state.admin_jinja_env
-    session = request.app.state.admin_db_session
+    session = get_db_session(request)
     registry = request.app.state.admin_registry
 
     role = await session.get(AdminRole, role_id)
@@ -121,7 +122,7 @@ async def role_save_view(
     _csrf: bool = Depends(require_csrf_token),
 ):
     """Save role permissions from form submission."""
-    session = request.app.state.admin_db_session
+    session = get_db_session(request)
     registry = request.app.state.admin_registry
 
     role = await session.get(AdminRole, role_id)
@@ -192,7 +193,7 @@ async def role_delete_view(
     _csrf: bool = Depends(require_csrf_token),
 ):
     """Delete role (refuse if users assigned)."""
-    session = request.app.state.admin_db_session
+    session = get_db_session(request)
 
     role = await session.get(AdminRole, role_id)
     if role is None:

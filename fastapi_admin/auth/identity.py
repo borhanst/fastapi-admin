@@ -43,8 +43,13 @@ def _get_auth_backend(request: Request) -> Any:
 
 
 def _get_db_session(request: Request) -> "AsyncSession | None":
-    """Return the shared async DB session from app state, or ``None``."""
-    return getattr(request.app.state, "admin_db_session", None)
+    """Return the per-request DB session, falling back to app.state."""
+    from fastapi_admin.db import get_db_session
+
+    try:
+        return get_db_session(request)
+    except AttributeError:
+        return None
 
 
 async def resolve_user(request: Request, user_id: int | str | None) -> "AdminUserProtocol | None":
