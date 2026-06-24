@@ -6,7 +6,6 @@ import re
 from typing import Any
 
 from sqlalchemy import inspect
-from sqlalchemy.orm import DeclarativeBase
 
 from fastapi_admin.types import ColumnMeta, RelationMeta
 

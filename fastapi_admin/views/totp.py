@@ -10,7 +10,6 @@ from sqlalchemy import select
 
 from fastapi_admin.auth.csrf import require_csrf_token
 from fastapi_admin.auth.dependencies import get_current_admin_user
-from fastapi_admin.db import get_db_session
 from fastapi_admin.auth.models import AdminUserTOTP
 from fastapi_admin.auth.protocol import AdminUserProtocol
 from fastapi_admin.auth.totp import (
@@ -20,6 +19,7 @@ from fastapi_admin.auth.totp import (
     hash_backup_code,
     verify_totp,
 )
+from fastapi_admin.db import get_db_session
 from fastapi_admin.views.sidebar import inject_sidebar_context
 
 router = APIRouter()

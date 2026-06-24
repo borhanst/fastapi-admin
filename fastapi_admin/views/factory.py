@@ -69,9 +69,12 @@ def _resolve_rel_keys(parsed: dict[str, Any], registered: RegisteredModel) -> di
     return resolved
 
 
-async def _resolve_rel_labels(obj: Any, registered: RegisteredModel, request: Any) -> dict[str, str]:
+async def _resolve_rel_labels(
+    obj: Any, registered: RegisteredModel, request: Any
+) -> dict[str, str]:
     """Resolve display labels for relationship fields from FK values."""
     from sqlalchemy import inspect as sa_inspect
+
     from fastapi_admin.inspection import model_display_name
 
     labels: dict[str, str] = {}
@@ -425,7 +428,10 @@ class ViewFactory:
                             registered.admin.on_delete(obj, request)
                             await session.delete(obj)
                     await session.commit()
-                    add_flash(request, "success", f"{len(ids)} {registered.verbose_name}(s) deleted.")
+                    add_flash(
+                        request, "success",
+                        f"{len(ids)} {registered.verbose_name}(s) deleted.",
+                    )
                 else:
                     action_fn = getattr(registered.admin, f"action_{action}", None)
                     if not action_fn:
@@ -437,7 +443,10 @@ class ViewFactory:
                         if obj:
                             action_fn(obj)
                     await session.commit()
-                    add_flash(request, "success", f"Action '{action}' applied to {len(ids)} item(s).")
+                    add_flash(
+                        request, "success",
+                        f"Action '{action}' applied to {len(ids)} item(s).",
+                    )
             except Exception as e:
                 await session.rollback()
                 add_flash(request, "error", f"Action failed: {str(e)}")

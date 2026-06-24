@@ -23,7 +23,6 @@ from sqlalchemy import (
     Numeric,
     String,
     Text,
-    Time,
     Uuid,
 )
 
@@ -32,11 +31,10 @@ from fastapi_admin.widgets.inputs import (
     DatePickerWidget,
     DateTimePickerWidget,
     FileUploadWidget,
-    JsonEditorWidget,
     NumberInputWidget,
     PasswordWidget,
-    TextInputWidget,
     TextareaWidget,
+    TextInputWidget,
     ToggleWidget,
 )
 

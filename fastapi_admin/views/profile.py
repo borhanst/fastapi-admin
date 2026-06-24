@@ -10,8 +10,8 @@ from sqlalchemy import select
 
 from fastapi_admin.auth.csrf import require_csrf_token
 from fastapi_admin.auth.dependencies import get_current_admin_user
-from fastapi_admin.db import get_db_session
 from fastapi_admin.auth.protocol import AdminUserProtocol
+from fastapi_admin.db import get_db_session
 from fastapi_admin.views.sidebar import inject_sidebar_context
 
 router = APIRouter()

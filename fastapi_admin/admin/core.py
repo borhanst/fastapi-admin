@@ -668,11 +668,15 @@ class Admin:
 
         templates_dir = Path(__file__).parent.parent / "templates"
         self._jinja_env = Jinja2Templates(directory=str(templates_dir))
-        slugify = lambda s: (
-            re.sub(r"[^\w]", "-", s, flags=re.A).strip("-").lower()
-        )
+
+        def slugify(s: str) -> str:
+            return re.sub(r"[^\w]", "-", s, flags=re.A).strip("-").lower()
+
+        def _attr(obj: Any, name: str) -> Any:
+            return getattr(obj, name, "")
+
         self._jinja_env.env.filters["slugify"] = slugify
-        self._jinja_env.env.globals["attr"] = lambda obj, name: getattr(obj, name, "")
+        self._jinja_env.env.globals["attr"] = _attr
         from fastapi_admin.inspection import model_display_name
         self._jinja_env.env.globals["model_display_name"] = model_display_name
         self._jinja_env.env.globals["registered_models"] = self.registry.all()

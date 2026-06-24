@@ -96,10 +96,6 @@ class DefaultSidebarBuilder:
         nav_group_configs: list[NavGroupConfig],
         admin_path: str = "/admin",
     ) -> list[BuiltNavGroup]:
-        group_index: dict[str, NavGroupConfig] = {
-            cfg.tag.lower(): cfg for cfg in nav_group_configs
-        }
-
         buckets: dict[str, list[BuiltNavItem]] = {}
         for registered in registry:
             tags = self._get_tags(registered)

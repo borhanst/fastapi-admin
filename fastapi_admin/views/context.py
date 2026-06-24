@@ -244,7 +244,7 @@ class ViewContextBuilder:
                 if filter_value:
                     active_filters[filter_field] = filter_value
 
-            # Support range filters: filter_field__gte, filter_field__lte, filter_field__from, filter_field__to
+            # Support range filters: filter_field__gte, filter_field__lte, etc.
             for filter_field in registered.admin.list_filter:
                 gte_val = request.query_params.get(f"filter_{filter_field}__gte", "")
                 lte_val = request.query_params.get(f"filter_{filter_field}__lte", "")
@@ -255,12 +255,14 @@ class ViewContextBuilder:
                     col = getattr(model, filter_field)
                     if gte_val:
                         try:
-                            filter_clauses.append(col >= type(col.property.columns[0].type)().coerce(gte_val))
+                            col_type = type(col.property.columns[0].type)
+                            filter_clauses.append(col >= col_type().coerce(gte_val))
                         except Exception:
                             pass
                     if lte_val:
                         try:
-                            filter_clauses.append(col <= type(col.property.columns[0].type)().coerce(lte_val))
+                            col_type = type(col.property.columns[0].type)
+                            filter_clauses.append(col <= col_type().coerce(lte_val))
                         except Exception:
                             pass
 
@@ -418,10 +420,18 @@ class ViewContextBuilder:
             else PermissionSet(can_view=True, can_create=True, can_edit=True, can_delete=True),
             "detail_actions": registered.admin.get_detail_actions(),
             "submit_line_actions": registered.admin.get_submit_line_actions(),
-            "conditional_fields": getattr(registered.admin, "conditional_fields", {}),
-            "warn_unsaved_form": getattr(registered.admin, "warn_unsaved_form", True),
-            "compressed_fields": getattr(registered.admin, "compressed_fields", True),
-            "change_form_show_cancel_button": getattr(registered.admin, "change_form_show_cancel_button", True),
+            "conditional_fields": getattr(
+                registered.admin, "conditional_fields", {}
+            ),
+            "warn_unsaved_form": getattr(
+                registered.admin, "warn_unsaved_form", True
+            ),
+            "compressed_fields": getattr(
+                registered.admin, "compressed_fields", True
+            ),
+            "change_form_show_cancel_button": getattr(
+                registered.admin, "change_form_show_cancel_button", True
+            ),
         }
         inject_sidebar_context(request, template_context)
         return template_context

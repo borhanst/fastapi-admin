@@ -139,7 +139,8 @@ class DateTimePickerWidget(Widget):
         if isinstance(value, datetime):
             ctx["value"] = value.replace(tzinfo=None).isoformat(timespec="minutes")
         elif isinstance(value, date):
-            ctx["value"] = datetime.combine(value, datetime.min.time()).isoformat(timespec="minutes")
+            combined = datetime.combine(value, datetime.min.time())
+            ctx["value"] = combined.isoformat(timespec="minutes")
         return ctx
 
     def parse(self, raw: str | None) -> datetime | str | None:

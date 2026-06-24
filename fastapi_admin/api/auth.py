@@ -10,8 +10,6 @@ from typing import Any
 import jwt
 from fastapi import APIRouter, HTTPException, Request
 
-from fastapi_admin.db import get_db_session
-
 from fastapi_admin.api.schemas import (
     RefreshRequest,
     RefreshResponse,
@@ -19,6 +17,7 @@ from fastapi_admin.api.schemas import (
     TokenResponse,
 )
 from fastapi_admin.auth.ratelimit import RateLimiter, check_rate_limit
+from fastapi_admin.db import get_db_session
 
 router = APIRouter(prefix="/auth", tags=["api-auth"])
 

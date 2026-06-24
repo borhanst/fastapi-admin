@@ -55,6 +55,7 @@ __all__ = [
     "ExtraField",
     "FieldRenderContext",
     "FieldsetContext",
+    "FieldsetSpec",
     "FormContext",
     # View classes
     "BaseView",

@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
+from fastapi_admin.audit.diff import snapshot
 from fastapi_admin.audit.events import AuditEvent
-from fastapi_admin.audit.diff import snapshot, compute_diff
 
 
 class AuditEventBus:

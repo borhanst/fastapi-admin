@@ -362,6 +362,7 @@ class EditView(BaseView):
     async def _resolve_rel_labels(self, obj: Any, request: Request) -> dict[str, str]:
         """Resolve display labels for relationship fields from FK values."""
         from sqlalchemy import inspect as sa_inspect
+
         from fastapi_admin.inspection import model_display_name
 
         labels: dict[str, str] = {}
