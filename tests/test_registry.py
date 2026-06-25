@@ -491,3 +491,93 @@ class TestViewsPackage:
         registered = reg.register(Product)
         router = create_model_router(registered)
         assert router is not None
+
+
+# ===========================================================================
+# AdminRegistry with injected inspector/validator
+# ===========================================================================
+
+
+class TestAdminRegistryDependencyInjection:
+    def setup_method(self):
+        from fastapi_admin.registry import AdminRegistry
+
+        self.registry = AdminRegistry()
+        self.registry.clear()
+
+    def test_has_default_inspector(self):
+        from fastapi_admin.registry import AdminRegistry
+        from fastapi_admin.inspection.registry import ModelInspector
+
+        reg = AdminRegistry()
+        assert isinstance(reg.inspector, ModelInspector)
+
+    def test_has_default_validator(self):
+        from fastapi_admin.registry import AdminRegistry
+        from fastapi_admin.registry.validation import ModelValidator
+
+        reg = AdminRegistry()
+        assert isinstance(reg.validator, ModelValidator)
+
+    def test_can_replace_inspector(self):
+        from fastapi_admin.registry import AdminRegistry
+        from fastapi_admin.inspection.registry import ModelInspector
+
+        reg = AdminRegistry()
+        custom_inspector = ModelInspector()
+        reg.inspector = custom_inspector
+        assert reg.inspector is custom_inspector
+
+    def test_can_replace_validator(self):
+        from fastapi_admin.registry import AdminRegistry
+        from fastapi_admin.registry.validation import ModelValidator
+
+        reg = AdminRegistry()
+        custom_validator = ModelValidator(reg)
+        reg.validator = custom_validator
+        assert reg.validator is custom_validator
+
+    def test_register_uses_inspector(self):
+        from fastapi_admin.registry import AdminRegistry
+
+        reg = AdminRegistry()
+        reg.clear()
+        registered = reg.register(Product)
+        assert len(registered.columns) == 5
+        assert len(registered.relationships) == 1
+
+    def test_register_uses_validator(self):
+        from fastapi_admin.registry import AdminRegistry
+
+        reg = AdminRegistry()
+        reg.clear()
+        # First registration should succeed
+        reg.register(Product)
+        # Second registration of same model should succeed (re-registration)
+        reg.register(Product)
+        assert len(reg.all()) == 1
+
+    def test_validator_rejects_invalid_model(self):
+        from fastapi_admin.registry import AdminRegistry
+
+        reg = AdminRegistry()
+        reg.clear()
+        with pytest.raises(ValueError, match="not a SQLAlchemy model"):
+            reg.register(str)
+
+    def test_inspector_extracts_pk_field(self):
+        from fastapi_admin.registry import AdminRegistry
+
+        reg = AdminRegistry()
+        reg.clear()
+        registered = reg.register(Product)
+        assert registered.pk_field == "id"
+
+    def test_inspector_extracts_relationships(self):
+        from fastapi_admin.registry import AdminRegistry
+
+        reg = AdminRegistry()
+        reg.clear()
+        registered = reg.register(Product)
+        assert len(registered.relationships) == 1
+        assert registered.relationships[0].name == "category"

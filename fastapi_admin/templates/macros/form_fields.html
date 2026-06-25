@@ -84,6 +84,7 @@ hx-post="{{ admin_path }}/{{ model_name }}/validate-field"
 hx-trigger="{{ trigger }}"
 hx-target="#field-wrapper-{{ field_ctx.meta.name }}"
 hx-swap="outerHTML"
+hx-include="[name='csrf_token']"
 hx-vals='{"field_name": "{{ field_ctx.meta.name }}"}'
 {% endmacro %}
 
@@ -211,7 +212,7 @@ hx-vals='{"field_name": "{{ field_ctx.meta.name }}"}'
   <input type="date" id="{{ name }}" name="{{ name }}"
          value="{{ val }}"
          {% if field_ctx.meta.required %}required{% endif %}
-         {% if field_ctx.meta.readonly %}readonly{% endif %}
+         {% if field_ctx.meta.readonly %}readonly{% else %}onclick="if(this.showPicker) { try { this.showPicker(); } catch(e) {} }"{% endif %}
          {{ _htmx_validate(field_ctx, model_name) }}
          class="form-input">
   {{ _errors(field_ctx) }}
@@ -230,7 +231,7 @@ hx-vals='{"field_name": "{{ field_ctx.meta.name }}"}'
   <input type="datetime-local" id="{{ name }}" name="{{ name }}"
          value="{{ val }}"
          {% if field_ctx.meta.required %}required{% endif %}
-         {% if field_ctx.meta.readonly %}readonly{% endif %}
+         {% if field_ctx.meta.readonly %}readonly{% else %}onclick="if(this.showPicker) { try { this.showPicker(); } catch(e) {} }"{% endif %}
          {{ _htmx_validate(field_ctx, model_name) }}
          class="form-input">
   {{ _errors(field_ctx) }}
@@ -249,7 +250,7 @@ hx-vals='{"field_name": "{{ field_ctx.meta.name }}"}'
   <input type="time" id="{{ name }}" name="{{ name }}"
          value="{{ val }}"
          {% if field_ctx.meta.required %}required{% endif %}
-         {% if field_ctx.meta.readonly %}readonly{% endif %}
+         {% if field_ctx.meta.readonly %}readonly{% else %}onclick="if(this.showPicker) { try { this.showPicker(); } catch(e) {} }"{% endif %}
          {{ _htmx_validate(field_ctx, model_name) }}
          class="form-input">
   {{ _errors(field_ctx) }}

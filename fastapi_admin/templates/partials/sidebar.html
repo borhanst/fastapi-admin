@@ -1,0 +1,80 @@
+            <!-- Sidebar -->
+            <aside class="admin-sidebar" :class="{ 'open': sidebarOpen }" @click.outside="sidebarOpen = false">
+                <div class="admin-sidebar__logo">
+                    <span class="admin-sidebar__logo-text">{{ title or 'Admin' }}</span>
+                </div>
+                <nav class="admin-sidebar__nav" aria-label="Main navigation">
+                    {% block sidebar %}
+                    {# Dashboard — always at top #}
+                    <a href="{{ admin_path }}/"
+                       class="nav-link {% if request.url.path == admin_path ~ '/' %}active{% endif %}">
+                        <svg class="nav-link__icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <use href="/static/icons/heroicons.svg#home-outline" />
+                        </svg>
+                        <span>Dashboard</span>
+                    </a>
+
+                    {# Nav groups — RBAC filtered at render time #}
+                    {% for group in nav_groups %}
+
+                    {% set ns = namespace(has_visible=false) %}
+                    {% for item in group.items %}
+                      {% set perm = permissions_map.get(item.permission_table) if permissions_map is defined and permissions_map else none %}
+                      {% if item.permission_table is none or perm is none or perm.can_view %}
+                        {% set ns.has_visible = true %}
+                      {% endif %}
+                    {% endfor %}
+
+                    {% if ns.has_visible %}
+                    <div class="nav-group"
+                         x-data="navGroup('{{ group.tag | slugify }}', {{ 'true' if group.collapsed_by_default else 'false' }})">
+                      <button class="nav-group-toggle"
+                              @click="toggle()"
+                              :aria-expanded="!collapsed">
+                        <span class="nav-group-label">{{ group.label }}</span>
+                        <svg class="nav-group-chevron"
+                             xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                          <path fill-rule="evenodd" d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd"/>
+                        </svg>
+                      </button>
+                      <div x-show="!collapsed" x-collapse>
+                        <div class="nav-group-items">
+                        {% for item in group.items %}
+                        {% set perm = permissions_map.get(item.permission_table) if permissions_map is defined and permissions_map else none %}
+                        {% if item.permission_table is none or perm is none or perm.can_view %}
+                        {% set is_active = request.url.path.startswith(item.url) %}
+                        <a href="{{ item.url }}"
+                           class="nav-link {% if is_active %}active{% endif %}">
+                          {% if item.icon %}
+                          <svg class="nav-link__icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <use href="/static/icons/heroicons.svg#{{ item.icon }}-outline" />
+                          </svg>
+                          {% endif %}
+                          <span>{{ item.label }}</span>
+                          {% if item.badge_fn and not is_active %}
+                            {% set badge = item.badge_fn(request) %}
+                            {% if badge %}
+                            <span class="nav-link__badge">{{ badge }}</span>
+                            {% endif %}
+                          {% endif %}
+                        </a>
+                        {% for child in item.children %}
+                        {% set child_perm = permissions_map.get(child.permission_table) if permissions_map is defined and permissions_map else none %}
+                        {% if child.permission_table is none or child_perm is none or child_perm.can_view %}
+                        <a href="{{ child.url }}"
+                           class="nav-link {% if request.url.path.startswith(child.url) %}active{% endif %}"
+                           style="padding-left: 2.5rem; font-size: var(--text-xs);">
+                          {{ child.label }}
+                        </a>
+                        {% endif %}
+                        {% endfor %}
+                        {% endif %}
+                        {% endfor %}
+                        </div>
+                      </div>
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                    {% endblock %}
+                </nav>
+            </aside>

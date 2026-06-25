@@ -108,6 +108,14 @@ class SelectWidget(Widget):
 class DatePickerWidget(Widget):
     macro_name = "date_picker"
 
+    def render_context(self, field: FieldMeta, value: Any) -> dict:
+        ctx = super().render_context(field, value)
+        if isinstance(value, date) and not isinstance(value, datetime):
+            ctx["value"] = value.isoformat()
+        elif isinstance(value, datetime):
+            ctx["value"] = value.date().isoformat()
+        return ctx
+
     def parse(self, raw: str | None) -> date | str | None:
         if not raw:
             return None
@@ -125,6 +133,14 @@ class DatePickerWidget(Widget):
 
 class DateTimePickerWidget(Widget):
     macro_name = "datetime_picker"
+
+    def render_context(self, field: FieldMeta, value: Any) -> dict:
+        ctx = super().render_context(field, value)
+        if isinstance(value, datetime):
+            ctx["value"] = value.replace(tzinfo=None).isoformat(timespec="minutes")
+        elif isinstance(value, date):
+            ctx["value"] = datetime.combine(value, datetime.min.time()).isoformat(timespec="minutes")
+        return ctx
 
     def parse(self, raw: str | None) -> datetime | str | None:
         if not raw:

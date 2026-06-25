@@ -208,7 +208,7 @@ class OrderAdmin(ModelAdmin):
     search_fields = ["user__email"]
     ordering = ["-order_date"]
     fields = ["user", "order_date", "status", "total_amount"]
-    readonly_fields = ["order_date", "created_at"]
+    readonly_fields = ["created_at"]
     verbose_name = "Order"
     verbose_name_plural = "Orders"
     tag = "Order"

@@ -23,6 +23,7 @@
 </div>
 
 <form method="post" {% if form_context.action_url %}action="{{ form_context.action_url }}"{% endif %}>
+    <input type="hidden" name="csrf_token" value="{{ get_csrf_token(request) }}">
     <div style="display: flex; flex-direction: column; gap: var(--space-5); max-width: var(--form-max-width);">
         {% for fs in form_context.fieldsets %}
         <div class="fieldset">

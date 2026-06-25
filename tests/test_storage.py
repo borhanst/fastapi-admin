@@ -244,9 +244,11 @@ class TestImageUploadWidget:
 class TestRegistryMapping:
     def test_large_binary_maps_to_file_upload(self):
         from fastapi_admin.widgets.registry import widget_registry
+        from fastapi_admin.widgets.resolver import WidgetResolver
         from fastapi_admin.types import ColumnMeta
         from sqlalchemy import LargeBinary
 
         col = ColumnMeta(name="avatar", type=LargeBinary())
-        widget = widget_registry.resolve(col)
+        resolver = WidgetResolver(widget_registry)
+        widget = resolver.resolve(col)
         assert isinstance(widget, FileUploadWidget)

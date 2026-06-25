@@ -8,7 +8,7 @@ from fastapi_admin.auth.models import AdminFieldPermission, AdminPermission
 from fastapi_admin.types import PermissionSet
 
 if TYPE_CHECKING:
-    from sqlalchemy.orm import Session
+    from sqlalchemy.ext.asyncio import AsyncSession
 
     from fastapi_admin.auth.protocol import AdminUserProtocol
 
@@ -20,13 +20,13 @@ class PermissionChecker:
     Caches permission results in-memory for the lifetime of the request.
     """
 
-    def __init__(self, session: Session, user: AdminUserProtocol) -> None:
+    def __init__(self, session: AsyncSession, user: AdminUserProtocol) -> None:
         self.session = session
         self.user = user
         self._cache: dict[tuple[str, str], bool] = {}
         self._field_cache: dict[tuple[str, str], set[str] | None] = {}
 
-    def has_permission(self, table_name: str, action: str) -> bool:
+    async def has_permission(self, table_name: str, action: str) -> bool:
         """Return True if the current user may perform *action* on *table_name*.
 
         Actions: ``"view"`` | ``"create"`` | ``"edit"`` | ``"delete"``
@@ -44,17 +44,21 @@ class PermissionChecker:
             self._cache[cache_key] = False
             return False
 
-        perm = (
-            self.session.query(AdminPermission)
-            .filter_by(role_id=self.user.role_id, table_name=table_name)
-            .first()
+        from sqlalchemy import select
+
+        result = await self.session.execute(
+            select(AdminPermission).where(
+                AdminPermission.role_id == self.user.role_id,
+                AdminPermission.table_name == table_name,
+            )
         )
+        perm = result.scalar_one_or_none()
 
-        result = bool(perm and getattr(perm, f"can_{action}", False))
-        self._cache[cache_key] = result
-        return result
+        result_bool = bool(perm and getattr(perm, f"can_{action}", False))
+        self._cache[cache_key] = result_bool
+        return result_bool
 
-    def get_allowed_fields(self, table_name: str, mode: str) -> set[str] | None:
+    async def get_allowed_fields(self, table_name: str, mode: str) -> set[str] | None:
         """Return the set of field names the user may access, or ``None``.
 
         mode: ``"view"`` | ``"edit"``
@@ -75,11 +79,15 @@ class PermissionChecker:
             self._field_cache[cache_key] = set()
             return set()
 
-        rows = (
-            self.session.query(AdminFieldPermission)
-            .filter_by(role_id=self.user.role_id, table_name=table_name)
-            .all()
+        from sqlalchemy import select
+
+        result = await self.session.execute(
+            select(AdminFieldPermission).where(
+                AdminFieldPermission.role_id == self.user.role_id,
+                AdminFieldPermission.table_name == table_name,
+            )
         )
+        rows = result.scalars().all()
 
         if not rows:
             self._field_cache[cache_key] = None
@@ -91,10 +99,32 @@ class PermissionChecker:
         return allowed
 
     def permission_set(self, table_name: str) -> PermissionSet:
-        """Return a :class:`PermissionSet` for convenient template / UI use."""
+        """Return a :class:`PermissionSet` for convenient template / UI use.
+
+        Note: This is a sync convenience wrapper. For async contexts,
+        use the individual async methods directly.
+        """
+        if self.user.is_superuser:
+            return PermissionSet(
+                can_view=True,
+                can_create=True,
+                can_edit=True,
+                can_delete=True,
+            )
         return PermissionSet(
-            can_view=self.has_permission(table_name, "view"),
-            can_create=self.has_permission(table_name, "create"),
-            can_edit=self.has_permission(table_name, "edit"),
-            can_delete=self.has_permission(table_name, "delete"),
+            can_view=self._cache.get((table_name, "view"), False),
+            can_create=self._cache.get((table_name, "create"), False),
+            can_edit=self._cache.get((table_name, "edit"), False),
+            can_delete=self._cache.get((table_name, "delete"), False),
         )
+
+    async def load_permissions(self, table_name: str) -> PermissionSet:
+        """Async method to load and cache all permissions for a table.
+
+        Call this before using ``permission_set()`` to ensure the cache is populated.
+        """
+        await self.has_permission(table_name, "view")
+        await self.has_permission(table_name, "create")
+        await self.has_permission(table_name, "edit")
+        await self.has_permission(table_name, "delete")
+        return self.permission_set(table_name)

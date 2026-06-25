@@ -7,7 +7,7 @@ from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from sqlalchemy.orm import Session
+    from sqlalchemy.ext.asyncio import AsyncSession
 
     from fastapi_admin.auth.protocol import AdminUserProtocol
 
@@ -55,25 +55,36 @@ class BuiltinAuthBackend(AuthBackend):
     """Default backend that works with the built-in ``AdminUser`` model."""
 
     async def authenticate(
-        self, email: str, password: str, session: Session
+        self, email: str, password: str, session: Any
     ) -> AdminUserProtocol | None:
+        from sqlalchemy import select
+
         from fastapi_admin.auth.models import AdminUser
 
-        user = session.query(AdminUser).filter_by(email=email, is_active=True).first()
+        result = await session.execute(
+            select(AdminUser).where(
+                AdminUser.email == email, AdminUser.is_active == True
+            )
+        )
+        user = result.scalar_one_or_none()
+
         if not user:
             return None
         if not pwd_context.verify(password, user.hashed_password):
             return None
         return user
 
-    async def get_user(self, user_id: int | str, session: Session) -> AdminUserProtocol | None:
+    async def get_user(self, user_id: int | str, session: Any) -> AdminUserProtocol | None:
+        from sqlalchemy import select
+
         from fastapi_admin.auth.models import AdminUser
 
-        return (
-            session.query(AdminUser)
-            .filter_by(id=user_id, is_active=True)
-            .first()
+        result = await session.execute(
+            select(AdminUser).where(
+                AdminUser.id == user_id, AdminUser.is_active == True
+            )
         )
+        return result.scalar_one_or_none()
 
     async def on_logout(self, user_id: int | str | None = None) -> None:
         """No-op for built-in backend."""

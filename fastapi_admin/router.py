@@ -2,22 +2,21 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 from fastapi import APIRouter, Depends, HTTPException, Request
 
+from fastapi_admin.auth.csrf import require_csrf_token
+from fastapi_admin.auth.dependencies import require_permission
 from fastapi_admin.registry import RegisteredModel
 from fastapi_admin.views import (
+    bulk_factory,
     create_form_factory,
     create_submit_factory,
+    delete_factory,
     edit_form_factory,
     edit_submit_factory,
-    delete_factory,
-    bulk_factory,
-    search_factory,
     list_view_factory,
+    search_factory,
 )
-from fastapi_admin.auth.dependencies import require_permission
 
 
 def build_model_router(registered: RegisteredModel) -> APIRouter:
@@ -39,7 +38,10 @@ def build_model_router(registered: RegisteredModel) -> APIRouter:
         "/create",
         create_submit_factory(registered),
         methods=["POST"],
-        dependencies=[Depends(require_permission(registered.table_name, "create"))],
+        dependencies=[
+            Depends(require_permission(registered.table_name, "create")),
+            Depends(require_csrf_token),
+        ],
     )
     router.add_api_route(
         "/search",
@@ -51,11 +53,17 @@ def build_model_router(registered: RegisteredModel) -> APIRouter:
         "/bulk",
         bulk_factory(registered),
         methods=["POST"],
-        dependencies=[Depends(require_permission(registered.table_name, "edit"))],
+        dependencies=[
+            Depends(require_permission(registered.table_name, "edit")),
+            Depends(require_csrf_token),
+        ],
     )
 
     @router.post("/validate-field")
-    async def validate_field_endpoint(request: Request):
+    async def validate_field_endpoint(
+        request: Request,
+        _csrf: bool = Depends(require_csrf_token),
+    ):
         templates = request.app.state.admin_jinja_env
         form = await request.form()
         field_name = form.get("field_name")
@@ -100,13 +108,19 @@ def build_model_router(registered: RegisteredModel) -> APIRouter:
         "/{id}",
         edit_submit_factory(registered),
         methods=["POST"],
-        dependencies=[Depends(require_permission(registered.table_name, "edit"))],
+        dependencies=[
+            Depends(require_permission(registered.table_name, "edit")),
+            Depends(require_csrf_token),
+        ],
     )
     router.add_api_route(
         "/{id}/delete",
         delete_factory(registered),
         methods=["POST"],
-        dependencies=[Depends(require_permission(registered.table_name, "delete"))],
+        dependencies=[
+            Depends(require_permission(registered.table_name, "delete")),
+            Depends(require_csrf_token),
+        ],
     )
 
     return router

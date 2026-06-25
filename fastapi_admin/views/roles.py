@@ -2,19 +2,15 @@
 
 from __future__ import annotations
 
-from typing import Any
-
-from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy import select
 
-from fastapi_admin.admin import Admin
+from fastapi_admin.auth.csrf import require_csrf_token
 from fastapi_admin.auth.dependencies import get_current_admin_user
-from fastapi_admin.auth.models import AdminFieldPermission, AdminPermission, AdminRole, AdminUser
-from fastapi_admin.registry import AdminRegistry
+from fastapi_admin.auth.models import AdminFieldPermission, AdminPermission, AdminRole
 from fastapi_admin.auth.protocol import AdminUserProtocol
 from fastapi_admin.views.sidebar import inject_sidebar_context
-
 
 router = APIRouter()
 
@@ -122,6 +118,7 @@ async def role_save_view(
     request: Request,
     role_id: int,
     _: AdminUserProtocol = Depends(_require_superuser),
+    _csrf: bool = Depends(require_csrf_token),
 ):
     """Save role permissions from form submission."""
     session = request.app.state.admin_db_session
@@ -192,6 +189,7 @@ async def role_delete_view(
     request: Request,
     role_id: int,
     _: AdminUserProtocol = Depends(_require_superuser),
+    _csrf: bool = Depends(require_csrf_token),
 ):
     """Delete role (refuse if users assigned)."""
     session = request.app.state.admin_db_session
