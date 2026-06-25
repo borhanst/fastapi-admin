@@ -3,7 +3,7 @@
    Warm Editorial Brutalism — paper texture meets computational precision
    ═══════════════════════════════════════════════════════════════════════════ */
 
-@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
 :root {
 
@@ -54,8 +54,8 @@
   --mono-accent-muted: #065F46;
 
   /* ── Typography ────────────────────────────────────────────────────────── */
-  --font-display:      'Instrument Serif', Georgia, 'Times New Roman', serif;
-  --font-body:         'DM Sans', system-ui, -apple-system, sans-serif;
+  --font-display:      'Poppins', system-ui, -apple-system, sans-serif;
+  --font-body:         'Poppins', system-ui, -apple-system, sans-serif;
   --font-mono:         'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
 
   /* Type scale */
@@ -120,6 +120,35 @@
   --easing-out:        cubic-bezier(0.16, 1, 0.3, 1);
   --easing-in:         cubic-bezier(0.4, 0, 1, 1);
   --easing-spring:     cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* ── Admin-overrideable layer (set via Python ThemeConfig) ── */
+  --admin-font-display: var(--font-display);
+  --admin-font-body: var(--font-body);
+  --admin-font-mono: var(--font-mono);
+  --admin-font-size-base: var(--text-base);
+  --admin-font-size-sm: var(--text-sm);
+  --admin-font-size-xs: var(--text-xs);
+  --admin-topbar-height: var(--topbar-height);
+  --admin-sidebar-width: var(--sidebar-width);
+  --admin-sidebar-collapsed: var(--sidebar-collapsed);
+  --admin-content-max-width: var(--content-max-width);
+  --admin-content-padding: var(--content-padding);
+  --admin-radius-sm: var(--radius-sm);
+  --admin-radius-md: var(--radius-md);
+  --admin-radius-lg: var(--radius-lg);
+  --admin-shadow-xs: var(--shadow-xs);
+  --admin-shadow-sm: var(--shadow-sm);
+  --admin-shadow-md: var(--shadow-md);
+  --admin-shadow-lg: var(--shadow-lg);
+  --admin-shadow-focus: var(--shadow-focus);
+  --admin-shadow-focus-error: var(--shadow-focus-error);
+  --admin-duration-fast: var(--duration-fast);
+  --admin-duration-base: var(--duration-base);
+  --admin-duration-slow: var(--duration-slow);
+  --admin-easing: var(--easing-out);
+  --admin-easing-spring: var(--easing-spring);
+  --admin-grain-opacity: 0.025;
+  --admin-accent-line-opacity: 0.4;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -174,4 +203,13 @@
   --shadow-lg:         0 12px 32px rgba(0, 0, 0, 0.5), 0 4px 8px rgba(0, 0, 0, 0.3);
   --shadow-focus:      0 0 0 3px rgba(52, 211, 153, 0.25);
   --shadow-focus-error:0 0 0 3px rgba(248, 113, 113, 0.25);
+}
+
+/* ── Admin dark-mode overrides ── */
+[data-theme="dark"] {
+  --admin-surface-base: var(--surface-base);
+  --admin-surface-raised: var(--surface-raised);
+  --admin-surface-border: var(--surface-border);
+  --admin-text-primary: var(--text-primary);
+  --admin-text-secondary: var(--text-secondary);
 }

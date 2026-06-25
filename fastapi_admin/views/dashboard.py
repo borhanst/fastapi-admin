@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import importlib
 from typing import Any
 
 from fastapi import Request, Depends
@@ -9,6 +10,18 @@ from fastapi.responses import HTMLResponse
 from sqlalchemy import select, func
 
 from fastapi_admin.auth.dependencies import get_current_admin_user
+
+
+def _resolve_callback(dotted_path: str) -> Any | None:
+    """Resolve a dotted path like 'myapp.dashboards.custom_stats' to the function."""
+    if not dotted_path:
+        return None
+    try:
+        module_path, _, func_name = dotted_path.rpartition(".")
+        module = importlib.import_module(module_path)
+        return getattr(module, func_name, None)
+    except (ImportError, AttributeError):
+        return None
 
 
 def dashboard_view_factory(admin: Any):
@@ -53,6 +66,21 @@ def dashboard_view_factory(admin: Any):
         # Check if charts are enabled
         show_charts = config.get("dashboard_charts", True)
 
+        # Resolve dashboard callback if configured
+        dashboard_callback = admin_instance.config.behavior.dashboard_callback
+        callback_data = {}
+        if dashboard_callback:
+            cb_fn = _resolve_callback(dashboard_callback)
+            if cb_fn and callable(cb_fn):
+                import asyncio
+                if asyncio.iscoroutinefunction(cb_fn):
+                    callback_data = await cb_fn(request, session) or {}
+                else:
+                    callback_data = cb_fn(request, session) or {}
+
+        # Dashboard components
+        dashboard_components = admin_instance.config.behavior.dashboard_components
+
         template = templates.get_template("pages/dashboard.html")
         context: dict[str, Any] = {
             "request": request,
@@ -62,6 +90,8 @@ def dashboard_view_factory(admin: Any):
             "show_charts": show_charts,
             "admin_path": admin_instance.admin_path,
             "title": admin_instance.title,
+            "dashboard_callback_data": callback_data,
+            "dashboard_components": dashboard_components,
         }
         if hasattr(admin_instance, "build_sidebar_context") and current_user is not None:
             context.update(admin_instance.build_sidebar_context(request, user=current_user))

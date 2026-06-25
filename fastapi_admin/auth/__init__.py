@@ -3,7 +3,11 @@
 from __future__ import annotations
 
 from fastapi_admin.auth.backend import AuthBackend, BuiltinAuthBackend
-from fastapi_admin.auth.csrf import require_csrf_token, set_csrf_cookie
+from fastapi_admin.auth.csrf import (
+    auth_redirect_handler,
+    require_csrf_token,
+    set_csrf_cookie,
+)
 from fastapi_admin.auth.models import (
     AdminFieldPermission,
     AdminPermission,
@@ -21,6 +25,7 @@ __all__ = [
     "BuiltinAuthBackend",
     "SessionBackend",
     "SignedCookieSessionBackend",
+    "auth_redirect_handler",
     "require_csrf_token",
     "set_csrf_cookie",
 ]

@@ -52,7 +52,7 @@ def client(engine, admin_user):
     admin = Admin(
         app=app,
         engine=engine,
-        secret_key="test-secret",
+        secret_key="test-secret-key-long-enough-for-security!",
         auth_backend=BuiltinAuthBackend(),
         auto_discover=False,
     )

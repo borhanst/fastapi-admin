@@ -1,4 +1,4 @@
-{# pages/list.html — model list view with type-aware filters #}
+{# pages/list.html — model list view with type-aware filters, actions, tabs, sortable #}
 {% extends "base.html" %}
 
 {% block title %}{{ registered.verbose_name_plural }} — {{ title | default("Admin") }}{% endblock %}
@@ -8,6 +8,7 @@
   <div class="page-header">
     <div class="page-header-left">
       <h1 class="page-header-title">{{ registered.verbose_name_plural }}</h1>
+      <span class="text-sm text-[var(--color-gray-500)]">{{ total }} record{{ 's' if total != 1 else '' }}</span>
     </div>
     {% if permissions.can_create %}
     <div class="page-header-right">
@@ -17,6 +18,38 @@
     </div>
     {% endif %}
   </div>
+
+  {# Changelist Tabs #}
+  {% if list_tabs %}
+  <div class="tabs-bar flex gap-1 border-b border-[var(--surface-border)]">
+    {% for tab in list_tabs %}
+    <a href="{{ tab.url | default('#') }}"
+       class="px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px
+              {% if tab.is_active %}border-[var(--primary-500)] text-[var(--primary-500)]{% else %}border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]{% endif %}">
+      {{ tab.title }}
+    </a>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {# List Actions (above table) #}
+  {% set _list_actions = list_actions | default([]) %}
+  {% if _list_actions %}
+  <div class="flex items-center gap-2">
+    {% for action in _list_actions %}
+    <button type="button"
+            onclick="executeListAction('{{ action.name }}', '{{ admin_path | default('/admin') }}/{{ registered.table_name }}')"
+            class="btn btn-{{ action.variant | default('secondary') }} btn-sm inline-flex items-center gap-1">
+      {% if action.icon %}
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <use href="/static/icons/heroicons.svg#{{ action.icon }}"/>
+      </svg>
+      {% endif %}
+      {{ action.label }}
+    </button>
+    {% endfor %}
+  </div>
+  {% endif %}
 
   <div class="filter-bar" x-data="filterBar()">
     <div class="filter-bar-search">
@@ -47,16 +80,28 @@
       <div class="relative" x-data="{ open: false }">
 
         {% if field_info.field_type == "date" %}
-        <div class="filter-chip-wrap {% if active_filters.get(field_name) %}filter-chip--active{% endif %}">
+        <div class="filter-chip-wrap {% if active_filters.get(field_name ~ '__from') or active_filters.get(field_name ~ '__to') %}filter-chip--active{% endif %}">
           <label class="filter-chip-label">{{ field_name | replace('_', ' ') | title }}</label>
-          <input type="date" name="filter_{{ field_name }}"
-                 value="{{ active_filters.get(field_name, '') }}"
-                 hx-get="{{ admin_path | default('/admin') }}/{{ registered.table_name }}/"
-                 hx-trigger="change"
-                 hx-target="#table-wrapper"
-                 hx-include="[name='q'], [name^='filter_']"
-                 class="filter-input-date">
-          {% if active_filters.get(field_name) %}
+          <div class="flex items-center gap-1">
+            <input type="date" name="filter_{{ field_name }}__from"
+                   value="{{ active_filters.get(field_name ~ '__from', '') }}"
+                   placeholder="From"
+                   hx-get="{{ admin_path | default('/admin') }}/{{ registered.table_name }}/"
+                   hx-trigger="change"
+                   hx-target="#table-wrapper"
+                   hx-include="[name='q'], [name^='filter_']"
+                   class="filter-input-date text-xs">
+            <span class="text-xs text-[var(--text-secondary)]">to</span>
+            <input type="date" name="filter_{{ field_name }}__to"
+                   value="{{ active_filters.get(field_name ~ '__to', '') }}"
+                   placeholder="To"
+                   hx-get="{{ admin_path | default('/admin') }}/{{ registered.table_name }}/"
+                   hx-trigger="change"
+                   hx-target="#table-wrapper"
+                   hx-include="[name='q'], [name^='filter_']"
+                   class="filter-input-date text-xs">
+          </div>
+          {% if active_filters.get(field_name ~ '__from') or active_filters.get(field_name ~ '__to') %}
           <button type="button" class="filter-clear-btn" title="Clear"
                   hx-get="{{ admin_path | default('/admin') }}/{{ registered.table_name }}/"
                   hx-target="#table-wrapper"
@@ -65,16 +110,28 @@
         </div>
 
         {% elif field_info.field_type == "datetime" %}
-        <div class="filter-chip-wrap {% if active_filters.get(field_name) %}filter-chip--active{% endif %}">
+        <div class="filter-chip-wrap {% if active_filters.get(field_name ~ '__from') or active_filters.get(field_name ~ '__to') %}filter-chip--active{% endif %}">
           <label class="filter-chip-label">{{ field_name | replace('_', ' ') | title }}</label>
-          <input type="datetime-local" name="filter_{{ field_name }}"
-                 value="{{ active_filters.get(field_name, '') }}"
-                 hx-get="{{ admin_path | default('/admin') }}/{{ registered.table_name }}/"
-                 hx-trigger="change"
-                 hx-target="#table-wrapper"
-                 hx-include="[name='q'], [name^='filter_']"
-                 class="filter-input-datetime">
-          {% if active_filters.get(field_name) %}
+          <div class="flex items-center gap-1">
+            <input type="datetime-local" name="filter_{{ field_name }}__from"
+                   value="{{ active_filters.get(field_name ~ '__from', '') }}"
+                   placeholder="From"
+                   hx-get="{{ admin_path | default('/admin') }}/{{ registered.table_name }}/"
+                   hx-trigger="change"
+                   hx-target="#table-wrapper"
+                   hx-include="[name='q'], [name^='filter_']"
+                   class="filter-input-datetime text-xs">
+            <span class="text-xs text-[var(--text-secondary)]">to</span>
+            <input type="datetime-local" name="filter_{{ field_name }}__to"
+                   value="{{ active_filters.get(field_name ~ '__to', '') }}"
+                   placeholder="To"
+                   hx-get="{{ admin_path | default('/admin') }}/{{ registered.table_name }}/"
+                   hx-trigger="change"
+                   hx-target="#table-wrapper"
+                   hx-include="[name='q'], [name^='filter_']"
+                   class="filter-input-datetime text-xs">
+          </div>
+          {% if active_filters.get(field_name ~ '__from') or active_filters.get(field_name ~ '__to') %}
           <button type="button" class="filter-clear-btn" title="Clear"
                   hx-get="{{ admin_path | default('/admin') }}/{{ registered.table_name }}/"
                   hx-target="#table-wrapper"
@@ -158,9 +215,13 @@
 
   <div id="table-wrapper" class="table-wrapper">
     <div class="overflow-x-auto">
-      <table class="w-full">
+      {% set _ui = ui_config | default({}) %}
+      <table class="w-full table--{{ _ui.table_style | default('default') }}{% if _ui.table_row_height | default('normal') == 'compact' %} table--compact{% endif %}{% if _ui.table_row_height | default('normal') == 'relaxed' %} table--relaxed{% endif %}">
         <thead>
           <tr>
+            {% if ordering_field and not hide_ordering_field %}
+            <th class="px-2 py-3 text-left" style="width: 40px"></th>
+            {% endif %}
             {% if permissions.can_delete %}
             <th class="px-4 py-3 text-left" style="width: 44px">
               <input type="checkbox" id="select-all"
@@ -186,13 +247,20 @@
             </th>
             {% endif %}
             {% endfor %}
-            <th class="px-4 py-3 text-right" style="width: 120px">Actions</th>
+            <th class="px-4 py-3 text-right" style="width: {% if row_actions %}{{ 120 + (row_actions | length * 40) }}px{% else %}120px{% endif %}">Actions</th>
           </tr>
         </thead>
-        <tbody>
+        <tbody id="sortable-list" {% if ordering_field %}data-sort-url="{{ admin_path | default('/admin') }}/{{ registered.table_name }}/sort"{% endif %}>
           {% if items %}
           {% for obj in items %}
-          <tr>
+          <tr data-id="{{ obj.id }}">
+            {% if ordering_field and not hide_ordering_field %}
+            <td class="px-2 py-3 cursor-move sortable-handle" title="Drag to reorder">
+              <svg class="w-5 h-5 text-[var(--text-disabled)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"/>
+              </svg>
+            </td>
+            {% endif %}
             {% if permissions.can_delete %}
             <td class="px-4 py-3">
               <input type="checkbox" name="ids[]" value="{{ obj.id }}">
@@ -207,6 +275,22 @@
             {% endfor %}
             <td class="px-4 py-3 text-right">
               <div class="flex items-center justify-end gap-1">
+                {% set _row_actions = row_actions | default([]) %}
+                {% for action in _row_actions %}
+                <button hx-post="{{ admin_path | default('/admin') }}/{{ registered.table_name }}/action/{{ action.name }}/{{ obj.id }}"
+                        hx-target="closest tr"
+                        hx-swap="outerHTML"
+                        hx-headers='{"X-CSRF-Token": "{{ get_csrf_token(request) }}"}'
+                        class="btn btn-ghost btn-sm inline-flex items-center gap-0.5"
+                        title="{{ action.description | default(action.label) }}">
+                  {% if action.icon %}
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <use href="/static/icons/heroicons.svg#{{ action.icon }}"/>
+                  </svg>
+                  {% endif %}
+                  {{ action.label }}
+                </button>
+                {% endfor %}
                 {% if permissions.can_edit %}
                 <a href="{{ admin_path | default('/admin') }}/{{ registered.table_name }}/{{ obj.id }}"
                    class="btn btn-ghost btn-sm">
@@ -225,10 +309,43 @@
               </div>
             </td>
           </tr>
+          {# Expandable Sections #}
+          {% if list_sections %}
+          <tr x-data="{ sectionOpen: false }">
+            <td colspan="{{ registered.columns.length + 3 }}" class="p-0">
+              <button type="button" @click="sectionOpen = !sectionOpen"
+                      class="w-full flex items-center gap-2 px-4 py-2 text-sm text-[var(--text-secondary)] hover:bg-[var(--surface-inset)] transition-colors border-t border-[var(--surface-border)]">
+                <svg class="w-4 h-4 transition-transform" :class="{ 'rotate-90': sectionOpen }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <use href="/static/icons/heroicons.svg#chevron-right"/>
+                </svg>
+                <span>Show details</span>
+              </button>
+              <div x-show="sectionOpen" x-collapse class="border-t border-[var(--surface-border)] bg-[var(--surface-inset)]">
+                {% for section in list_sections %}
+                <div class="p-4">
+                  <h4 class="text-sm font-medium text-[var(--text-primary)] mb-2">{{ section.title }}</h4>
+                  {% if section.template %}
+                  <div hx-get="{{ admin_path | default('/admin') }}/{{ registered.table_name }}/{{ obj.id }}/section/{{ loop.index0 }}"
+                       hx-trigger="revealed"
+                       hx-swap="innerHTML"
+                       class="text-sm text-[var(--text-secondary)]">
+                    Loading...
+                  </div>
+                  {% elif section.related_model %}
+                  <div class="text-sm text-[var(--text-secondary)]">
+                    {{ section.title }}: {{ attr(obj, section.related_field) | default('-') }}
+                  </div>
+                  {% endif %}
+                </div>
+                {% endfor %}
+              </div>
+            </td>
+          </tr>
+          {% endif %}
           {% endfor %}
           {% else %}
           <tr>
-            <td colspan="{{ registered.columns | length + 2 }}" class="px-4 py-16 text-center">
+            <td colspan="{{ registered.columns | length + 3 }}" class="px-4 py-16 text-center">
               <svg class="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--text-disabled)">
                 <use href="/static/icons/heroicons.svg#document-text"/>
               </svg>
@@ -300,5 +417,58 @@ function filterBar() {
     }
   };
 }
+
+function executeListAction(actionName, baseUrl) {
+  const selectedIds = Array.from(document.querySelectorAll('input[name="ids[]"]:checked'))
+    .map(cb => cb.value);
+
+  if (selectedIds.length === 0) {
+    alert('Please select at least one item.');
+    return;
+  }
+
+  const formData = new FormData();
+  selectedIds.forEach(id => formData.append('ids[]', id));
+
+  fetch(baseUrl + '/action/' + actionName, {
+    method: 'POST',
+    body: formData,
+    headers: {
+      'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content
+    }
+  }).then(() => {
+    window.location.reload();
+  });
+}
 </script>
+
+{% if ordering_field %}
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const list = document.getElementById('sortable-list');
+  if (list) {
+    Sortable.create(list, {
+      handle: '.sortable-handle',
+      animation: 150,
+      onEnd: function(evt) {
+        const items = Array.from(list.querySelectorAll('tr[data-id]'))
+          .map(tr => tr.dataset.id);
+        const sortUrl = list.dataset.sortUrl;
+        if (sortUrl) {
+          fetch(sortUrl, {
+            method: 'POST',
+            body: JSON.stringify({ items: items }),
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content
+            }
+          });
+        }
+      }
+    });
+  }
+});
+</script>
+{% endif %}
 {% endblock %}

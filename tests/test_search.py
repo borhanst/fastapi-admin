@@ -83,7 +83,7 @@ def app():
 async def admin_app(app, engine):
     from fastapi_admin.admin import Admin
 
-    admin = Admin(app=app, engine=engine, secret_key="test-secret", auto_discover=False)
+    admin = Admin(app=app, engine=engine, secret_key="test-secret-key-long-enough-for-security!", auto_discover=False)
     admin.register(_Category)
     admin.register(_Product)
     admin.register(_SelfRef)
@@ -231,7 +231,7 @@ class TestSearchFallback:
         AdminRegistry().clear()
         app = FastAPI()
 
-        admin = Admin(app=app, engine=engine, secret_key="test-secret", auto_discover=False)
+        admin = Admin(app=app, engine=engine, secret_key="test-secret-key-long-enough-for-security!", auto_discover=False)
         # Register without search_fields — should fallback to 'name' column
         admin.register(_Product)
 

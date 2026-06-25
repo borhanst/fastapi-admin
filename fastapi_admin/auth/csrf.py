@@ -9,6 +9,7 @@ import time
 
 from fastapi import HTTPException, Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import RedirectResponse
 
 CSRF_COOKIE_NAME = "admin_csrf_token"
 CSRF_FORM_FIELD = "csrf_token"
@@ -38,7 +39,7 @@ def generate_csrf_token(secret_key: str) -> str:
     timestamp = str(int(time.time()))
     payload = f"{timestamp}.{random_bytes.hex()}"
     signature = hmac.new(
-        secret_key, payload.encode(), hashlib.sha256
+        secret_key.encode(), payload.encode(), hashlib.sha256
     ).hexdigest()[:32]
     return f"{payload}.{signature}"
 
@@ -51,7 +52,7 @@ def _verify_csrf_token(secret_key: str, token: str) -> bool:
     timestamp_str, random_hex, provided_sig = parts
     payload = f"{timestamp_str}.{random_hex}"
     expected_sig = hmac.new(
-        secret_key, payload.encode(), hashlib.sha256
+        secret_key.encode(), payload.encode(), hashlib.sha256
     ).hexdigest()[:32]
     if not hmac.compare_digest(provided_sig, expected_sig):
         return False
@@ -209,3 +210,26 @@ class CSRFMiddleware(BaseHTTPMiddleware):
             )
 
         return response
+
+
+# ---------------------------------------------------------------------------
+# Auth Redirect Exception Handler — redirects HTML requests to login on 401
+# ---------------------------------------------------------------------------
+
+
+async def auth_redirect_handler(request: Request, exc: HTTPException) -> Response:
+    """Exception handler that catches 401 HTTPExceptions and redirects
+    HTML requests to the login page instead of returning a JSON error.
+    """
+    if exc.status_code == 401:
+        accept = request.headers.get("accept", "")
+        if "text/html" in accept:
+            login_url = "/admin/login"
+            current_path = request.url.path
+            if current_path != "/admin/login":
+                if request.url.query:
+                    login_url += f"?next={current_path}%3F{request.url.query}"
+                else:
+                    login_url += f"?next={current_path}"
+            return RedirectResponse(url=login_url, status_code=302)
+    raise exc

@@ -1,243 +1,217 @@
+{# pages/list.html — model list view with type-aware filters #}
 {% extends "base.html" %}
 
-{% block title %}{{ model.verbose_name_plural }} — Admin{% endblock %}
+{% block title %}{{ registered.verbose_name_plural }} — {{ title | default("Admin") }}{% endblock %}
 
 {% block content %}
-<div class="page-header">
-    <div class="page-header__left">
-        <h1 class="page-header__title">{{ model.verbose_name_plural }}</h1>
-        <p class="page-header__subtitle">{{ items|length }} record{{ 's' if items|length != 1 }}</p>
+<div class="space-y-6">
+  <div class="page-header">
+    <div class="page-header-left">
+      <h1 class="page-header-title">{{ registered.verbose_name_plural }}</h1>
     </div>
-    <div class="page-header__actions">
-        <a href="{{ admin_path }}/{{ model.table_name }}/create" class="btn btn-primary">
-            <svg width="15" height="15" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-            </svg>
-            New {{ model.verbose_name }}
-        </a>
+    {% if permissions.can_create %}
+    <div class="page-header-right">
+      <a href="{{ admin_path | default('/admin') }}/{{ registered.table_name }}/create" class="btn btn-primary">
+        + New {{ registered.verbose_name }}
+      </a>
     </div>
-</div>
-
-<!-- Search & Filters -->
-{% if model.admin.search_fields or filter_fields %}
-<div class="filter-bar">
-    {% if model.admin.search_fields %}
-    <form method="get" class="filter-bar__search-wrap" style="display: contents;">
-        {% for ff, fv in active_filters.items() %}
-        <input type="hidden" name="filter_{{ ff }}" value="{{ fv }}">
-        {% endfor %}
-        <div class="filter-bar__search-wrap">
-            <svg class="filter-bar__search-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-            </svg>
-            <input type="text" name="q" value="{{ search_query or '' }}"
-                   placeholder="Search {{ model.verbose_name_plural|lower }}..."
-                   oninput="clearTimeout(this._st); this._st=setTimeout(()=>this.form.submit(),350)"
-                   class="form-input filter-bar__search">
-        </div>
-    </form>
     {% endif %}
+  </div>
+
+  <div class="filter-bar" x-data="filterBar()">
+    <div class="filter-bar-search">
+      <svg class="filter-bar-search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <use href="/static/icons/heroicons.svg#magnifying-glass"/>
+      </svg>
+      <input type="text" name="q" value="{{ search_query | default('') }}"
+             placeholder="Search {{ registered.verbose_name_plural | lower }}..."
+             hx-get="{{ admin_path | default('/admin') }}/{{ registered.table_name }}/"
+             hx-trigger="keyup changed delay:300ms"
+             hx-target="#table-wrapper"
+             hx-swap="outerHTML"
+             hx-include="[name='q']"
+             class="filter-bar-search-input"
+             x-ref="searchInput"
+             @input="hasSearch = $refs.searchInput.value.length > 0">
+      <button type="button" class="filter-bar-clear"
+              x-show="hasSearch" x-transition
+              @click="$refs.searchInput.value = ''; hasSearch = false; $refs.searchInput.dispatchEvent(new KeyboardEvent('keyup', {bubbles: true}))">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <use href="/static/icons/heroicons.svg#x-mark"/>
+        </svg>
+      </button>
+    </div>
 
     {% if filter_fields %}
-    {% for field_name, field_info in filter_fields.items() %}
-    <form method="get" style="display: contents;">
-        {% if search_query %}<input type="hidden" name="q" value="{{ search_query }}">{% endif %}
-        {% for ff, fv in active_filters.items() %}
-          {% if ff != field_name %}
-          <input type="hidden" name="filter_{{ ff }}" value="{{ fv }}">
-          {% endif %}
-        {% endfor %}
+    <div class="filter-bar-chips">
+      {% for field_name, field_info in filter_fields.items() %}
+      <div class="relative" x-data="{ open: false }">
 
         {% if field_info.field_type == "date" %}
         <div class="filter-chip-wrap {% if active_filters.get(field_name) %}filter-chip--active{% endif %}">
-            <label class="filter-chip-label">{{ field_name.replace("_", " ").title() }}</label>
-            <input type="date" name="filter_{{ field_name }}"
-                   value="{{ active_filters.get(field_name, '') }}"
-                   onchange="this.form.submit()"
-                   class="filter-input-date">
-            {% if active_filters.get(field_name) %}
-            <a href="?{% for ff, fv in active_filters.items() %}{% if ff != field_name %}filter_{{ ff }}={{ fv }}&{% endif %}{% endfor %}{% if search_query %}q={{ search_query }}{% endif %}"
-               class="filter-clear-btn" title="Clear">&times;</a>
-            {% endif %}
+          <label class="filter-chip-label">{{ field_name | replace('_', ' ') | title }}</label>
+          <input type="date" name="filter_{{ field_name }}"
+                 value="{{ active_filters.get(field_name, '') }}"
+                 hx-get="{{ admin_path | default('/admin') }}/{{ registered.table_name }}/"
+                 hx-trigger="change"
+                 hx-target="#table-wrapper"
+                 hx-swap="outerHTML"
+                 hx-include="[name='q'], [name^='filter_']"
+                 class="filter-input-date">
+          {% if active_filters.get(field_name) %}
+          <button type="button" class="filter-clear-btn" title="Clear"
+                  hx-get="{{ admin_path | default('/admin') }}/{{ registered.table_name }}/"
+                  hx-target="#table-wrapper"
+                  hx-swap="outerHTML"
+                   hx-include="[name='q']">&times;</button>
+          {% endif %}
         </div>
 
         {% elif field_info.field_type == "datetime" %}
         <div class="filter-chip-wrap {% if active_filters.get(field_name) %}filter-chip--active{% endif %}">
-            <label class="filter-chip-label">{{ field_name.replace("_", " ").title() }}</label>
-            <input type="datetime-local" name="filter_{{ field_name }}"
-                   value="{{ active_filters.get(field_name, '') }}"
-                   onchange="this.form.submit()"
-                   class="filter-input-datetime">
-            {% if active_filters.get(field_name) %}
-            <a href="?{% for ff, fv in active_filters.items() %}{% if ff != field_name %}filter_{{ ff }}={{ fv }}&{% endif %}{% endfor %}{% if search_query %}q={{ search_query }}{% endif %}"
-               class="filter-clear-btn" title="Clear">&times;</a>
-            {% endif %}
+          <label class="filter-chip-label">{{ field_name | replace('_', ' ') | title }}</label>
+          <input type="datetime-local" name="filter_{{ field_name }}"
+                 value="{{ active_filters.get(field_name, '') }}"
+                 hx-get="{{ admin_path | default('/admin') }}/{{ registered.table_name }}/"
+                 hx-trigger="change"
+                 hx-target="#table-wrapper"
+                 hx-swap="outerHTML"
+                 hx-include="[name='q'], [name^='filter_']"
+                 class="filter-input-datetime">
+          {% if active_filters.get(field_name) %}
+          <button type="button" class="filter-clear-btn" title="Clear"
+                  hx-get="{{ admin_path | default('/admin') }}/{{ registered.table_name }}/"
+                  hx-target="#table-wrapper"
+                  hx-swap="outerHTML"
+                   hx-include="[name='q']">&times;</button>
+          {% endif %}
         </div>
 
         {% elif field_info.field_type == "time" %}
         <div class="filter-chip-wrap {% if active_filters.get(field_name) %}filter-chip--active{% endif %}">
-            <label class="filter-chip-label">{{ field_name.replace("_", " ").title() }}</label>
-            <input type="time" name="filter_{{ field_name }}"
-                   value="{{ active_filters.get(field_name, '') }}"
-                   onchange="this.form.submit()"
-                   class="filter-input-time">
-            {% if active_filters.get(field_name) %}
-            <a href="?{% for ff, fv in active_filters.items() %}{% if ff != field_name %}filter_{{ ff }}={{ fv }}&{% endif %}{% endfor %}{% if search_query %}q={{ search_query }}{% endif %}"
-               class="filter-clear-btn" title="Clear">&times;</a>
-            {% endif %}
+          <label class="filter-chip-label">{{ field_name | replace('_', ' ') | title }}</label>
+          <input type="time" name="filter_{{ field_name }}"
+                 value="{{ active_filters.get(field_name, '') }}"
+                 hx-get="{{ admin_path | default('/admin') }}/{{ registered.table_name }}/"
+                 hx-trigger="change"
+                 hx-target="#table-wrapper"
+                 hx-swap="outerHTML"
+                 hx-include="[name='q'], [name^='filter_']"
+                 class="filter-input-time">
+          {% if active_filters.get(field_name) %}
+          <button type="button" class="filter-clear-btn" title="Clear"
+                  hx-get="{{ admin_path | default('/admin') }}/{{ registered.table_name }}/"
+                  hx-target="#table-wrapper"
+                  hx-swap="outerHTML"
+                   hx-include="[name='q']">&times;</button>
+          {% endif %}
         </div>
 
         {% else %}
-        {# boolean, enum, relation, text — render as select #}
-        <select name="filter_{{ field_name }}"
-                onchange="this.form.submit()"
-                class="filter-chip {% if active_filters.get(field_name) %}filter-chip--active{% endif %}">
-            <option value="">{{ field_name.replace("_", " ").title() }}</option>
-            {% for value, label in field_info.choices %}
-            <option value="{{ value }}" {% if active_filters.get(field_name) == value %}selected{% endif %}>
-                {{ label }}
-            </option>
-            {% endfor %}
-        </select>
+        {# boolean, enum, relation, text — render as dropdown #}
+        <button type="button" class="filter-chip"
+                :class="{ 'active': activeFilters['{{ field_name }}'] }"
+                @click="open = !open">
+          {{ field_name | replace('_', ' ') | title }}
+          <template x-if="activeFilters['{{ field_name }}']">
+            <span class="filter-chip-count" x-text="activeFilters['{{ field_name }}']"></span>
+          </template>
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <use href="/static/icons/heroicons.svg#chevron-right"/>
+          </svg>
+        </button>
+        <div class="filter-dropdown" x-show="open" @click.outside="open = false" x-transition>
+          <div class="filter-dropdown-header">
+            <span>{{ field_name | replace('_', ' ') | title }}</span>
+            <button type="button" class="filter-dropdown-clear"
+                    @click="clearFilter('{{ field_name }}'); open = false">Clear</button>
+          </div>
+          {% for value, label in field_info.choices %}
+          <div class="filter-dropdown-item">
+            <input type="radio" name="filter_{{ field_name }}" value="{{ value }}"
+                   :checked="activeFilters['{{ field_name }}'] === '{{ value }}'"
+                   @change="setFilter('{{ field_name }}', '{{ value }}'); open = false"
+                   id="filter_{{ field_name }}_{{ value }}">
+            <label for="filter_{{ field_name }}_{{ value }}">{{ label }}</label>
+          </div>
+          {% endfor %}
+        </div>
         {% endif %}
-    </form>
-    {% endfor %}
 
-    {% if active_filters %}
-    <a href="?{% if search_query %}q={{ search_query }}{% endif %}"
-       class="filter-bar__clear">Clear filters</a>
-    {% endif %}
-    {% endif %}
-</div>
-{% endif %}
-
-<!-- Table -->
-<div class="table-container" x-data="rowSelect()">
-    <table class="table-wrapper">
-        <thead>
-            <tr>
-                <th class="table__th table__th--checkbox">
-                    <input type="checkbox" class="table-checkbox"
-                           :checked="allSelected"
-                           :indeterminate="someSelected"
-                           @click="toggleAll()">
-                </th>
-                {% for col in display_columns %}
-                <th class="table__th">{{ col.label }}</th>
-                {% endfor %}
-                <th class="table__th table__th--actions"></th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for item in items %}
-            <tr>
-                <td class="table__cell table__cell--checkbox">
-                    <input type="checkbox" name="ids[]" value="{{ item.id }}"
-                           class="table-checkbox"
-                           :checked="isSelected('{{ item.id }}')"
-                           @click="toggle('{{ item.id }}')">
-                </td>
-                {% for col in display_columns %}
-                <td class="table__cell {% if col.type == 'id' or col.type == 'number' %}table__cell--mono{% endif %}">
-                    {{ col.value(item) }}
-                </td>
-                {% endfor %}
-                <td class="table__cell table__cell--actions">
-                    <div class="table-actions">
-                        <a href="{{ admin_path }}/{{ model.table_name }}/{{ item.id }}"
-                           class="table-action">Edit</a>
-                        <span class="table-actions__separator"></span>
-                        <form method="post" action="{{ admin_path }}/{{ model.table_name }}/{{ item.id }}/delete"
-                               class="inline" x-data="deleteConfirm()">
-                            <input type="hidden" name="csrf_token" value="{{ get_csrf_token(request) }}">
-                            <button type="button" @click="openModal" class="table-action table-action--danger">Delete</button>
-                            <button type="submit" x-ref="submitBtn" style="display:none" aria-hidden="true"></button>
-                            <div x-show="open" class="modal-backdrop" x-transition.opacity style="display: none;"></div>
-                            <div x-show="open" class="modal modal--sm" x-transition style="display: none;"
-                                 @click.outside="cancel">
-                                <div class="modal__header">
-                                    <h3 class="modal__title">Delete {{ model.verbose_name }}?</h3>
-                                    <button type="button" @click="cancel" class="modal__close" aria-label="Close">
-                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                                        </svg>
-                                    </button>
-                                </div>
-                                <div class="modal__body">
-                                    <p>This will permanently delete this {{ model.verbose_name|lower }}. This cannot be undone.</p>
-                                </div>
-                                <div class="modal__footer">
-                                    <button type="button" @click="cancel" class="btn btn-ghost">Cancel</button>
-                                    <button type="button" @click="confirm" class="btn btn-danger">Delete</button>
-                                </div>
-                            </div>
-                        </form>
-                    </div>
-                </td>
-            </tr>
-            {% endfor %}
-
-            {% if not items %}
-            <tr>
-                <td colspan="{{ display_columns|length + 2 }}">
-                    <div class="empty-state">
-                        <svg class="empty-state__icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5m6 4.125l2.25 2.25m0 0l2.25 2.25M12 13.875l2.25-2.25M12 13.875l-2.25 2.25M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
-                        </svg>
-                        <h3 class="empty-state__title">No {{ model.verbose_name_plural|lower }} found</h3>
-                        <p class="empty-state__text">
-                            {% if active_filters or search_query %}
-                                Try adjusting your search or filters.
-                            {% else %}
-                                Get started by creating your first {{ model.verbose_name|lower }}.
-                            {% endif %}
-                        </p>
-                        {% if not active_filters and not search_query %}
-                        <a href="{{ admin_path }}/{{ model.table_name }}/create" class="btn btn-primary btn-sm">
-                            New {{ model.verbose_name }}
-                        </a>
-                        {% endif %}
-                    </div>
-                </td>
-            </tr>
-            {% endif %}
-        </tbody>
-    </table>
-
-    <!-- Pagination -->
-    {% if total_pages > 1 %}
-    {% set filter_params = "" %}
-    {% for ff, fv in active_filters.items() %}{% set filter_params = filter_params ~ "&filter_" ~ ff ~ "=" ~ fv %}{% endfor %}
-    {% if search_query %}{% set filter_params = filter_params ~ "&q=" ~ search_query %}{% endif %}
-    <div class="pagination">
-        <div class="pagination__info">
-            Showing <strong>{{ ((page - 1) * per_page + 1) }}</strong>–<strong>{{ [page * per_page, total]|min }}</strong> of <strong>{{ total }}</strong>
-        </div>
-        <div class="pagination__links">
-            {% if page > 1 %}
-            <a href="?page={{ page - 1 }}{{ filter_params }}" class="pagination__link">
-                <svg width="14" height="14" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
-                </svg>
-            </a>
-            {% endif %}
-
-            {% for p in range(1, total_pages + 1) %}
-            <a href="?page={{ p }}{{ filter_params }}"
-               class="pagination__link {% if p == page %}pagination__link--active{% endif %}">
-                {{ p }}
-            </a>
-            {% endfor %}
-
-            {% if page < total_pages %}
-            <a href="?page={{ page + 1 }}{{ filter_params }}" class="pagination__link">
-                <svg width="14" height="14" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-                </svg>
-            </a>
-            {% endif %}
-        </div>
+      </div>
+      {% endfor %}
     </div>
     {% endif %}
+
+    <div class="filter-bar-right">
+      {% if filter_fields %}
+      <button type="button" class="filter-bar-clear-all"
+              x-show="Object.keys(activeFilters).length > 0"
+              x-transition
+              @click="clearAllFilters()">
+        Clear all filters
+      </button>
+      <div class="filter-bar-divider" x-show="Object.keys(activeFilters).length > 0"></div>
+      {% endif %}
+
+      <button type="button" class="filter-bar-action" title="Toggle column visibility"
+              @click="showColumnPicker = !showColumnPicker">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <use href="/static/icons/heroicons.svg#eye"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  {% include "partials/list_table.html" %}
 </div>
+
+{% if permissions.can_delete %}
+<form id="bulk-form" method="post" action="{{ admin_path | default('/admin') }}/{{ registered.table_name }}/bulk"
+      hx-post="{{ admin_path | default('/admin') }}/{{ registered.table_name }}/bulk"
+      hx-target="#table-wrapper"
+      hx-swap="outerHTML"
+      hx-include="[name='csrf_token']"
+      style="display: none;">
+  <input type="hidden" name="csrf_token" value="{{ get_csrf_token(request) }}">
+</form>
+{% endif %}
+
+<script>
+function filterBar() {
+  return {
+    hasSearch: false,
+    activeFilters: {{ active_filters | tojson }},
+    showColumnPicker: false,
+    setFilter(field, value) {
+      if (value) {
+        this.activeFilters[field] = value;
+      } else {
+        delete this.activeFilters[field];
+      }
+      this.applyFilters();
+    },
+    clearFilter(field) {
+      delete this.activeFilters[field];
+      this.applyFilters();
+    },
+    clearAllFilters() {
+      this.activeFilters = {};
+      this.applyFilters();
+    },
+    applyFilters() {
+      const params = new URLSearchParams(window.location.search);
+      Object.entries(this.activeFilters).forEach(([key, val]) => {
+        if (val) params.set('filter_' + key, val);
+        else params.delete('filter_' + key);
+      });
+      const search = this.$refs.searchInput?.value;
+      if (search) params.set('q', search);
+      else params.delete('q');
+      const url = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
+      htmx.ajax('GET', url, { target: '#table-wrapper', swap: 'outerHTML' });
+    }
+  };
+}
+</script>
 {% endblock %}

@@ -142,7 +142,7 @@ class TestAdminDatabase:
         """Test _init_session_backend method."""
         config = AdminDatabase()
         session_backend = config._init_session_backend(
-            secret_key="test_key",
+            secret_key="test-secret-key-long-enough-for-security!",
             session_ttl=3600,
             cookie_name="test_cookie",
             secure=True,
@@ -162,7 +162,7 @@ class TestAdminRouter:
 
     def test_init_with_custom_values(self):
         """Test AdminRouter initialization with custom values."""
-        router = AdminRouter(admin_path="/custom", secret_key="test_key")
+        router = AdminRouter(admin_path="/custom", secret_key="test-secret-key-long-enough-for-security!")
         assert router.admin_path == "/custom"
         assert router.secret_key == "test_key"
 

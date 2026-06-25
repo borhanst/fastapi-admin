@@ -23,6 +23,7 @@ from fastapi_admin.config import (
     BehaviorConfig,
     NavConfig,
     StorageConfig,
+    ThemeConfig,
     UIConfig,
 )
 from fastapi_admin.exceptions import ConfigError
@@ -140,6 +141,7 @@ class Admin:
         auth_backend: AuthBackend | None = None,
         session_cookie_name: str = "admin_session",
         session_secure: bool = False,
+        session_samesite: str = "strict",
         seed_roles: list[SeedRole] | None = None,
         seed_roles_overwrite: bool = False,
         superuser_emails: list[str] | None = None,
@@ -149,14 +151,37 @@ class Admin:
         nav_groups: list[NavGroupConfig] | None = None,
         sidebar_builder: SidebarBuilder | None = None,
         require_tags: bool = False,
+        theme: ThemeConfig | None = None,
+        # UI component config
+        sidebar_style: str = "default",
+        sidebar_position: str = "left",
+        table_style: str = "default",
+        table_row_height: str = "normal",
+        form_layout: str = "two-column",
+        form_spacing: str = "normal",
+        dashboard_grid: str = "auto",
+        dashboard_card_style: str = "default",
+        dashboard_stat_size: str = "normal",
+        content_width: str = "default",
+        topbar_style: str = "default",
+        custom_css: str = "",
+        custom_css_url: str = "",
+        custom_js: str = "",
+        custom_js_url: str = "",
+        show_history: bool = True,
+        show_view_on_site: bool = True,
+        environment_label: str | None = None,
+        environment_color: str = "info",
+        mobile_sidebar: str = "overlay",
     ):
         self.registry = AdminRegistry()
         self._app: FastAPI | None = app
 
         # Add CSRF middleware early (must be before app starts)
         if app is not None:
-            from fastapi_admin.auth.csrf import CSRFMiddleware
+            from fastapi_admin.auth.csrf import CSRFMiddleware, auth_redirect_handler
 
+            app.add_exception_handler(401, auth_redirect_handler)
             app.add_middleware(CSRFMiddleware)
             self._csrf_middleware_added = True
         else:
@@ -173,6 +198,27 @@ class Admin:
                     primary_color_dark=primary_color_dark,
                     dark_mode_default=dark_mode_default,
                     per_page_default=per_page_default,
+                    theme=theme,
+                    sidebar_style=sidebar_style,
+                    sidebar_position=sidebar_position,
+                    table_style=table_style,
+                    table_row_height=table_row_height,
+                    form_layout=form_layout,
+                    form_spacing=form_spacing,
+                    dashboard_grid=dashboard_grid,
+                    dashboard_card_style=dashboard_card_style,
+                    dashboard_stat_size=dashboard_stat_size,
+                    content_width=content_width,
+                    topbar_style=topbar_style,
+                    custom_css=custom_css,
+                    custom_css_url=custom_css_url,
+                    custom_js=custom_js,
+                    custom_js_url=custom_js_url,
+                    show_history=show_history,
+                    show_view_on_site=show_view_on_site,
+                    environment_label=environment_label,
+                    environment_color=environment_color,
+                    mobile_sidebar=mobile_sidebar,
                 ),
                 auth=AuthConfig(
                     auth_model=auth_model,
@@ -181,6 +227,7 @@ class Admin:
                     session_cookie_name=session_cookie_name,
                     session_secure=session_secure,
                     superuser_emails=superuser_emails,
+                    session_samesite=session_samesite,
                 ),
                 audit=AuditConfig(audit_retention_days=audit_retention_days),
                 behavior=BehaviorConfig(
@@ -373,12 +420,25 @@ class Admin:
 
         # Add CSRF middleware if not already added in __init__
         if not getattr(self, "_csrf_middleware_added", False):
-            from fastapi_admin.auth.csrf import CSRFMiddleware
+            from fastapi_admin.auth.csrf import CSRFMiddleware, auth_redirect_handler
 
             try:
+                app.add_exception_handler(401, auth_redirect_handler)
                 app.add_middleware(CSRFMiddleware)
             except RuntimeError:
                 pass  # Already started — middleware was added in __init__
+
+        # 0. Validate secret_key strength
+        if not self.router.secret_key:
+            raise ConfigError(
+                "Admin secret_key is required. Pass a strong secret (≥32 chars) "
+                "via Admin(secret_key=...) or the SECRET_KEY environment variable."
+            )
+        if len(self.router.secret_key) < 32:
+            raise ConfigError(
+                f"Admin secret_key is too short ({len(self.router.secret_key)} chars). "
+                "Must be at least 32 characters for secure signing."
+            )
 
         # 1. Validate auth_model satisfies AdminUserProtocol
         self.config.auth.validate_auth_model()
@@ -519,7 +579,10 @@ class Admin:
             "dashboard_charts": self.config.behavior.dashboard_charts,
             "admin_path": self.router.admin_path,
             "superuser_emails": self.config.auth.superuser_emails,
+            "ui_config": self.config.ui.apply_to_template_context(),
         }
+        if self.config.ui.theme:
+            admin_config.update(self.config.ui.theme.to_context())
 
         # Create async session if engine is async, else None
         db_session = None
@@ -541,6 +604,7 @@ class Admin:
             jinja_env=self._jinja_env,
             admin_instance=self,
             secret_key=self.router.secret_key,
+            session_samesite=self.config.auth.session_samesite,
         )
 
         # Store typed state as single attribute
@@ -592,6 +656,7 @@ class Admin:
             re.sub(r"[^\w]", "-", s, flags=re.A).strip("-").lower()
         )
         self._jinja_env.env.filters["slugify"] = slugify
+        self._jinja_env.env.globals["attr"] = lambda obj, name: getattr(obj, name, "")
         self._jinja_env.env.globals["registered_models"] = self.registry.all()
         self._jinja_env.env.globals["admin_path"] = self.router.admin_path
         self._jinja_env.env.globals["nav_groups"] = self._nav_groups_built
@@ -601,6 +666,47 @@ class Admin:
             return getattr(request.state, "csrf_token", "")
 
         self._jinja_env.env.globals["get_csrf_token"] = _get_csrf_token
+
+        # Flash messages helper (reads from session cookie directly)
+        def _get_flash_messages(request) -> list[dict[str, str]]:
+            try:
+                session_backend = request.app.state.admin_session_backend
+                cookie_name = getattr(session_backend, "cookie_name", "admin_session")
+                raw = request.cookies.get(cookie_name)
+                if not raw or not hasattr(session_backend, "load"):
+                    return []
+                data = session_backend.load(raw)
+                if not isinstance(data, dict):
+                    return []
+                return data.pop("admin_flash", []) if "admin_flash" in data else []
+            except Exception:
+                return []
+
+        self._jinja_env.env.globals["get_flash_messages"] = _get_flash_messages
+
+        # Admin config global (used by templates for branding, dark mode, etc.)
+        admin_cfg = {
+            "title": self.config.ui.title,
+            "logo_url": self.config.ui.logo_url,
+            "favicon_url": self.config.ui.favicon_url,
+            "primary_color": self.config.ui.primary_color,
+            "primary_color_dark": self.config.ui.primary_color_dark,
+            "dark_mode_default": self.config.ui.dark_mode_default,
+            "admin_path": self.router.admin_path,
+        }
+        self._jinja_env.env.globals["admin_config"] = admin_cfg
+
+        # Theme config globals
+        self._jinja_env.env.globals["theme_preset"] = "editorial"
+        if self.config.ui.theme:
+            self._jinja_env.env.globals["theme_css"] = (
+                self.config.ui.theme.to_css_variables()
+            )
+            self._jinja_env.env.globals["theme_font_import_url"] = (
+                self.config.ui.theme.font_import_url
+            )
+            self._jinja_env.env.globals["theme_preset"] = self.config.ui.theme.preset
+        self._jinja_env.env.globals["ui_config"] = self.config.ui.apply_to_template_context()
 
         app.state.admin_jinja_env = self._jinja_env
 
@@ -612,7 +718,11 @@ class Admin:
         from fastapi_admin.auth.router import router as auth_router
         from fastapi_admin.router import build_model_router
         from fastapi_admin.views.audit import router as audit_router
+        from fastapi_admin.views.profile import router as profile_router
         from fastapi_admin.views.roles import router as roles_router
+        from fastapi_admin.views.settings import router as settings_router
+        from fastapi_admin.views.totp import router as totp_router
+        from fastapi_admin.views.users import router as users_router
 
         for registered in self.registry.all():
             model_router = build_model_router(registered)
@@ -621,9 +731,13 @@ class Admin:
         # Auth routes (login/logout)
         app.include_router(auth_router, prefix=self.router.admin_path)
 
-        # Audit & role management routes
+        # Audit, role management, settings, user management, profile, and 2FA routes
         app.include_router(audit_router, prefix=self.router.admin_path)
         app.include_router(roles_router, prefix=self.router.admin_path)
+        app.include_router(settings_router, prefix=self.router.admin_path)
+        app.include_router(users_router, prefix=self.router.admin_path)
+        app.include_router(profile_router, prefix=self.router.admin_path)
+        app.include_router(totp_router, prefix=self.router.admin_path)
 
         # Dashboard route
         from fastapi_admin.views.dashboard import dashboard_view_factory

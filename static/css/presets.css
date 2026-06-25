@@ -1,0 +1,37 @@
+/* presets.css — Theme presets */
+
+/* Editorial (default) */
+[data-preset="editorial"] {
+  --primary-500: #14b8a6;
+  --primary-600: #0d9488;
+}
+
+/* Modern */
+[data-preset="modern"] {
+  --primary-500: #6366f1;
+  --primary-600: #4f46e5;
+}
+
+/* Midnight */
+[data-preset="midnight"] {
+  --primary-500: #8b5cf6;
+  --primary-600: #7c3aed;
+}
+
+/* Paper */
+[data-preset="paper"] {
+  --primary-500: #3b82f6;
+  --primary-600: #2563eb;
+}
+
+/* Forest */
+[data-preset="forest"] {
+  --primary-500: #22c55e;
+  --primary-600: #16a34a;
+}
+
+/* Minimal */
+[data-preset="minimal"] {
+  --primary-500: #64748b;
+  --primary-600: #475569;
+}

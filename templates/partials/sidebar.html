@@ -1,12 +1,13 @@
-{# partials/sidebar.html — navigation sidebar #}
-<aside class="admin-sidebar"
+{# partials/sidebar.html — navigation sidebar using nav_groups #}
+{% set _ui = ui_config | default({}) %}
+<aside class="admin-sidebar sidebar--{{ _ui.sidebar_style | default('default') }}{% if _ui.sidebar_position | default('left') == 'right' %} sidebar--right{% endif %}"
        :class="{ 'open': sidebarOpen, 'collapsed': sidebarCollapsed }"
        :style="sidebarCollapsed ? 'width: var(--sidebar-collapsed-width)' : 'width: var(--sidebar-width)'"
        x-show="true">
 
-  {# Dashboard section (no label) #}
   <nav class="sidebar-nav">
     <ul class="sidebar-nav-list">
+      {# Dashboard section (no label) #}
       <li class="sidebar-nav-item">
         <a href="{{ admin_path | default('/admin') }}/"
            class="nav-link {% if request.url.path == admin_path | default('/admin') ~ '/' %}active{% endif %}">
@@ -18,10 +19,77 @@
         </a>
       </li>
 
-      {# Models section #}
-      {% if registered_models %}
+      {# Nav Groups from configuration #}
+      {% if nav_groups %}
+      {% for group in nav_groups %}
+      <li class="sidebar-section" x-data="{ collapsed: {{ 'true' if group.collapsed_by_default else 'false' }} }">
+        <button type="button" @click="collapsed = !collapsed"
+                class="sidebar-section-label sidebar-section-toggle">
+          <span class="sidebar-section-label-text">
+            {% if group.icon and sidebar_show_icons %}
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <use href="/static/icons/heroicons.svg#{{ group.icon }}"/>
+            </svg>
+            {% endif %}
+            {{ group.label }}
+          </span>
+          <svg class="sidebar-chevron" :class="{ 'collapsed': collapsed }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <use href="/static/icons/heroicons.svg#chevron-right"/>
+          </svg>
+        </button>
+        <ul class="sidebar-nav-list" x-show="!collapsed" x-collapse x-cloak>
+          {% for item in group.items %}
+          <li class="sidebar-nav-item" x-data="{ childOpen: false }">
+            <a href="{{ item.url }}"
+               class="nav-link {% if request.url.path == item.url or request.url.path.startswith(item.url ~ '/') %}active{% endif %}">
+              {% if item.icon and sidebar_show_icons %}
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <use href="/static/icons/heroicons.svg#{{ item.icon }}"/>
+              </svg>
+              {% elif group.icon and sidebar_show_icons %}
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <use href="/static/icons/heroicons.svg#{{ group.icon }}"/>
+              </svg>
+              {% else %}
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <use href="/static/icons/heroicons.svg#document-text"/>
+              </svg>
+              {% endif %}
+              <span class="nav-link-label">{{ item.label }}</span>
+              {% if sidebar_show_badges and item.badge_fn %}
+              {% set badge = item.badge_fn() %}
+              {% if badge %}
+              <span class="nav-link-badge">{{ badge }}</span>
+              {% endif %}
+              {% endif %}
+              {% if item.children %}
+              <svg class="nav-chevron" :class="{ 'expanded': childOpen }" @click.stop="childOpen = !childOpen" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <use href="/static/icons/heroicons.svg#chevron-right"/>
+              </svg>
+              {% endif %}
+              <span class="nav-tooltip" x-show="sidebarCollapsed">{{ item.label }}</span>
+            </a>
+            {% if item.children %}
+            <ul class="sidebar-nav-list sidebar-nav-children" x-show="childOpen" x-collapse x-cloak>
+              {% for child in item.children %}
+              <li class="sidebar-nav-item sidebar-nav-item--child">
+                <a href="{{ child.url }}"
+                   class="nav-link nav-link-child {% if request.url.path == child.url %}active{% endif %}">
+                  <span class="nav-link-label">{{ child.label }}</span>
+                </a>
+              </li>
+              {% endfor %}
+            </ul>
+            {% endif %}
+          </li>
+          {% endfor %}
+        </ul>
+      </li>
+      {% endfor %}
+      {% elif registered_models %}
+      {# Fallback: use registered_models if no nav_groups configured #}
       <li class="sidebar-section">
-        <span class="sidebar-section-label">Models</span>
+        <span class="sidebar-section-label-text">Models</span>
       </li>
       {% for registered in registered_models %}
       <li class="sidebar-nav-item">
@@ -42,7 +110,7 @@
 
       {# System section #}
       <li class="sidebar-section">
-        <span class="sidebar-section-label">System</span>
+        <span class="sidebar-section-label-text">System</span>
       </li>
 
       <li class="sidebar-nav-item">

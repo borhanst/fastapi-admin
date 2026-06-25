@@ -60,9 +60,8 @@ async def get_current_admin_user(
 ) -> AdminUserProtocol:
     """Resolve the logged-in admin user from the session cookie.
 
-    Raises ``401`` if the session is missing, invalid, or the user is
-    no longer active. Delegates credential decoding + user loading to
-    :mod:`fastapi_admin.auth.identity`, the single current-user seam.
+    Raises ``401`` if the session is missing, invalid, the user is
+    no longer active, or the password was changed after the session was issued.
     """
     if session_payload is None:
         raise HTTPException(
@@ -80,6 +79,23 @@ async def get_current_admin_user(
     user = await resolve_user(request, user_id)
     if user is None:
         raise HTTPException(status_code=401, detail="User not found or inactive.")
+
+    # Check session invalidation: reject if password changed after session iat
+    password_changed_at = getattr(user, "password_changed_at", None)
+    session_iat = session_payload.get("iat")
+    if password_changed_at is not None and session_iat is not None:
+        from datetime import UTC, datetime
+
+        if isinstance(password_changed_at, datetime):
+            if password_changed_at.tzinfo is None:
+                password_changed_at = password_changed_at.replace(tzinfo=UTC)
+            if isinstance(session_iat, (int, float)):
+                session_time = datetime.fromtimestamp(session_iat, tz=UTC)
+                if password_changed_at > session_time:
+                    raise HTTPException(
+                        status_code=401,
+                        detail="Session invalidated. Password was changed. Please log in again.",
+                    )
 
     return user
 

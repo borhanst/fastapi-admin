@@ -1,80 +1,87 @@
+{# pages/dashboard.html — dashboard with stats and recent activity #}
 {% extends "base.html" %}
 
-{% block title %}Dashboard — Admin{% endblock %}
+{% block title %}{{ title | default("Admin") }} — Dashboard{% endblock %}
 
 {% block content %}
-<div class="page-header">
-    <div class="page-header__left">
-        <h1 class="page-header__title">Dashboard</h1>
+{% set _ui = ui_config | default({}) %}
+<div class="space-y-6">
+  <div class="page-header">
+    <div class="page-header-left">
+      <h1 class="page-header-title">Dashboard</h1>
     </div>
-</div>
+  </div>
 
-<!-- Stat Cards -->
-{% if stat_cards %}
-<div class="stat-cards">
-    {% for stat in stat_cards %}
-    <a href="{{ stat.url }}" class="stat-card">
-        <div class="stat-card__label">{{ stat.title }}</div>
-        <div class="stat-card__value">{{ stat.count }}</div>
-        {% if stat.change is defined %}
-        <div class="stat-card__change" style="color: var(--success-500);">
-            {{ stat.change }}
-        </div>
-        {% endif %}
+  <div class="stat-cards dashboard--{{ _ui.dashboard_grid | default('auto') }}">
+    {% for card in stat_cards %}
+    <a href="{{ card.url }}"
+       class="stat-card stat-card--{{ _ui.dashboard_card_style | default('default') }} stat-card--{{ _ui.dashboard_stat_size | default('normal') }}">
+      <div class="stat-card__label">{{ card.title }}</div>
+      <div class="stat-card__value">{{ card.count }}</div>
     </a>
     {% endfor %}
-</div>
-{% endif %}
+  </div>
 
-<!-- Recent Activity -->
-{% if recent_audit %}
-<div class="activity-feed" style="margin-bottom: var(--space-8);">
-    <div class="activity-feed__header" style="display: flex; align-items: center; justify-content: space-between;">
-        <h2 class="activity-feed__title">Recent Activity</h2>
-        <a href="{{ admin_path }}/audit" class="btn btn-ghost btn-sm" style="font-size: var(--text-xs);">
-            View all
-            <svg width="12" height="12" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-            </svg>
-        </a>
-    </div>
-    {% for entry in recent_audit %}
-    <div class="activity-item">
-        <div class="activity-item__dot activity-item__dot--{{ entry.action|lower }}"></div>
-        <div class="activity-item__content">
-            <span class="font-mono text-xs" style="color: var(--mono-accent);">{{ entry.model_name }}</span>
-            <span style="color: var(--text-disabled); margin: 0 4px;">#{{ entry.object_id }}</span>
-            <span class="badge badge-{% if entry.action == 'CREATE' %}success{% elif entry.action == 'UPDATE' %}warning{% else %}danger{% endif %}" style="margin-left: 4px;">
-                {{ entry.action }}
-            </span>
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div class="lg:col-span-2">
+      <div class="bg-white rounded-xl border border-[var(--color-gray-200)]">
+        <div class="px-6 py-4 border-b border-[var(--color-gray-200)]">
+          <h2 class="text-lg font-semibold text-[var(--color-gray-900)]">Recent Activity</h2>
         </div>
-        <div class="activity-item__time">{{ entry.timestamp.strftime('%H:%M') }}</div>
-    </div>
-    {% endfor %}
-</div>
-{% endif %}
-
-<!-- Quick Actions -->
-<div style="margin-bottom: var(--space-8);">
-    <h2 style="font-family: var(--font-display); font-size: var(--text-lg); margin: 0 0 var(--space-4);">Quick Actions</h2>
-    <div class="flex flex-wrap gap-2">
-        {% for model in registered_models %}
-        <a href="{{ admin_path }}/{{ model.table_name }}/create" class="btn btn-secondary btn-sm">
-            <svg width="13" height="13" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+        <div class="divide-y divide-[var(--color-gray-100)]">
+          {% if recent_audit %}
+          {% for entry in recent_audit %}
+          <div class="px-6 py-4 flex items-center gap-4">
+            <div class="shrink-0">
+              {% if entry.action == 'CREATE' %}
+              <span class="badge badge-success inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Created</span>
+              {% elif entry.action == 'UPDATE' %}
+              <span class="badge badge-warning inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">Updated</span>
+              {% elif entry.action == 'DELETE' %}
+              <span class="badge badge-danger inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">Deleted</span>
+              {% endif %}
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="text-sm text-[var(--color-gray-900)]">
+                <span class="font-medium">{{ entry.user_email | default("System") }}</span>
+                {{ entry.action | lower }}d
+                <span class="font-medium">{{ entry.model_name }}</span>
+                <span class="text-[var(--color-gray-500)]">#{{ entry.object_id }}</span>
+              </div>
+              <div class="text-xs text-[var(--color-gray-500)] mt-1">{{ entry.timestamp }}</div>
+            </div>
+          </div>
+          {% endfor %}
+          {% else %}
+          <div class="px-6 py-12 text-center">
+            <svg class="w-12 h-12 mx-auto text-[var(--color-gray-400)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <use href="/static/icons/heroicons.svg#clock"/>
             </svg>
-            {{ model.verbose_name }}
-        </a>
-        {% endfor %}
+            <p class="mt-4 text-sm text-[var(--color-gray-500)]">No recent activity</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
     </div>
-</div>
 
-{% if show_charts %}
-<div class="fieldset">
-    <div class="fieldset__header">
-        <h3 class="fieldset__title">Charts</h3>
+    <div>
+      <div class="bg-white rounded-xl border border-[var(--color-gray-200)]">
+        <div class="px-6 py-4 border-b border-[var(--color-gray-200)]">
+          <h2 class="text-lg font-semibold text-[var(--color-gray-900)]">Quick Actions</h2>
+        </div>
+        <div class="p-6 space-y-3">
+          {% for registered in registered_models %}
+          <a href="{{ admin_path | default('/admin') }}/{{ registered.table_name }}/"
+             class="flex items-center gap-3 p-3 rounded-lg hover:bg-[var(--color-gray-50)] transition-colors">
+            <svg class="w-5 h-5 text-[var(--color-primary-600)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <use href="/static/icons/heroicons.svg#{{ registered.admin.icon | default('document-text') }}"/>
+            </svg>
+            <span class="text-sm font-medium text-[var(--color-gray-700)]">{{ registered.verbose_name_plural }}</span>
+          </a>
+          {% endfor %}
+        </div>
+      </div>
     </div>
-    <p style="color: var(--text-disabled); font-size: var(--text-sm);">Charts coming soon.</p>
+  </div>
 </div>
-{% endif %}
 {% endblock %}

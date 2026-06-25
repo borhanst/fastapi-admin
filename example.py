@@ -1,4 +1,4 @@
-"""Example usage of FastAPI Admin with multiple models and configurations."""
+"""Example usage of FastAPI Admin with UnfoldAdmin features."""
 
 import os
 from contextlib import asynccontextmanager
@@ -22,12 +22,22 @@ from sqlalchemy.orm import DeclarativeBase, relationship, sessionmaker
 from sqlalchemy.sql import func
 
 from fastapi_admin import Admin, ModelAdmin
+from fastapi_admin.actions import action
 from fastapi_admin.audit.models import (
     AuditLog,  # noqa: F401 — ensure table is created
 )
 from fastapi_admin.auth.backend import BuiltinAuthBackend
 from fastapi_admin.auth.models import AdminUser
+from fastapi_admin.config import ThemeConfig
+from fastapi_admin.dashboard import (
+    CardComponent,
+    LinkComponent,
+    ProgressComponent,
+    TableComponent,
+)
 from fastapi_admin.models import Base as AdminBase
+from fastapi_admin.types import TabConfig, TableSection
+from fastapi_admin.widgets.inputs import ArrayWidget, WysiwygWidget
 
 # ============================================================================
 # SQLAlchemy Models
@@ -69,6 +79,7 @@ class Product(Base):
     stock = Column(Integer, default=0)
     category_id = Column(Integer, ForeignKey("categories.id"), nullable=True)
     is_active = Column(Boolean, default=True)
+    sort_order = Column(Integer, default=0)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
@@ -117,6 +128,7 @@ class Order(Base):
         default="pending",
     )
     total_amount = Column(Float, nullable=False)
+    notes = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     # Relationships
@@ -149,22 +161,44 @@ class OrderItem(Base):
 
 
 # ============================================================================
-# ModelAdmin Customizations
+# ModelAdmin Customizations — showcasing all UnfoldAdmin features
 # ============================================================================
 
 
 class CategoryAdmin(ModelAdmin):
     """Admin configuration for Category model."""
 
-    list_display = ["id", "name", "created_at"]
+    list_display = ["id", "name", "description", "created_at"]
+    list_filter = ["created_at"]
     search_fields = ["name"]
     ordering = ["-created_at"]
     verbose_name = "Category"
     verbose_name_plural = "Categories"
+    icon = "folder"
+
+    # Actions
+    actions_list = ["export_categories"]
+
+    # Tabs
+    list_tabs = [
+        TabConfig(title="All", url="/admin/categories/"),
+        TabConfig(
+            title="Active",
+            url="/admin/categories/?filter_created_at__gte=2025-01-01",
+        ),
+    ]
+
+    @action(
+        description="Export selected categories to CSV",
+        icon="arrow-down-tray",
+        variant="primary",
+    )
+    async def export_categories(self, objects, request):
+        print(f"Exporting {len(objects)} categories")
 
 
 class ProductAdmin(ModelAdmin):
-    """Admin configuration for Product model."""
+    """Admin configuration for Product model — full UnfoldAdmin feature demo."""
 
     list_display = [
         "id",
@@ -175,15 +209,98 @@ class ProductAdmin(ModelAdmin):
         "is_active",
         "created_at",
     ]
-    list_filter = ["is_active", "category"]
+    list_filter = ["is_active", "category", "created_at", "updated_at"]
     search_fields = ["name", "description"]
     ordering = ["-created_at"]
-    fields = ["name", "description", "category", "price", "stock", "is_active"]
+    fields = [
+        "name",
+        "description",
+        "category",
+        "price",
+        "stock",
+        "is_active",
+        "tags",
+    ]
     readonly_fields = ["created_at", "updated_at"]
     verbose_name = "Product"
     verbose_name_plural = "Products"
     per_page = 20
     tag = "product"
+    icon = "cube"
+
+    # Per-model UI overrides
+    list_style = "bordered"
+    card_color = "#6366F1"
+
+    # Actions — list-level, row-level, detail-level, submit-line
+    actions_list = ["export_products", "deactivate_selected"]
+    actions_row = ["toggle_active"]
+    actions_detail = ["export_products"]
+    actions_submit_line = ["save_and_continue"]
+
+    # Tabs
+    list_tabs = [
+        TabConfig(title="All Products", url="/admin/products/"),
+        TabConfig(title="Active", url="/admin/products/?filter_is_active=1"),
+        TabConfig(
+            title="Out of Stock", url="/admin/products/?filter_stock__lte=0"
+        ),
+    ]
+
+    # Sortable
+    ordering_field = "sort_order"
+
+    # Conditional fields — show tags only when is_active is true
+    conditional_fields = {
+        "tags": {"show_when": "is_active", "values": ["1", "on", "true"]},
+    }
+
+    # Form UX
+    warn_unsaved_form = True
+    compressed_fields = True
+    change_form_show_cancel_button = True
+
+    # Custom widgets
+    formfield_overrides = {
+        "description": WysiwygWidget(),
+        "tags": ArrayWidget(),
+    }
+
+    @action(
+        description="Export selected products",
+        icon="arrow-down-tray",
+        variant="primary",
+    )
+    async def export_products(self, objects, request):
+        print(f"Exporting {len(objects)} products")
+
+    @action(
+        description="Deactivate selected",
+        icon="x-circle",
+        variant="danger",
+    )
+    async def deactivate_selected(self, objects, request):
+        for obj in objects:
+            obj.is_active = False
+
+    @action(
+        description="Toggle active status",
+        icon="arrow-path",
+        variant="warning",
+        location="row",
+    )
+    async def toggle_active(self, objects, request):
+        for obj in objects:
+            obj.is_active = not obj.is_active
+
+    @action(
+        description="Save and continue editing",
+        icon="check",
+        variant="success",
+        location="submit_line",
+    )
+    async def save_and_continue(self, objects, request):
+        pass
 
 
 class UserAdmin(ModelAdmin):
@@ -191,13 +308,46 @@ class UserAdmin(ModelAdmin):
 
     list_display = ["id", "email", "full_name", "is_active", "created_at"]
     search_fields = ["email", "full_name"]
-    list_filter = ["is_active"]
+    list_filter = ["is_active", "created_at"]
     ordering = ["-created_at"]
     fields = ["email", "full_name", "is_active"]
     readonly_fields = ["created_at"]
     verbose_name = "User"
     verbose_name_plural = "Users"
     tag = "user"
+    icon = "users"
+
+    # Actions
+    actions_list = ["deactivate_users"]
+    actions_row = ["toggle_user_active"]
+
+    # Tabs
+    list_tabs = [
+        TabConfig(title="All Users", url="/admin/users/"),
+        TabConfig(title="Active", url="/admin/users/?filter_is_active=1"),
+    ]
+
+    # Form UX
+    warn_unsaved_form = True
+
+    @action(
+        description="Deactivate selected users",
+        icon="x-circle",
+        variant="danger",
+    )
+    async def deactivate_users(self, objects, request):
+        for obj in objects:
+            obj.is_active = False
+
+    @action(
+        description="Toggle active",
+        icon="arrow-path",
+        variant="warning",
+        location="row",
+    )
+    async def toggle_user_active(self, objects, request):
+        for obj in objects:
+            obj.is_active = not obj.is_active
 
 
 class OrderAdmin(ModelAdmin):
@@ -207,11 +357,127 @@ class OrderAdmin(ModelAdmin):
     list_filter = ["status", "order_date"]
     search_fields = ["user__email"]
     ordering = ["-order_date"]
-    fields = ["user", "order_date", "status", "total_amount"]
+    fields = ["user", "order_date", "status", "total_amount", "notes"]
     readonly_fields = ["created_at"]
     verbose_name = "Order"
     verbose_name_plural = "Orders"
-    tag = "Order"
+    tag = "order"
+    icon = "shopping-cart"
+
+    # Per-model UI overrides
+    list_style = "compact"
+    form_layout = "one-column"
+
+    # Actions
+    actions_list = ["export_orders", "mark_completed"]
+    actions_row = ["mark_completed_row"]
+    actions_submit_line = ["save_and_email"]
+
+    # Tabs
+    list_tabs = [
+        TabConfig(title="All Orders", url="/admin/orders/"),
+        TabConfig(title="Pending", url="/admin/orders/?filter_status=pending"),
+        TabConfig(
+            title="Completed", url="/admin/orders/?filter_status=completed"
+        ),
+    ]
+
+    # Expandable sections
+    list_sections = [
+        TableSection(
+            title="Order Items",
+            related_model="OrderItem",
+            related_field="items",
+            list_display=["product", "quantity", "price"],
+        ),
+    ]
+
+    # Conditional fields — show notes only for non-pending orders
+    conditional_fields = {
+        "notes": {"show_when": "status", "values": ["processing", "completed"]},
+    }
+
+    # Custom widgets
+    formfield_overrides = {
+        "notes": WysiwygWidget(),
+    }
+
+    @action(
+        description="Export selected orders",
+        icon="arrow-down-tray",
+        variant="primary",
+    )
+    async def export_orders(self, objects, request):
+        print(f"Exporting {len(objects)} orders")
+
+    @action(
+        description="Mark as completed",
+        icon="check-circle",
+        variant="success",
+    )
+    async def mark_completed(self, objects, request):
+        for obj in objects:
+            obj.status = "completed"
+
+    @action(
+        description="Mark completed",
+        icon="check-circle",
+        variant="success",
+        location="row",
+    )
+    async def mark_completed_row(self, objects, request):
+        for obj in objects:
+            obj.status = "completed"
+
+    @action(
+        description="Save and send email",
+        icon="paper-airplane",
+        variant="primary",
+        location="submit_line",
+    )
+    async def save_and_email(self, objects, request):
+        pass
+
+
+# ============================================================================
+# Dashboard Callback — custom data injection
+# ============================================================================
+
+
+async def custom_dashboard_data(request, session):
+    """Custom dashboard callback to inject additional data."""
+    # Example: calculate total revenue
+    result = await session.execute(select(func.sum(Order.total_amount)))
+    total_revenue = result.scalar() or 0.0
+    return {
+        "total_revenue": total_revenue,
+        "components": [
+            CardComponent(
+                title="Total Revenue",
+                value=f"${total_revenue:,.2f}",
+                description="All-time revenue",
+            ),
+            ProgressComponent(
+                title="Order Completion Rate",
+                value=75,
+                description="75% of orders completed",
+            ),
+            TableComponent(
+                title="Recent Orders",
+                headers=["Order", "User", "Amount", "Status"],
+                rows=[
+                    ["#1", "alice@example.com", "$1,199.98", "Completed"],
+                    ["#2", "bob@example.com", "$29.99", "Pending"],
+                ],
+            ),
+            LinkComponent(
+                title="View All Orders",
+                description="Browse the full order list",
+                url="/admin/orders/",
+                icon="shopping-cart",
+            ),
+        ],
+    }
 
 
 # ============================================================================
@@ -219,7 +485,7 @@ class OrderAdmin(ModelAdmin):
 # ============================================================================
 
 # Database configuration
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./example.db")
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./test_debug.db")
 SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key-change-in-production")
 
 engine = create_async_engine(DATABASE_URL, echo=False)
@@ -244,35 +510,39 @@ async def seed_demo_data(session: AsyncSession) -> None:
     products = [
         Product(
             name="Laptop",
-            description="15-inch laptop",
+            description="<p>15-inch laptop with <strong>high performance</strong></p>",
             price=999.99,
             stock=50,
             category=electronics,
             is_active=True,
+            sort_order=1,
         ),
         Product(
             name="Headphones",
-            description="Noise-cancelling",
+            description="<p>Noise-cancelling wireless headphones</p>",
             price=199.99,
             stock=200,
             category=electronics,
             is_active=True,
+            sort_order=2,
         ),
         Product(
             name="T-Shirt",
-            description="Cotton tee",
+            description="<p>100% cotton comfortable tee</p>",
             price=29.99,
             stock=500,
             category=clothing,
             is_active=True,
+            sort_order=3,
         ),
         Product(
             name="Jeans",
-            description="Slim fit denim",
+            description="<p>Slim fit denim jeans</p>",
             price=79.99,
             stock=150,
             category=clothing,
             is_active=False,
+            sort_order=4,
         ),
     ]
     session.add_all(products)
@@ -285,8 +555,13 @@ async def seed_demo_data(session: AsyncSession) -> None:
     session.add_all([user1, user2])
     await session.flush()
 
-    order1 = Order(user=user1, status="completed", total_amount=1199.98)
-    order2 = Order(user=user2, status="pending", total_amount=29.99)
+    order1 = Order(
+        user=user1,
+        status="completed",
+        total_amount=1199.98,
+        notes="<p>Gift wrap requested</p>",
+    )
+    order2 = Order(user=user2, status="pending", total_amount=29.99, notes="")
     session.add_all([order1, order2])
     await session.flush()
 
@@ -357,13 +632,13 @@ async def lifespan(app: FastAPI):
 # Create FastAPI app
 app = FastAPI(
     title="FastAPI Admin Example",
-    description="Demonstration of FastAPI Admin with multiple models",
-    version="1.0.0",
+    description="Demonstration of FastAPI Admin with UnfoldAdmin features",
+    version="2.0.0",
     lifespan=lifespan,
 )
 
 
-# Initialize admin with customizations
+# Initialize admin with full UnfoldAdmin configuration
 admin = Admin(
     app=app,
     engine=engine,
@@ -376,6 +651,33 @@ admin = Admin(
     per_page_default=25,
     secret_key=SECRET_KEY,
     auth_backend=BuiltinAuthBackend(),
+    # Theme configuration
+    theme=ThemeConfig(
+        preset="paper",
+        primary_color="#6366F1",
+        show_grain_texture=False,
+        show_accent_line=True,
+    ),
+    # UI component configuration
+    sidebar_style="compact",
+    table_style="striped",
+    form_layout="two-column",
+    form_spacing="normal",
+    dashboard_grid="auto",
+    dashboard_card_style="default",
+    dashboard_stat_size="normal",
+    topbar_style="default",
+    content_width="default",
+    sidebar_position="left",
+    # Feature toggles — UnfoldAdmin style
+    show_history=True,
+    show_view_on_site=True,
+    environment_label="Development",
+    environment_color="info",
+    # Custom CSS injection
+    custom_css="",
+    # Mobile
+    mobile_sidebar="overlay",
 )
 
 
@@ -417,12 +719,27 @@ async def health():
 #
 # Then visit:
 #   Admin Panel: http://localhost:8000/admin
+#   Theme Settings: http://localhost:8000/admin/settings/theme
 #   API Docs:   http://localhost:8000/docs
 #   Health:     http://localhost:8000/health
 #
 # Default admin login:
 #   Email:    admin@example.com
 #   Password: admin
+#
+# UnfoldAdmin features to try:
+#   - Custom actions: select products and click "Export" or "Deactivate"
+#   - Row actions: click action buttons on each row
+#   - Tabs: switch between All/Active/Out of Stock views
+#   - Sortable: drag products by the handle icon
+#   - Range filters: use From/To date pickers
+#   - Conditional fields: toggle is_active to show/hide tags
+#   - Wysiwyg editor: rich text editing on description fields
+#   - Array widget: add/remove items on product tags
+#   - Dashboard components: cards, progress bars, tables
+#   - Topbar: environment badge, history link, view on site
+#   - Sidebar: collapsible nav groups with icons
+#   - Unsaved changes warning: try navigating away from a dirty form
 
 
 if __name__ == "__main__":
