@@ -4,11 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-<<<<<<< HEAD:fastapi_console/form/pipeline.py
 from fastapi_console.types import (
-=======
-from fastapi_admin.types import (
->>>>>>> 6fbbaad1ffffd156930439440a97eefaf7f5c603:fastapi_admin/form/pipeline.py
     FieldRenderContext,
     FieldsetContext,
     FormContext,
@@ -32,6 +28,7 @@ def build_form_context(
 
     for field_meta in registered.form_fields:
         col = next((c for c in registered.columns if c.name == field_meta.name), None)
+        rel = next((r for r in registered.relationships if r.name == field_meta.name), None)
         widget = registered.get_widget(field_meta.name)
 
         value = values.get(field_meta.name)

@@ -89,6 +89,30 @@ class BaseView:
     async def api_response(self, request: Request) -> Response:
         raise NotImplementedError
 
+    def _resolve_rel_keys(self, parsed: dict[str, Any]) -> dict[str, Any]:
+        """Convert relationship keys in parsed data to their FK column names."""
+        from sqlalchemy import inspect as sa_inspect
+
+        col_names = {c.name for c in self.registered.columns}
+        rel_fk_map: dict[str, str] = {}
+        try:
+            mapper = sa_inspect(self.registered.model)
+        except Exception:
+            mapper = None
+        if mapper is not None:
+            for rel_key, rel_prop in mapper.relationships.items():
+                local_cols = [c.key for c in rel_prop.local_columns]
+                if local_cols:
+                    rel_fk_map[rel_key] = local_cols[0]
+
+        resolved: dict[str, Any] = {}
+        for key, value in parsed.items():
+            if key in rel_fk_map and key not in col_names:
+                resolved[rel_fk_map[key]] = value
+            else:
+                resolved[key] = value
+        return resolved
+
 
 class ListView(BaseView):
     """Orchestrates list view: query -> render HTML or API."""
@@ -473,30 +497,6 @@ class EditView(BaseView):
                 setattr(obj, rel_fk_map[key], value)
             else:
                 setattr(obj, key, value)
-
-    def _resolve_rel_keys(self, parsed: dict[str, Any]) -> dict[str, Any]:
-        """Convert relationship keys in parsed data to their FK column names."""
-        from sqlalchemy import inspect as sa_inspect
-
-        col_names = {c.name for c in self.registered.columns}
-        rel_fk_map: dict[str, str] = {}
-        try:
-            mapper = sa_inspect(self.registered.model)
-        except Exception:
-            mapper = None
-        if mapper is not None:
-            for rel_key, rel_prop in mapper.relationships.items():
-                local_cols = [c.key for c in rel_prop.local_columns]
-                if local_cols:
-                    rel_fk_map[rel_key] = local_cols[0]
-
-        resolved: dict[str, Any] = {}
-        for key, value in parsed.items():
-            if key in rel_fk_map and key not in col_names:
-                resolved[rel_fk_map[key]] = value
-            else:
-                resolved[key] = value
-        return resolved
 
     async def _update_object(
         self, request: Request, obj: Any, parsed: dict[str, Any]

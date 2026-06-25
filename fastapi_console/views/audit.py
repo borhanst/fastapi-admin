@@ -7,18 +7,11 @@ from datetime import date, datetime
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy import desc, select
 
-<<<<<<< HEAD:fastapi_console/views/audit.py
 from fastapi_console.audit.models import AuditLog
 from fastapi_console.auth.dependencies import get_current_admin_user
 from fastapi_console.auth.protocol import AdminUserProtocol
+from fastapi_console.db import get_db_session
 from fastapi_console.views.sidebar import inject_sidebar_context
-=======
-from fastapi_admin.audit.models import AuditLog
-from fastapi_admin.auth.dependencies import get_current_admin_user
-from fastapi_admin.auth.protocol import AdminUserProtocol
-from fastapi_admin.db import get_db_session
-from fastapi_admin.views.sidebar import inject_sidebar_context
->>>>>>> 6fbbaad1ffffd156930439440a97eefaf7f5c603:fastapi_admin/views/audit.py
 
 router = APIRouter()
 

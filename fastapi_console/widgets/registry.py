@@ -1,7 +1,7 @@
 """WidgetRegistry — stores type-to-widget and name-to-widget mappings.
 
 This class handles ONLY registration/storage of widget mappings.
-Resolution logic lives in WidgetResolver (fastapi_admin/widgets/resolver.py).
+Resolution logic lives in WidgetResolver (fastapi_console/widgets/resolver.py).
 
 Resolution order (documented here for reference, implemented in WidgetResolver):
   1. Exact field name pattern  ->  e.g. "password" -> PasswordWidget

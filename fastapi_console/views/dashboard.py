@@ -8,32 +8,10 @@ from typing import Any
 
 from fastapi import Depends, Request
 from fastapi.responses import HTMLResponse
-<<<<<<< HEAD:fastapi_console/views/dashboard.py
-from sqlalchemy import create_engine, func, select
-from sqlalchemy.orm import Session
-
-from fastapi_console.auth.dependencies import get_current_admin_user
-
-
-def _get_sync_engine(request: Request):
-    """Get or create a sync engine from the async engine in app.state."""
-    from sqlalchemy.ext.asyncio import AsyncEngine
-
-    async_engine = request.app.state.admin_engine
-    if not isinstance(async_engine, AsyncEngine):
-        return async_engine
-
-    if not hasattr(request.app.state, "_admin_sync_engine"):
-        sync_url = str(async_engine.url)
-        for suffix in ("+aiosqlite", "+asyncpg", "+asyncmy"):
-            sync_url = sync_url.replace(suffix, "")
-        request.app.state._admin_sync_engine = create_engine(sync_url, echo=False)
-    return request.app.state._admin_sync_engine
-=======
 from sqlalchemy import func, select
 
-from fastapi_admin.auth.dependencies import get_current_admin_user
-from fastapi_admin.db import get_db_session
+from fastapi_console.auth.dependencies import get_current_admin_user
+from fastapi_console.db import get_db_session
 
 
 def _resolve_callback(dotted_path: str) -> Any | None:
@@ -46,7 +24,6 @@ def _resolve_callback(dotted_path: str) -> Any | None:
         return getattr(module, func_name, None)
     except (ImportError, AttributeError):
         return None
->>>>>>> 6fbbaad1ffffd156930439440a97eefaf7f5c603:fastapi_admin/views/dashboard.py
 
 
 def dashboard_view_factory(admin: Any):
@@ -76,14 +53,6 @@ def dashboard_view_factory(admin: Any):
         now = datetime.now(timezone.utc)  # noqa: UP017
         thirty_days_ago = now - timedelta(days=30)
 
-<<<<<<< HEAD:fastapi_console/views/dashboard.py
-            # Fetch last 10 audit entries
-            from fastapi_console.audit.models import AuditLog
-            audit_query = select(AuditLog).order_by(AuditLog.timestamp.desc()).limit(10)
-            recent_audit = session.execute(audit_query).scalars().all()
-        finally:
-            session.close()
-=======
         stat_cards = []
         for model in models_for_stats:
             count_query = select(func.count()).select_from(model.model)
@@ -129,10 +98,9 @@ def dashboard_view_factory(admin: Any):
             })
 
         # Fetch last 10 audit entries
-        from fastapi_admin.audit.models import AuditLog
+        from fastapi_console.audit.models import AuditLog
         audit_query = select(AuditLog).order_by(AuditLog.timestamp.desc()).limit(10)
         recent_audit = (await session.execute(audit_query)).scalars().all()
->>>>>>> 6fbbaad1ffffd156930439440a97eefaf7f5c603:fastapi_admin/views/dashboard.py
 
         # Check if charts are enabled
         show_charts = config.get("dashboard_charts", True)

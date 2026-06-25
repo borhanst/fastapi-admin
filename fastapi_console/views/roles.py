@@ -132,11 +132,7 @@ async def role_save_view(
     _csrf: bool = Depends(require_csrf_token),
 ):
     """Save role permissions from form submission."""
-<<<<<<< HEAD:fastapi_console/views/roles.py
-    session = request.app.state.admin_db_session
-=======
     session = get_db_session(request)
->>>>>>> 6fbbaad1ffffd156930439440a97eefaf7f5c603:fastapi_admin/views/roles.py
 
     role = await session.get(AdminRole, role_id)
     if role is None:

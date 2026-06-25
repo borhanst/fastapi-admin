@@ -2,7 +2,18 @@
 
 from fastapi_console.modeladmin import ModelAdmin
 from fastapi_console.views.bulk import bulk_factory
+from fastapi_console.views.class_views import (
+    BaseView,
+    BulkView,
+    CreateView,
+    DeleteView,
+    EditView,
+    ListView,
+    SearchView,
+    _resolve_view_class,
+)
 from fastapi_console.views.delete import delete_factory
+from fastapi_console.views.extra import AdminExtra
 from fastapi_console.views.form import (
     create_form_factory,
     create_submit_factory,

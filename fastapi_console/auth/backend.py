@@ -57,13 +57,9 @@ class BuiltinAuthBackend(AuthBackend):
     async def authenticate(
         self, email: str, password: str, session: Any
     ) -> AdminUserProtocol | None:
-<<<<<<< HEAD:fastapi_console/auth/backend.py
-        from fastapi_console.auth.models import AdminUser
-=======
         from sqlalchemy import select
 
-        from fastapi_admin.auth.models import AdminUser
->>>>>>> 6fbbaad1ffffd156930439440a97eefaf7f5c603:fastapi_admin/auth/backend.py
+        from fastapi_console.auth.models import AdminUser
 
         result = await session.execute(
             select(AdminUser).where(
@@ -78,15 +74,10 @@ class BuiltinAuthBackend(AuthBackend):
             return None
         return user
 
-<<<<<<< HEAD:fastapi_console/auth/backend.py
-    async def get_user(self, user_id: int | str, session: Session) -> AdminUserProtocol | None:
-        from fastapi_console.auth.models import AdminUser
-=======
     async def get_user(self, user_id: int | str, session: Any) -> AdminUserProtocol | None:
         from sqlalchemy import select
 
-        from fastapi_admin.auth.models import AdminUser
->>>>>>> 6fbbaad1ffffd156930439440a97eefaf7f5c603:fastapi_admin/auth/backend.py
+        from fastapi_console.auth.models import AdminUser
 
         result = await session.execute(
             select(AdminUser).where(

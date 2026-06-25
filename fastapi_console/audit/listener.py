@@ -7,17 +7,11 @@ from typing import Any
 from sqlalchemy import event
 from sqlalchemy.orm import Session
 
-<<<<<<< HEAD:fastapi_console/audit/listener.py
-from fastapi_console.audit.context import clear_audit_context, get_audit_context
+from fastapi_console.audit.context import get_audit_context
 from fastapi_console.audit.diff import compute_diff, snapshot
+from fastapi_console.audit.event_bus import AuditEventBus
 from fastapi_console.audit.models import AuditLog
-=======
-from fastapi_admin.audit.context import get_audit_context
-from fastapi_admin.audit.diff import compute_diff, snapshot
-from fastapi_admin.audit.event_bus import AuditEventBus
-from fastapi_admin.audit.models import AuditLog
-from fastapi_admin.audit.sqlalchemy_logger import SqlAlchemyAuditLogger
->>>>>>> 6fbbaad1ffffd156930439440a97eefaf7f5c603:fastapi_admin/audit/listener.py
+from fastapi_console.audit.sqlalchemy_logger import SqlAlchemyAuditLogger
 
 
 def is_registered_model(obj: Any, registry: Any) -> bool:
@@ -114,5 +108,5 @@ def attach_audit_listener(
 
 def clear_audit_context_after_response() -> None:
     """Clear the audit context (to be called after the response is sent)."""
-    from fastapi_admin.audit.context import clear_audit_context
+    from fastapi_console.audit.context import clear_audit_context
     clear_audit_context()

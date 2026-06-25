@@ -16,13 +16,9 @@ from fastapi import (
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-<<<<<<< HEAD:fastapi_console/auth/views.py
+from fastapi_console.auth.csrf import CSRF_COOKIE_NAME, require_csrf_token
 from fastapi_console.auth.dependencies import _get_db_session, get_session
-=======
-from fastapi_admin.auth.csrf import CSRF_COOKIE_NAME, require_csrf_token
-from fastapi_admin.auth.dependencies import _get_db_session, get_session
-from fastapi_admin.auth.ratelimit import RateLimiter, _client_ip, check_rate_limit
->>>>>>> 6fbbaad1ffffd156930439440a97eefaf7f5c603:fastapi_admin/auth/views.py
+from fastapi_console.auth.ratelimit import RateLimiter, _client_ip, check_rate_limit
 
 router = APIRouter()
 
