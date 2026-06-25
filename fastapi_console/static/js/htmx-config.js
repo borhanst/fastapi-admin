@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   FastAPI Admin — HTMX Configuration
+   FastAPI Console — HTMX Configuration
    ═══════════════════════════════════════════════════════════════════════════ */
 
 document.addEventListener('DOMContentLoaded', () => {

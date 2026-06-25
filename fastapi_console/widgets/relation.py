@@ -9,13 +9,21 @@ from fastapi_console.widgets.base import Widget
 
 
 class RelationPickerWidget(Widget):
-    """ForeignKey (many-to-one) picker — HTMX async searchable select."""
+    """ForeignKey (many-to-one) picker — HTMX async searchable select with autocomplete."""
 
     macro_name = "relation_picker"
 
-    def __init__(self, related_table: str = "", related_verbose: str = ""):
+    def __init__(
+        self,
+        related_table: str = "",
+        related_verbose: str = "",
+        autocomplete: bool = True,
+        search_url: str | None = None,
+    ):
         self.related_table = related_table
         self.related_verbose = related_verbose
+        self.autocomplete = autocomplete
+        self.search_url = search_url
 
     def parse(self, raw: str | None) -> int | str | None:
         if not raw:
@@ -29,6 +37,8 @@ class RelationPickerWidget(Widget):
         ctx = super().render_context(field, value)
         ctx["related_table"] = self.related_table
         ctx["related_verbose"] = self.related_verbose
+        ctx["autocomplete"] = self.autocomplete
+        ctx["search_url"] = self.search_url or f"/admin/{self.related_table}/autocomplete/"
         return ctx
 
 

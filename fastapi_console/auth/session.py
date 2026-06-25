@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import time
 from abc import ABC, abstractmethod
 from typing import Any
 
@@ -39,13 +40,29 @@ class SignedCookieSessionBackend(SessionBackend):
         cookie_name: str = COOKIE_NAME,
         secure: bool = False,
     ) -> None:
+        self._secret_key = secret_key
         self._signer = TimestampSigner(secret_key)
         self._session_ttl = session_ttl
         self.cookie_name = cookie_name
         self.secure = secure
 
+    @property
+    def secret_key(self) -> str:
+        """The signing key used by this backend.
+
+        Public accessor so CSRF / JWT signing can share the same key without
+        reaching into the (private) itsdangerous signer. Swapping the session
+        backend no longer silently breaks CSRF.
+        """
+        return self._secret_key
+
     def encode(self, payload: dict[str, Any]) -> str:
-        """Sign *payload* and return the signed token."""
+        """Sign *payload* and return the signed token.
+
+        Automatically adds ``iat`` (issued-at) timestamp if not present.
+        """
+        if "iat" not in payload:
+            payload["iat"] = time.time()
         data = json.dumps(payload, separators=(",", ":")).encode()
         return self._signer.sign(data).decode()
 

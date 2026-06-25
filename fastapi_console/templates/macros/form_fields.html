@@ -84,6 +84,7 @@ hx-post="{{ admin_path }}/{{ model_name }}/validate-field"
 hx-trigger="{{ trigger }}"
 hx-target="#field-wrapper-{{ field_ctx.meta.name }}"
 hx-swap="outerHTML"
+hx-include="[name='csrf_token']"
 hx-vals='{"field_name": "{{ field_ctx.meta.name }}"}'
 {% endmacro %}
 
@@ -161,13 +162,14 @@ hx-vals='{"field_name": "{{ field_ctx.meta.name }}"}'
 {% set val = field_ctx.widget_context.value %}
 {{ _field_wrapper_open(field_ctx) }}
   {{ _label(field_ctx) }}
-  <div class="toggle-switch"
-       :class="{ 'active': $refs.{{ name }}.checked }">
-    <input type="hidden" name="{{ name }}" value="0">
-    <input type="checkbox" id="{{ name }}" name="{{ name }}" value="1"
+  <div x-data="{ on: {{ 'true' if val else 'false' }} }"
+       class="toggle-switch cursor-pointer"
+       :class="on ? 'active' : ''"
+       @click="on = !on">
+    <input type="hidden" name="{{ name }}" :value="on ? '1' : '0'">
+    <input type="checkbox" id="{{ name }}"
            {% if val %}checked{% endif %}
            {% if field_ctx.meta.readonly %}disabled{% endif %}
-           x-ref="{{ name }}"
            class="sr-only">
     <span class="toggle-knob"></span>
   </div>
@@ -211,7 +213,7 @@ hx-vals='{"field_name": "{{ field_ctx.meta.name }}"}'
   <input type="date" id="{{ name }}" name="{{ name }}"
          value="{{ val }}"
          {% if field_ctx.meta.required %}required{% endif %}
-         {% if field_ctx.meta.readonly %}readonly{% endif %}
+         {% if field_ctx.meta.readonly %}readonly{% else %}onclick="if(this.showPicker) { try { this.showPicker(); } catch(e) {} }"{% endif %}
          {{ _htmx_validate(field_ctx, model_name) }}
          class="form-input">
   {{ _errors(field_ctx) }}
@@ -230,7 +232,7 @@ hx-vals='{"field_name": "{{ field_ctx.meta.name }}"}'
   <input type="datetime-local" id="{{ name }}" name="{{ name }}"
          value="{{ val }}"
          {% if field_ctx.meta.required %}required{% endif %}
-         {% if field_ctx.meta.readonly %}readonly{% endif %}
+         {% if field_ctx.meta.readonly %}readonly{% else %}onclick="if(this.showPicker) { try { this.showPicker(); } catch(e) {} }"{% endif %}
          {{ _htmx_validate(field_ctx, model_name) }}
          class="form-input">
   {{ _errors(field_ctx) }}
@@ -249,7 +251,7 @@ hx-vals='{"field_name": "{{ field_ctx.meta.name }}"}'
   <input type="time" id="{{ name }}" name="{{ name }}"
          value="{{ val }}"
          {% if field_ctx.meta.required %}required{% endif %}
-         {% if field_ctx.meta.readonly %}readonly{% endif %}
+         {% if field_ctx.meta.readonly %}readonly{% else %}onclick="if(this.showPicker) { try { this.showPicker(); } catch(e) {} }"{% endif %}
          {{ _htmx_validate(field_ctx, model_name) }}
          class="form-input">
   {{ _errors(field_ctx) }}

@@ -26,6 +26,7 @@ async def _create_superadmin(args: argparse.Namespace) -> None:
     from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
     from sqlalchemy.orm import sessionmaker
 
+
     from fastapi_console.auth.backend import pwd_context
     from fastapi_console.auth.models import AdminUser
     from fastapi_console.models.base import Base
@@ -77,9 +78,9 @@ async def _list_users(args: argparse.Namespace) -> None:
     from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
     from sqlalchemy.orm import sessionmaker
 
+
     from fastapi_console.auth.models import AdminUser
     from fastapi_console.models.base import Base
-
     database_url = _resolve_database_url(args.database_url)
     engine = create_async_engine(database_url)
 
@@ -120,6 +121,7 @@ async def _change_password(args: argparse.Namespace) -> None:
     from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
     from sqlalchemy.orm import sessionmaker
 
+
     from fastapi_console.auth.backend import pwd_context
     from fastapi_console.auth.models import AdminUser
     from fastapi_console.models.base import Base
@@ -158,7 +160,9 @@ async def _change_password(args: argparse.Namespace) -> None:
 def main() -> None:
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(
-        prog="fastapi-admin",
+
+        prog="fconsole",
+
         description="FastAPI Console CLI — manage admin users and database.",
     )
     subparsers = parser.add_subparsers(

@@ -19,6 +19,8 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+*.whl
+*.tar.gz
 MANIFEST
 pip-log.txt
 pip-delete-this-directory.txt
@@ -62,6 +64,9 @@ dmypy.json
 
 # uv
 uv.lock
+
+# MkDocs
+site/
 
 # OS
 .DS_Store

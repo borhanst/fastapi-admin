@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   FastAPI Admin — Alpine.js Stores & Components
+   FastAPI Console — Alpine.js Stores & Components
    Warm Editorial Brutalism
    ═══════════════════════════════════════════════════════════════════════════ */
 
@@ -45,6 +45,27 @@ document.addEventListener('alpine:init', () => {
 
     init() {
       this._apply();
+    },
+  });
+
+  /* ── Themes store (preset switching) ─────────────────── */
+
+  Alpine.store('themes', {
+    preset: localStorage.getItem('admin_theme_preset') || 'editorial',
+
+    apply(name) {
+      this.preset = name;
+      document.documentElement.setAttribute('data-preset', name);
+      localStorage.setItem('admin_theme_preset', name);
+      window.dispatchEvent(new CustomEvent('theme-change', { detail: { preset: name } }));
+    },
+
+    init() {
+      const saved = localStorage.getItem('admin_theme_preset');
+      if (saved) {
+        document.documentElement.setAttribute('data-preset', saved);
+        this.preset = saved;
+      }
     },
   });
 
@@ -395,3 +416,19 @@ document.addEventListener('alpine:init', () => {
     }, 100);
   });
 })();
+
+/* ── Confirm dialog ───────────────────────────────────────────────────── */
+
+function confirmAction(title, message, callback) {
+  const dialog = document.getElementById('confirm-dialog');
+  if (!dialog) { callback(); return; }
+  const data = dialog.__x || dialog._x_dataStack?.[0];
+  if (data) {
+    data.title = title;
+    data.message = message;
+    data.onConfirm = callback;
+    data.open = true;
+  } else {
+    callback();
+  }
+}

@@ -6,10 +6,19 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy import select
 
+<<<<<<< HEAD:fastapi_console/views/roles.py
 from fastapi_console.auth.dependencies import get_current_admin_user
 from fastapi_console.auth.models import AdminFieldPermission, AdminPermission, AdminRole
 from fastapi_console.auth.protocol import AdminUserProtocol
 from fastapi_console.views.sidebar import inject_sidebar_context
+=======
+from fastapi_admin.auth.csrf import require_csrf_token
+from fastapi_admin.auth.dependencies import get_current_admin_user
+from fastapi_admin.auth.models import AdminFieldPermission, AdminPermission, AdminRole
+from fastapi_admin.auth.protocol import AdminUserProtocol
+from fastapi_admin.db import get_db_session
+from fastapi_admin.views.sidebar import inject_sidebar_context
+>>>>>>> 6fbbaad1ffffd156930439440a97eefaf7f5c603:fastapi_admin/views/roles.py
 
 router = APIRouter()
 
@@ -29,7 +38,7 @@ async def role_list_view(
 ):
     """List roles with user counts."""
     templates = request.app.state.admin_jinja_env
-    session = request.app.state.admin_db_session
+    session = get_db_session(request)
 
     result = await session.execute(select(AdminRole))
     roles = list(result.scalars().all())
@@ -44,7 +53,7 @@ async def role_list_view(
 
     return templates.TemplateResponse(
         request,
-        "pages/roles/list.html",
+        "pages/roles.html",
         inject_sidebar_context(request, {
             "roles": role_data,
         }),
@@ -63,7 +72,7 @@ async def role_create_view(
     models = registry.all()
     return templates.TemplateResponse(
         request,
-        "pages/roles/form.html",
+        "pages/role_form.html",
         inject_sidebar_context(request, {
             "role": None,
             "models": models,
@@ -81,7 +90,7 @@ async def role_edit_view(
 ):
     """Show edit form with permission matrix."""
     templates = request.app.state.admin_jinja_env
-    session = request.app.state.admin_db_session
+    session = get_db_session(request)
     registry = request.app.state.admin_registry
 
     role = await session.get(AdminRole, role_id)
@@ -112,7 +121,7 @@ async def role_edit_view(
 
     return templates.TemplateResponse(
         request,
-        "pages/roles/form.html",
+        "pages/role_form.html",
         inject_sidebar_context(request, {
             "role": role,
             "models": models,
@@ -127,9 +136,14 @@ async def role_save_view(
     request: Request,
     role_id: int,
     _: AdminUserProtocol = Depends(_require_superuser),
+    _csrf: bool = Depends(require_csrf_token),
 ):
     """Save role permissions from form submission."""
+<<<<<<< HEAD:fastapi_console/views/roles.py
     session = request.app.state.admin_db_session
+=======
+    session = get_db_session(request)
+>>>>>>> 6fbbaad1ffffd156930439440a97eefaf7f5c603:fastapi_admin/views/roles.py
 
     role = await session.get(AdminRole, role_id)
     if role is None:
@@ -204,9 +218,10 @@ async def role_delete_view(
     request: Request,
     role_id: int,
     _: AdminUserProtocol = Depends(_require_superuser),
+    _csrf: bool = Depends(require_csrf_token),
 ):
     """Delete role (refuse if users assigned)."""
-    session = request.app.state.admin_db_session
+    session = get_db_session(request)
 
     role = await session.get(AdminRole, role_id)
     if role is None:

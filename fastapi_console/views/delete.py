@@ -1,28 +1,31 @@
-"""Delete handler factory for registered models."""
+"""Delete handler factory for registered models.
+
+Backward-compatible wrapper — delegates to DeleteView class.
+"""
 
 from __future__ import annotations
 
 from typing import Any
 
-from fastapi import HTTPException, Request
-from fastapi.responses import RedirectResponse
+from fastapi import Request
 
+<<<<<<< HEAD:fastapi_console/views/delete.py
 from fastapi_console.flash import add_flash
 from fastapi_console.registry import RegisteredModel
+=======
+from fastapi_admin.registry import RegisteredModel
+>>>>>>> 6fbbaad1ffffd156930439440a97eefaf7f5c603:fastapi_admin/views/delete.py
 
 
 def delete_factory(registered: RegisteredModel):
-    async def delete_submit(request: Request, id: str, _: Any = None):
-        session = request.app.state.admin_db_session
-        obj = await session.get(registered.model, id)
-        if not obj:
-            raise HTTPException(status_code=404, detail="Not found")
-        registered.admin.on_delete(obj, request)
-        await session.delete(obj)
-        await session.commit()
-        registered.admin.after_delete(obj, request)
-        add_flash(request, "success", f"{registered.verbose_name} deleted.")
-        url = f"{request.app.state.admin_config['admin_path']}/{registered.table_name}/"
-        return RedirectResponse(url=url, status_code=303)
-    delete_submit.__name__ = f"delete_{registered.table_name}"
-    return delete_submit
+    """Create a delete handler — delegates to DeleteView.html_response."""
+    from fastapi_admin.views.class_views import DeleteView, _resolve_view_class
+
+    view_class = _resolve_view_class(registered.admin, "delete_view_class", DeleteView)
+    view_instance = view_class(registered)
+
+    async def _handler(request: Request, **kwargs: Any):
+        return await view_instance.html_response(request, **kwargs)
+
+    _handler.__name__ = f"delete_{registered.table_name}"
+    return _handler

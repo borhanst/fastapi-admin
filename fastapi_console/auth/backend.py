@@ -8,7 +8,6 @@ from typing import TYPE_CHECKING, Any
 import bcrypt
 
 if TYPE_CHECKING:
-    from sqlalchemy.orm import Session
 
     from fastapi_console.auth.protocol import AdminUserProtocol
 
@@ -56,25 +55,45 @@ class BuiltinAuthBackend(AuthBackend):
     """Default backend that works with the built-in ``AdminUser`` model."""
 
     async def authenticate(
-        self, email: str, password: str, session: Session
+        self, email: str, password: str, session: Any
     ) -> AdminUserProtocol | None:
+<<<<<<< HEAD:fastapi_console/auth/backend.py
         from fastapi_console.auth.models import AdminUser
+=======
+        from sqlalchemy import select
 
-        user = session.query(AdminUser).filter_by(email=email, is_active=True).first()
+        from fastapi_admin.auth.models import AdminUser
+>>>>>>> 6fbbaad1ffffd156930439440a97eefaf7f5c603:fastapi_admin/auth/backend.py
+
+        result = await session.execute(
+            select(AdminUser).where(
+                AdminUser.email == email, AdminUser.is_active.is_(True)
+            )
+        )
+        user = result.scalar_one_or_none()
+
         if not user:
             return None
         if not pwd_context.verify(password, user.hashed_password):
             return None
         return user
 
+<<<<<<< HEAD:fastapi_console/auth/backend.py
     async def get_user(self, user_id: int | str, session: Session) -> AdminUserProtocol | None:
         from fastapi_console.auth.models import AdminUser
+=======
+    async def get_user(self, user_id: int | str, session: Any) -> AdminUserProtocol | None:
+        from sqlalchemy import select
 
-        return (
-            session.query(AdminUser)
-            .filter_by(id=user_id, is_active=True)
-            .first()
+        from fastapi_admin.auth.models import AdminUser
+>>>>>>> 6fbbaad1ffffd156930439440a97eefaf7f5c603:fastapi_admin/auth/backend.py
+
+        result = await session.execute(
+            select(AdminUser).where(
+                AdminUser.id == user_id, AdminUser.is_active.is_(True)
+            )
         )
+        return result.scalar_one_or_none()
 
     async def on_logout(self, user_id: int | str | None = None) -> None:
         """No-op for built-in backend."""

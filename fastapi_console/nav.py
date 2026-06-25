@@ -20,9 +20,11 @@ if TYPE_CHECKING:
 # Public config types (passed by the developer)
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class NavItemConfig:
     """A custom nav item placed inside a tag group (independent of models)."""
+
     label: str
     url: str
     icon: str | None = None
@@ -33,6 +35,7 @@ class NavItemConfig:
 @dataclass
 class NavGroupConfig:
     """Developer-provided configuration for one sidebar tag group."""
+
     tag: str
     label: str | None = None
     icon: str | None = None
@@ -44,6 +47,7 @@ class NavGroupConfig:
 # ---------------------------------------------------------------------------
 # Built types (produced by SidebarBuilder at startup — read-only in templates)
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class BuiltNavItem:
@@ -70,6 +74,7 @@ class BuiltNavGroup:
 # SidebarBuilder protocol + default implementation
 # ---------------------------------------------------------------------------
 
+
 @runtime_checkable
 class SidebarBuilder(Protocol):
     """Protocol that all sidebar builders must satisfy."""
@@ -79,8 +84,7 @@ class SidebarBuilder(Protocol):
         registry: list[RegisteredModel],
         nav_group_configs: list[NavGroupConfig],
         admin_path: str = "/admin",
-    ) -> list[BuiltNavGroup]:
-        ...
+    ) -> list[BuiltNavGroup]: ...
 
 
 class DefaultSidebarBuilder:
@@ -102,7 +106,9 @@ class DefaultSidebarBuilder:
                         url=f"{admin_path}/{registered.table_name}/",
                         icon=getattr(registered.admin, "icon", None),
                         order=getattr(registered.admin, "nav_order", 999),
-                        badge_fn=getattr(registered.admin, "get_nav_badge", None),
+                        badge_fn=getattr(
+                            registered.admin, "get_nav_badge", None
+                        ),
                         permission_table=registered.table_name,
                         children=self._build_children(registered),
                     )
@@ -147,7 +153,9 @@ class DefaultSidebarBuilder:
                     label=cfg.label if cfg else tag.title(),
                     icon=cfg.icon if cfg else None,
                     order=cfg.order if cfg else 999,
-                    collapsed_by_default=cfg.collapsed_by_default if cfg else False,
+                    collapsed_by_default=cfg.collapsed_by_default
+                    if cfg
+                    else False,
                     items=sorted(items, key=lambda i: (i.order, i.label)),
                 )
             )
@@ -165,7 +173,9 @@ class DefaultSidebarBuilder:
             return [tag]
         return ["Other"]
 
-    def _build_children(self, registered: RegisteredModel) -> list[BuiltNavItem]:
+    def _build_children(
+        self, registered: RegisteredModel
+    ) -> list[BuiltNavItem]:
         children_configs = getattr(registered.admin, "nav_children", None) or []
         result: list[BuiltNavItem] = []
         for child_cfg in children_configs:
@@ -179,7 +189,9 @@ class DefaultSidebarBuilder:
             )
         return result
 
-    def _build_extra_items(self, extras: list[NavItemConfig]) -> list[BuiltNavItem]:
+    def _build_extra_items(
+        self, extras: list[NavItemConfig]
+    ) -> list[BuiltNavItem]:
         return [
             BuiltNavItem(
                 label=e.label,

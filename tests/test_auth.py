@@ -4,6 +4,7 @@ import time
 
 import pytest
 from sqlalchemy import create_engine
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import Session
 
 from fastapi_console.auth.backend import AuthBackend, BuiltinAuthBackend, _PasswordHasher
@@ -55,6 +56,27 @@ def user(session, role):
     session.add(user)
     session.flush()
     return user
+
+
+@pytest.fixture
+def async_session_factory():
+    """Create an async session factory for testing."""
+    engine = create_async_engine("sqlite+aiosqlite:///:memory:")
+
+    async def _init():
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        return engine
+
+    import asyncio
+    loop = asyncio.new_event_loop()
+    loop.run_until_complete(_init())
+
+    async def _get_session():
+        async with AsyncSession(engine, expire_on_commit=False) as session:
+            yield session
+
+    return _get_session
 
 
 # ---------------------------------------------------------------------------
@@ -117,7 +139,7 @@ class TestSignedCookieSessionBackend:
 
     def test_decode_returns_none_for_expired_token(self):
         short_ttl = SignedCookieSessionBackend(
-            secret_key="test-key", session_ttl=1
+            secret_key="test-secret-key-long-enough-for-security!", session_ttl=1
         )
         token = short_ttl.encode({"user_id": 1})
         time.sleep(2)
@@ -169,45 +191,142 @@ class TestBuiltinAuthBackend:
         return BuiltinAuthBackend()
 
     @pytest.mark.asyncio
-    async def test_authenticate_success(self, backend, session, user):
-        result = await backend.authenticate("admin@example.com", "secret123", session)
-        assert result is not None
-        assert result.email == "admin@example.com"
+    async def test_authenticate_success(self, backend, async_session_factory):
+        async for session in async_session_factory():
+            # Create role and user in async session
+            role = AdminRole(name="Editor")
+            session.add(role)
+            await session.flush()
+
+            user = AdminUser(
+                email="admin@example.com",
+                hashed_password=_PasswordHasher.hash("secret123"),
+                full_name="Test Admin",
+                role_id=role.id,
+                is_active=True,
+            )
+            session.add(user)
+            await session.commit()
+
+            result = await backend.authenticate("admin@example.com", "secret123", session)
+            assert result is not None
+            assert result.email == "admin@example.com"
+            break
 
     @pytest.mark.asyncio
-    async def test_authenticate_wrong_password(self, backend, session, user):
-        result = await backend.authenticate("admin@example.com", "wrong", session)
-        assert result is None
+    async def test_authenticate_wrong_password(self, backend, async_session_factory):
+        async for session in async_session_factory():
+            role = AdminRole(name="Editor")
+            session.add(role)
+            await session.flush()
+
+            user = AdminUser(
+                email="admin@example.com",
+                hashed_password=_PasswordHasher.hash("secret123"),
+                full_name="Test Admin",
+                role_id=role.id,
+                is_active=True,
+            )
+            session.add(user)
+            await session.commit()
+
+            result = await backend.authenticate("admin@example.com", "wrong", session)
+            assert result is None
+            break
 
     @pytest.mark.asyncio
-    async def test_authenticate_unknown_email(self, backend, session, user):
-        result = await backend.authenticate("nobody@example.com", "secret123", session)
-        assert result is None
+    async def test_authenticate_unknown_email(self, backend, async_session_factory):
+        async for session in async_session_factory():
+            role = AdminRole(name="Editor")
+            session.add(role)
+            await session.flush()
+
+            user = AdminUser(
+                email="admin@example.com",
+                hashed_password=_PasswordHasher.hash("secret123"),
+                full_name="Test Admin",
+                role_id=role.id,
+                is_active=True,
+            )
+            session.add(user)
+            await session.commit()
+
+            result = await backend.authenticate("nobody@example.com", "secret123", session)
+            assert result is None
+            break
 
     @pytest.mark.asyncio
-    async def test_authenticate_inactive_user(self, backend, session, user):
-        user.is_active = False
-        session.flush()
-        result = await backend.authenticate("admin@example.com", "secret123", session)
-        assert result is None
+    async def test_authenticate_inactive_user(self, backend, async_session_factory):
+        async for session in async_session_factory():
+            role = AdminRole(name="Editor")
+            session.add(role)
+            await session.flush()
+
+            user = AdminUser(
+                email="admin@example.com",
+                hashed_password=_PasswordHasher.hash("secret123"),
+                full_name="Test Admin",
+                role_id=role.id,
+                is_active=False,
+            )
+            session.add(user)
+            await session.commit()
+
+            result = await backend.authenticate("admin@example.com", "secret123", session)
+            assert result is None
+            break
 
     @pytest.mark.asyncio
-    async def test_get_user_success(self, backend, session, user):
-        result = await backend.get_user(user.id, session)
-        assert result is not None
-        assert result.email == "admin@example.com"
+    async def test_get_user_success(self, backend, async_session_factory):
+        async for session in async_session_factory():
+            role = AdminRole(name="Editor")
+            session.add(role)
+            await session.flush()
+
+            user = AdminUser(
+                email="admin@example.com",
+                hashed_password=_PasswordHasher.hash("secret123"),
+                full_name="Test Admin",
+                role_id=role.id,
+                is_active=True,
+            )
+            session.add(user)
+            await session.commit()
+            await session.refresh(user)
+
+            result = await backend.get_user(user.id, session)
+            assert result is not None
+            assert result.email == "admin@example.com"
+            break
 
     @pytest.mark.asyncio
-    async def test_get_user_not_found(self, backend, session):
-        result = await backend.get_user(99999, session)
-        assert result is None
+    async def test_get_user_not_found(self, backend, async_session_factory):
+        async for session in async_session_factory():
+            result = await backend.get_user(99999, session)
+            assert result is None
+            break
 
     @pytest.mark.asyncio
-    async def test_get_user_inactive(self, backend, session, user):
-        user.is_active = False
-        session.flush()
-        result = await backend.get_user(user.id, session)
-        assert result is None
+    async def test_get_user_inactive(self, backend, async_session_factory):
+        async for session in async_session_factory():
+            role = AdminRole(name="Editor")
+            session.add(role)
+            await session.flush()
+
+            user = AdminUser(
+                email="admin@example.com",
+                hashed_password=_PasswordHasher.hash("secret123"),
+                full_name="Test Admin",
+                role_id=role.id,
+                is_active=False,
+            )
+            session.add(user)
+            await session.commit()
+            await session.refresh(user)
+
+            result = await backend.get_user(user.id, session)
+            assert result is None
+            break
 
 
 # ---------------------------------------------------------------------------

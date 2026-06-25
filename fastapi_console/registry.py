@@ -1,7 +1,12 @@
-"""AdminRegistry — singleton holding all registered models."""
+"""AdminRegistry — singleton holding all registered models.
+
+This module provides backward-compatible imports for the registry package.
+The actual implementation is in fastapi_admin.registry.core.
+"""
 
 from __future__ import annotations
 
+<<<<<<< HEAD:fastapi_console/registry.py
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
@@ -178,3 +183,12 @@ def _all_declarative_subclasses(base: type) -> set[type]:
                 result.add(sub)
                 work.append(sub)
     return result
+=======
+from fastapi_admin.registry.core import (
+    AdminRegistry,
+    RegisteredModel,
+    _all_declarative_subclasses,
+)
+
+__all__ = ["AdminRegistry", "RegisteredModel", "_all_declarative_subclasses"]
+>>>>>>> 6fbbaad1ffffd156930439440a97eefaf7f5c603:fastapi_admin/registry.py

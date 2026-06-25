@@ -14,11 +14,19 @@ from fastapi import (
     status,
 )
 from fastapi.responses import HTMLResponse, RedirectResponse
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
+<<<<<<< HEAD:fastapi_console/auth/views.py
 from fastapi_console.auth.dependencies import _get_db_session, get_session
+=======
+from fastapi_admin.auth.csrf import CSRF_COOKIE_NAME, require_csrf_token
+from fastapi_admin.auth.dependencies import _get_db_session, get_session
+from fastapi_admin.auth.ratelimit import RateLimiter, _client_ip, check_rate_limit
+>>>>>>> 6fbbaad1ffffd156930439440a97eefaf7f5c603:fastapi_admin/auth/views.py
 
 router = APIRouter()
+
+_login_rate_limiter = RateLimiter(max_attempts=5, window_seconds=900)
 
 
 def _is_safe_url(url: str | None) -> bool:
@@ -37,14 +45,16 @@ async def login_get(
 ) -> HTMLResponse:
     """GET /admin/login — show login page, redirect if already logged in."""
     if session_payload is not None:
-        # Already logged in — redirect to admin dashboard or next URL
         target = next if _is_safe_url(next) else "/admin/"
         return RedirectResponse(url=target, status_code=status.HTTP_302_FOUND)
 
-    # Render login template
     jinja_env = request.app.state.admin_jinja_env
     template = jinja_env.get_template("pages/login.html")
-    return HTMLResponse(template.render())
+    csrf_token = getattr(request.state, "csrf_token", "")
+    return HTMLResponse(template.render({
+        "request": request,
+        "csrf_token": csrf_token,
+    }))
 
 
 @router.post("/login", response_model=None)
@@ -53,28 +63,32 @@ async def login_post(
     email: str = Form(...),
     password: str = Form(...),
     next: str | None = Form(None),
-    session: Session = Depends(_get_db_session),
+    session: AsyncSession = Depends(_get_db_session),
+    _csrf: bool = Depends(require_csrf_token),
 ) -> HTMLResponse | RedirectResponse:
     """POST /admin/login — process login form."""
+    client_ip = _client_ip(request)
+    check_rate_limit(_login_rate_limiter, client_ip)
+
     auth_backend = request.app.state.admin_auth_backend
     user = await auth_backend.authenticate(email, password, session)
-    if user is not None:
-        # Update last_login
-        user.last_login = datetime.now(UTC)
-        session.add(user)
-        session.commit()
 
-        # Create session cookie
+    if user is not None:
+        _login_rate_limiter.reset(client_ip)
+        user.last_login = datetime.now(UTC)
+        await session.merge(user)
+        await session.commit()
+
         session_backend = request.app.state.admin_session_backend
         session_data = {"user_id": user.id}
         token = session_backend.encode(session_data)
 
-        # Determine redirect target
         if next and _is_safe_url(next):
             redirect_url = next
         else:
             redirect_url = "/admin/"
 
+        samesite = getattr(request.app.state.admin_state, "session_samesite", "strict")
         response = RedirectResponse(
             url=redirect_url, status_code=status.HTTP_302_FOUND
         )
@@ -85,19 +99,25 @@ async def login_post(
             path="/",
             secure=session_backend.secure,
             httponly=True,
-            samesite="lax",
+            samesite=samesite,
         )
         return response
 
-    # Login failed — re-render with error
+    _login_rate_limiter.record_attempt(client_ip)
+
     jinja_env = request.app.state.admin_jinja_env
     template = jinja_env.get_template("pages/login.html")
+    csrf_token = getattr(request.state, "csrf_token", "")
+    remaining = _login_rate_limiter.remaining_seconds(client_ip)
+    error_msg = "Invalid email or password. Please try again."
+    if _login_rate_limiter.is_rate_limited(client_ip):
+        error_msg = f"Too many failed attempts. Try again in {remaining} seconds."
     return HTMLResponse(
-        template.render(
-            {
-                "error": "Invalid email or password. Please try again.",
-            }
-        ),
+        template.render({
+            "request": request,
+            "error": error_msg,
+            "csrf_token": csrf_token,
+        }),
         status_code=status.HTTP_200_OK,
     )
 
@@ -106,16 +126,16 @@ async def login_post(
 async def logout_post(
     request: Request,
     session_payload: dict[str, Any] | None = Depends(get_session),
+    _csrf: bool = Depends(require_csrf_token),
 ) -> RedirectResponse:
     """POST /admin/logout — clear session and redirect to login."""
     if session_payload is not None:
-        # Call auth backend's on_logout if available
         auth_backend = request.app.state.admin_auth_backend
         if hasattr(auth_backend, "on_logout"):
             await auth_backend.on_logout(session_payload.get("user_id"))
 
-    # Clear session cookie
     session_backend = request.app.state.admin_session_backend
+    samesite = getattr(request.app.state.admin_state, "session_samesite", "strict")
     response = RedirectResponse(
         url="/admin/login", status_code=status.HTTP_302_FOUND
     )
@@ -124,6 +144,10 @@ async def logout_post(
         path="/",
         secure=session_backend.secure,
         httponly=True,
-        samesite="lax",
+        samesite=samesite,
+    )
+    response.delete_cookie(
+        key=CSRF_COOKIE_NAME,
+        path="/",
     )
     return response

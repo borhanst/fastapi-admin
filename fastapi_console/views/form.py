@@ -1,13 +1,15 @@
-"""Create and edit form handler factories."""
+"""Create and edit form handler factories.
+
+Backward-compatible wrappers — delegate to CreateView/EditView classes.
+"""
 
 from __future__ import annotations
 
 from typing import Any
 
-from fastapi import HTTPException, Request
-from fastapi.responses import RedirectResponse
-from starlette.datastructures import UploadFile
+from fastapi import Request
 
+<<<<<<< HEAD:fastapi_console/views/form.py
 from fastapi_console.flash import add_flash
 from fastapi_console.form.pipeline import build_form_context
 from fastapi_console.registry import RegisteredModel
@@ -115,32 +117,36 @@ def create_form_factory(registered: RegisteredModel):
         )
     create_form.__name__ = f"create_form_{registered.table_name}"
     return create_form
+=======
+from fastapi_admin.registry import RegisteredModel
+
+
+def create_form_factory(registered: RegisteredModel):
+    """Create form display handler — delegates to CreateView.html_response."""
+    from fastapi_admin.views.class_views import CreateView, _resolve_view_class
+
+    view_class = _resolve_view_class(registered.admin, "create_view_class", CreateView)
+    view_instance = view_class(registered)
+
+    async def _handler(request: Request, **kwargs: Any):
+        return await view_instance.html_response(request, **kwargs)
+
+    _handler.__name__ = f"create_form_{registered.table_name}"
+    return _handler
+>>>>>>> 6fbbaad1ffffd156930439440a97eefaf7f5c603:fastapi_admin/views/form.py
 
 
 def create_submit_factory(registered: RegisteredModel):
-    async def create_submit(request: Request, _: Any = None):
-        templates = request.app.state.admin_jinja_env
-        session = request.app.state.admin_db_session
-        form_data = await request.form()
-        parsed: dict[str, Any] = {}
-        errors: dict[str, list[str]] = {}
+    """Create form submission handler — delegates to CreateView.html_response."""
+    from fastapi_admin.views.class_views import CreateView, _resolve_view_class
 
-        for field_meta in registered.form_fields:
-            if field_meta.readonly:
-                continue
-            widget = registered.get_widget(field_meta.name)
+    view_class = _resolve_view_class(registered.admin, "create_view_class", CreateView)
+    view_instance = view_class(registered)
 
-            if isinstance(widget, _FILE_WIDGET_TYPES):
-                await _handle_file_field(
-                    request, widget, field_meta, form_data,
-                    obj=None, action=None,
-                    parsed=parsed, errors=errors,
-                )
-                if field_meta.name not in errors and field_meta.name not in parsed:
-                    # No upload and not required — set None
-                    parsed[field_meta.name] = None
-                continue
+    async def _handler(request: Request, **kwargs: Any):
+        return await view_instance.html_response(request, **kwargs)
 
+<<<<<<< HEAD:fastapi_console/views/form.py
             raw = form_data.get(field_meta.name)
             value = widget.parse(raw)
             field_errors = widget.validate(value, field_meta)
@@ -194,33 +200,37 @@ def edit_form_factory(registered: RegisteredModel):
         )
     edit_form.__name__ = f"edit_form_{registered.table_name}"
     return edit_form
+=======
+    _handler.__name__ = f"create_submit_{registered.table_name}"
+    return _handler
+
+
+def edit_form_factory(registered: RegisteredModel):
+    """Edit form display handler — delegates to EditView.html_response."""
+    from fastapi_admin.views.class_views import EditView, _resolve_view_class
+
+    view_class = _resolve_view_class(registered.admin, "edit_view_class", EditView)
+    view_instance = view_class(registered)
+
+    async def _handler(request: Request, **kwargs: Any):
+        return await view_instance.html_response(request, **kwargs)
+
+    _handler.__name__ = f"edit_form_{registered.table_name}"
+    return _handler
+>>>>>>> 6fbbaad1ffffd156930439440a97eefaf7f5c603:fastapi_admin/views/form.py
 
 
 def edit_submit_factory(registered: RegisteredModel):
-    async def edit_submit(request: Request, id: str, _: Any = None):
-        templates = request.app.state.admin_jinja_env
-        session = request.app.state.admin_db_session
-        obj = await session.get(registered.model, id)
-        if not obj:
-            raise HTTPException(status_code=404, detail="Not found")
-        form_data = await request.form()
-        parsed: dict[str, Any] = {}
-        errors: dict[str, list[str]] = {}
+    """Edit form submission handler — delegates to EditView.html_response."""
+    from fastapi_admin.views.class_views import EditView, _resolve_view_class
 
-        for field_meta in registered.form_fields:
-            if field_meta.readonly:
-                continue
-            widget = registered.get_widget(field_meta.name)
+    view_class = _resolve_view_class(registered.admin, "edit_view_class", EditView)
+    view_instance = view_class(registered)
 
-            if isinstance(widget, _FILE_WIDGET_TYPES):
-                action = form_data.get(f"_action_{field_meta.name}", "keep")
-                await _handle_file_field(
-                    request, widget, field_meta, form_data,
-                    obj=obj, action=action,
-                    parsed=parsed, errors=errors,
-                )
-                continue
+    async def _handler(request: Request, **kwargs: Any):
+        return await view_instance.html_response(request, **kwargs)
 
+<<<<<<< HEAD:fastapi_console/views/form.py
             raw = form_data.get(field_meta.name)
             value = widget.parse(raw)
             field_errors = widget.validate(value, field_meta)
@@ -255,3 +265,7 @@ def edit_submit_factory(registered: RegisteredModel):
         return RedirectResponse(url=url, status_code=303)
     edit_submit.__name__ = f"edit_submit_{registered.table_name}"
     return edit_submit
+=======
+    _handler.__name__ = f"edit_submit_{registered.table_name}"
+    return _handler
+>>>>>>> 6fbbaad1ffffd156930439440a97eefaf7f5c603:fastapi_admin/views/form.py

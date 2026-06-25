@@ -23,7 +23,17 @@ from fastapi_console.types import (
     RelationMeta,
     SeedRole,
 )
-from fastapi_console.views import ModelAdmin
+from fastapi_console.views import (
+    AdminExtra,
+    BaseView,
+    BulkView,
+    CreateView,
+    DeleteView,
+    EditView,
+    ListView,
+    ModelAdmin,
+    SearchView,
+)
 
 __all__ = [
     "Admin",
@@ -47,5 +57,15 @@ __all__ = [
     "FieldsetContext",
     "FieldsetSpec",
     "FormContext",
+    # View classes
+    "BaseView",
+    "ListView",
+    "CreateView",
+    "EditView",
+    "DeleteView",
+    "BulkView",
+    "SearchView",
+    # Per-model assets
+    "AdminExtra",
 ]
 __version__ = "0.1.5"
