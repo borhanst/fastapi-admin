@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import datetime
-from dataclasses import dataclass, field, asdict
+from dataclasses import asdict, dataclass
 from typing import Any
 
 
@@ -30,7 +30,7 @@ class AuditEvent:
 
     def __post_init__(self) -> None:
         if self.timestamp is None:
-            self.timestamp = datetime.datetime.now(datetime.timezone.utc)
+            self.timestamp = datetime.datetime.now(datetime.UTC)
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize the event to a dictionary."""

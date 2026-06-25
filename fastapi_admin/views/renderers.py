@@ -13,6 +13,7 @@ from fastapi import Request
 from fastapi.responses import Response
 from starlette.datastructures import UploadFile
 
+from fastapi_admin.db import get_db_session
 from fastapi_admin.registry import RegisteredModel
 from fastapi_admin.validation import FormValidator
 from fastapi_admin.widgets.inputs import FileUploadWidget, ImageUploadWidget
@@ -34,7 +35,7 @@ async def _resolve_permission_checker(request: Request) -> Any:
     if user is None:
         return None
 
-    async_session = getattr(request.app.state, "admin_db_session", None)
+    async_session = get_db_session(request)
     if async_session is None:
         return None
 
@@ -408,7 +409,7 @@ class DefaultQueryProvider:
         """
         from sqlalchemy import and_, asc, desc, func, or_, select
 
-        session = request.app.state.admin_db_session
+        session = get_db_session(request)
         registered = self.registered
         model = registered.model
         base = select(model)
@@ -578,5 +579,5 @@ class DefaultQueryProvider:
 
     async def get_object(self, request: Request, id: Any) -> Any | None:
         """Return a single object by primary key."""
-        session = request.app.state.admin_db_session
+        session = get_db_session(request)
         return await session.get(self.registered.model, id)

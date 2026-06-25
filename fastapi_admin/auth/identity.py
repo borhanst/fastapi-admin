@@ -42,12 +42,17 @@ def _get_auth_backend(request: Request) -> Any:
     return getattr(request.app.state, "admin_auth_backend", None)
 
 
-def _get_db_session(request: Request) -> "AsyncSession | None":
-    """Return the shared async DB session from app state, or ``None``."""
-    return getattr(request.app.state, "admin_db_session", None)
+def _get_db_session(request: Request) -> AsyncSession | None:
+    """Return the per-request DB session, falling back to app.state."""
+    from fastapi_admin.db import get_db_session
+
+    try:
+        return get_db_session(request)
+    except AttributeError:
+        return None
 
 
-async def resolve_user(request: Request, user_id: int | str | None) -> "AdminUserProtocol | None":
+async def resolve_user(request: Request, user_id: int | str | None) -> AdminUserProtocol | None:
     """Resolve *user_id* to an active user and cache it on the request.
 
     Idempotent for a given request: if ``request.state.admin_user`` is already
@@ -90,7 +95,7 @@ def _decode_cookie_payload(request: Request) -> dict[str, Any] | None:
     return backend.decode(token) if token else None
 
 
-async def get_current_user_from_cookie(request: Request) -> "AdminUserProtocol | None":
+async def get_current_user_from_cookie(request: Request) -> AdminUserProtocol | None:
     """Resolve the current user from the signed ``admin_session`` cookie.
 
     Returns ``None`` when there is no valid session. Does not raise — callers
@@ -102,7 +107,7 @@ async def get_current_user_from_cookie(request: Request) -> "AdminUserProtocol |
     return await resolve_user(request, payload.get("user_id"))
 
 
-async def get_current_user_from_bearer(request: Request) -> "AdminUserProtocol | None":
+async def get_current_user_from_bearer(request: Request) -> AdminUserProtocol | None:
     """Resolve the current user from an ``Authorization: Bearer <jwt>`` header.
 
     Returns ``None`` when the header is absent or the token is invalid/expired.

@@ -6,10 +6,10 @@
 
 {% block breadcrumb %}
 {{ super() }}
-<span class="text-[var(--color-gray-400)]">/</span>
-<a href="{{ admin_path | default('/admin') }}/{{ registered.table_name }}/" class="hover:text-[var(--color-primary-600)] transition-colors">{{ registered.verbose_name_plural }}</a>
-<span class="text-[var(--color-gray-400)]">/</span>
-<span class="text-[var(--color-gray-900)] font-medium">{% if obj %}Edit {{ obj }}{% else %}Create{% endif %}</span>
+<span class="breadcrumb-separator">/</span>
+<a href="{{ admin_path | default('/admin') }}/{{ registered.table_name }}/" class="breadcrumb-segment hover:text-[var(--color-primary-600)] transition-colors">{{ registered.verbose_name_plural }}</a>
+<span class="breadcrumb-separator">/</span>
+<span class="breadcrumb-current">{% if obj %}Edit {{ obj }}{% else %}Create{% endif %}</span>
 {% endblock %}
 
 {% block content %}
@@ -17,7 +17,7 @@
   <div class="page-header">
     <div class="page-header-left">
       <a href="{{ admin_path | default('/admin') }}/{{ registered.table_name }}/" class="page-header-back">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <use href="/static/icons/heroicons.svg#chevron-left"/>
         </svg>
         {{ registered.verbose_name_plural }}
@@ -63,26 +63,26 @@
 
     {% if fieldsets %}
     {% for fieldset in fieldsets %}
-    <div class="bg-white rounded-xl border border-[var(--color-gray-200)]" x-data="{ open: true }">
+    <div class="fieldset" x-data="{ open: true }">
       <button type="button" @click="open = !open"
-              class="w-full flex items-center justify-between px-6 py-4 text-left border-b border-[var(--color-gray-200)] hover:bg-[var(--color-gray-50)] transition-colors">
-        <span class="font-semibold text-[var(--color-gray-900)]">{{ fieldset.title | default("General") }}</span>
-        <svg class="w-5 h-5 text-[var(--color-gray-500)] transition-transform" :class="{ 'rotate-180': open }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <use href="/static/icons/heroicons.svg#chevron-right"/>
-        </svg>
+              class="fieldset__header" style="cursor: pointer; background: none; border: none; width: 100%; text-align: left;">
+        <span class="fieldset__title">{{ fieldset.title or "General" }}</span>
+        <span class="fieldset__toggle" :style="open ? 'transform: rotate(180deg)' : ''">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <use href="/static/icons/heroicons.svg#chevron-right"/>
+          </svg>
+        </span>
       </button>
-      <div x-show="open" x-collapse class="p-6">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {% for field in fieldset.fields %}
-          {{ render_field(field, registered.table_name) }}
-          {% endfor %}
-        </div>
+      <div x-show="open" x-collapse class="fieldset__fields">
+        {% for field in fieldset.fields %}
+        {{ render_field(field, registered.table_name) }}
+        {% endfor %}
       </div>
     </div>
     {% endfor %}
     {% else %}
-    <div class="bg-white rounded-xl border border-[var(--color-gray-200)] p-6">
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div class="fieldset">
+      <div class="fieldset__fields">
         {% for field in form_fields %}
         {{ render_field(field, registered.table_name) }}
         {% endfor %}
@@ -90,18 +90,18 @@
     </div>
     {% endif %}
 
-    <div class="sticky bottom-0 bg-white border border-[var(--color-gray-200)] rounded-xl p-4 flex items-center justify-between">
-      <div class="text-sm text-[var(--color-gray-500)]" x-show="unsaved" x-transition>
+    <div class="sticky bottom-0 flex items-center justify-between p-4" style="background: var(--surface-base); border: 1px solid var(--surface-border); border-radius: var(--radius-lg);">
+      <div class="text-sm" style="color: var(--text-secondary);" x-show="unsaved" x-transition>
         You have unsaved changes
       </div>
       <div class="flex items-center gap-3 ml-auto">
         <a href="{{ admin_path | default('/admin') }}/{{ registered.table_name }}/"
-           class="px-4 py-2 rounded-lg border border-[var(--color-gray-300)] text-sm text-[var(--color-gray-700)] hover:bg-[var(--color-gray-50)] transition-colors">
+           class="btn btn-secondary">
           Cancel
         </a>
         <button type="submit"
                 @click="unsaved = false"
-                class="btn-primary px-4 py-2 rounded-lg bg-[var(--color-primary-600)] text-white text-sm font-medium hover:bg-[var(--color-primary-500)] transition-colors">
+                class="btn btn-primary">
           {% if obj %}Save Changes{% else %}Create {{ registered.verbose_name }}{% endif %}
         </button>
       </div>

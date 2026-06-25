@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-
 PRESET_DEFAULTS: dict[str, dict[str, str]] = {
     "editorial": {
         "surface_base": "#FAF8F5",

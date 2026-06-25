@@ -62,8 +62,9 @@ class AdminRouter:
 
         templates_dir = Path(__file__).parent / "templates"
         jinja_env = Jinja2Templates(directory=str(templates_dir))
-        slugify = lambda s: (
-            re.sub(r"[^\w]", "-", s, flags=re.A).strip("-").lower()
-        )
+
+        def slugify(s: str) -> str:
+            return re.sub(r"[^\w]", "-", s, flags=re.A).strip("-").lower()
+
         jinja_env.env.filters["slugify"] = slugify
         app.state.admin_jinja_env = jinja_env

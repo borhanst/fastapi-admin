@@ -50,7 +50,7 @@ def attach_audit_listener(
         bus = AuditEventBus()
 
     # Wire up the default DB logger if not already subscribed
-    has_db_logger = any(
+    _has_db_logger = any(
         isinstance(ln, SqlAlchemyAuditLogger)
         for listeners in bus._listeners.values()
         for ln in listeners

@@ -4,23 +4,21 @@ from __future__ import annotations
 
 from sqlalchemy import (
     JSON,
+    UUID,
     BigInteger,
     Boolean,
     Date,
     DateTime,
     Enum,
     Float,
-    ForeignKey,
     Integer,
     LargeBinary,
     Numeric,
     String,
     Text,
     Time,
-    UUID,
 )
 from sqlalchemy.types import TypeEngine
-
 
 # Widget name constants
 TEXT_INPUT = "text_input"

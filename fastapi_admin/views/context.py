@@ -9,6 +9,7 @@ from fastapi import Request
 from sqlalchemy import and_, asc, desc, func, or_, select
 from sqlalchemy.orm import joinedload
 
+from fastapi_admin.db import get_db_session
 from fastapi_admin.registry import RegisteredModel
 from fastapi_admin.types import PermissionSet
 from fastapi_admin.views.sidebar import inject_sidebar_context
@@ -185,7 +186,7 @@ class ViewContextBuilder:
 
         Returns a dict suitable for passing to TemplateResponse.
         """
-        session = request.app.state.admin_db_session
+        session = get_db_session(request)
         model = registered.model
         base = select(model)
 
@@ -243,7 +244,7 @@ class ViewContextBuilder:
                 if filter_value:
                     active_filters[filter_field] = filter_value
 
-            # Support range filters: filter_field__gte, filter_field__lte, filter_field__from, filter_field__to
+            # Support range filters: filter_field__gte, filter_field__lte, etc.
             for filter_field in registered.admin.list_filter:
                 gte_val = request.query_params.get(f"filter_{filter_field}__gte", "")
                 lte_val = request.query_params.get(f"filter_{filter_field}__lte", "")
@@ -254,12 +255,14 @@ class ViewContextBuilder:
                     col = getattr(model, filter_field)
                     if gte_val:
                         try:
-                            filter_clauses.append(col >= type(col.property.columns[0].type)().coerce(gte_val))
+                            col_type = type(col.property.columns[0].type)
+                            filter_clauses.append(col >= col_type().coerce(gte_val))
                         except Exception:
                             pass
                     if lte_val:
                         try:
-                            filter_clauses.append(col <= type(col.property.columns[0].type)().coerce(lte_val))
+                            col_type = type(col.property.columns[0].type)
+                            filter_clauses.append(col <= col_type().coerce(lte_val))
                         except Exception:
                             pass
 
@@ -387,6 +390,7 @@ class ViewContextBuilder:
         errors: dict[str, list[str]] | None = None,
         is_create: bool = False,
         permission_checker: Any = None,
+        rel_labels: dict[str, str] | None = None,
     ) -> dict[str, Any]:
         """Build the template context for a form view.
 
@@ -401,6 +405,7 @@ class ViewContextBuilder:
             errors=errors,
             request=request,
             is_create=is_create,
+            rel_labels=rel_labels,
         )
         template_context = {
             "form_context": ctx,
@@ -415,10 +420,18 @@ class ViewContextBuilder:
             else PermissionSet(can_view=True, can_create=True, can_edit=True, can_delete=True),
             "detail_actions": registered.admin.get_detail_actions(),
             "submit_line_actions": registered.admin.get_submit_line_actions(),
-            "conditional_fields": getattr(registered.admin, "conditional_fields", {}),
-            "warn_unsaved_form": getattr(registered.admin, "warn_unsaved_form", True),
-            "compressed_fields": getattr(registered.admin, "compressed_fields", True),
-            "change_form_show_cancel_button": getattr(registered.admin, "change_form_show_cancel_button", True),
+            "conditional_fields": getattr(
+                registered.admin, "conditional_fields", {}
+            ),
+            "warn_unsaved_form": getattr(
+                registered.admin, "warn_unsaved_form", True
+            ),
+            "compressed_fields": getattr(
+                registered.admin, "compressed_fields", True
+            ),
+            "change_form_show_cancel_button": getattr(
+                registered.admin, "change_form_show_cancel_button", True
+            ),
         }
         inject_sidebar_context(request, template_context)
         return template_context

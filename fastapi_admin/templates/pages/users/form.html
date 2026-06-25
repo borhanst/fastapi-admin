@@ -5,10 +5,10 @@
 
 {% block breadcrumb %}
 {{ super() }}
-<span class="text-[var(--color-gray-400)]">/</span>
-<a href="{{ admin_path | default('/admin') }}/users/" class="hover:text-[var(--color-primary-600)] transition-colors">Users</a>
-<span class="text-[var(--color-gray-400)]">/</span>
-<span class="text-[var(--color-gray-900)] font-medium">{% if user %}{{ user.email }}{% else %}Create{% endif %}</span>
+<span class="breadcrumb-separator">/</span>
+<a href="{{ admin_path | default('/admin') }}/users/" class="breadcrumb-segment">Users</a>
+<span class="breadcrumb-separator">/</span>
+<span class="breadcrumb-current">{% if user %}{{ user.email }}{% else %}Create{% endif %}</span>
 {% endblock %}
 
 {% block content %}
@@ -16,7 +16,7 @@
   <div class="page-header">
     <div class="page-header-left">
       <a href="{{ admin_path | default('/admin') }}/users/" class="page-header-back">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <use href="/static/icons/heroicons.svg#chevron-left"/>
         </svg>
         Users
@@ -28,8 +28,13 @@
   </div>
 
   {% if error %}
-  <div class="p-4 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
-    {{ error }}
+  <div class="p-4 rounded-lg bg-red-50 border border-red-200">
+    <div class="flex items-center gap-2 text-red-700 text-sm">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <use href="/static/icons/heroicons.svg#exclamation-triangle"/>
+      </svg>
+      {{ error }}
+    </div>
   </div>
   {% endif %}
 
@@ -37,30 +42,31 @@
         class="space-y-6">
     <input type="hidden" name="csrf_token" value="{{ get_csrf_token(request) }}">
 
-    <div class="bg-white rounded-xl border border-[var(--color-gray-200)] p-6">
-      <h2 class="text-lg font-semibold text-[var(--color-gray-900)] mb-4">User Details</h2>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <label for="email" class="block text-sm font-medium text-[var(--color-gray-700)] mb-1">Email</label>
+    <div class="fieldset">
+      <div class="fieldset__header">
+        <h3 class="fieldset__title">User Details</h3>
+      </div>
+      <div class="fieldset__fields">
+        <div class="field-wrapper">
+          <label for="email" class="field-label">Email</label>
           <input type="email" id="email" name="email" value="{{ user.email | default('') }}" required
-                 class="form-input w-full px-4 py-2.5 rounded-lg border border-[var(--color-gray-300)] bg-white text-[var(--color-gray-900)] focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)] transition-colors">
+                 class="form-input">
         </div>
-        <div>
-          <label for="full_name" class="block text-sm font-medium text-[var(--color-gray-700)] mb-1">Full Name</label>
+        <div class="field-wrapper">
+          <label for="full_name" class="field-label">Full Name</label>
           <input type="text" id="full_name" name="full_name" value="{{ user.full_name | default('') }}"
-                 class="form-input w-full px-4 py-2.5 rounded-lg border border-[var(--color-gray-300)] bg-white text-[var(--color-gray-900)] focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)] transition-colors">
+                 class="form-input">
         </div>
-        <div>
-          <label for="password" class="block text-sm font-medium text-[var(--color-gray-700)] mb-1">
+        <div class="field-wrapper">
+          <label for="password" class="field-label">
             Password {% if user %}(leave blank to keep current){% endif %}
           </label>
           <input type="password" id="password" name="password" {% if not user %}required{% endif %}
-                 class="form-input w-full px-4 py-2.5 rounded-lg border border-[var(--color-gray-300)] bg-white text-[var(--color-gray-900)] focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)] transition-colors">
+                 class="form-input">
         </div>
-        <div>
-          <label for="role_id" class="block text-sm font-medium text-[var(--color-gray-700)] mb-1">Role</label>
-          <select id="role_id" name="role_id"
-                  class="form-input w-full px-4 py-2.5 rounded-lg border border-[var(--color-gray-300)] bg-white text-[var(--color-gray-900)] focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)] transition-colors">
+        <div class="field-wrapper">
+          <label for="role_id" class="field-label">Role</label>
+          <select id="role_id" name="role_id" class="form-select">
             <option value="">No role</option>
             {% for role in roles %}
             <option value="{{ role.id }}" {% if user and user.role_id == role.id %}selected{% endif %}>{{ role.name }}</option>
@@ -70,30 +76,30 @@
       </div>
 
       <div class="mt-6 flex items-center gap-6">
-        <label class="flex items-center gap-2">
+        <label class="flex items-center gap-2 cursor-pointer">
           <input type="checkbox" name="is_superuser" value="on"
                  {% if user and user.is_superuser %}checked{% endif %}
-                 class="rounded border-[var(--color-gray-300)] text-[var(--color-primary-600)] focus:ring-[var(--color-primary-500)]">
-          <span class="text-sm text-[var(--color-gray-700)]">Superuser</span>
+                 class="matrix-checkbox">
+          <span class="text-sm" style="color: var(--text-primary);">Superuser</span>
         </label>
         {% if user %}
-        <label class="flex items-center gap-2">
+        <label class="flex items-center gap-2 cursor-pointer">
           <input type="checkbox" name="is_active" value="on"
                  {% if user.is_active %}checked{% endif %}
-                 class="rounded border-[var(--color-gray-300)] text-[var(--color-primary-600)] focus:ring-[var(--color-primary-500)]">
-          <span class="text-sm text-[var(--color-gray-700)]">Active</span>
+                 class="matrix-checkbox">
+          <span class="text-sm" style="color: var(--text-primary);">Active</span>
         </label>
         {% endif %}
       </div>
     </div>
 
-    <div class="sticky bottom-0 bg-white border border-[var(--color-gray-200)] rounded-xl p-4 flex items-center justify-end gap-3">
+    <div class="sticky bottom-0 flex items-center justify-end gap-3 p-4" style="background: var(--surface-base); border: 1px solid var(--surface-border); border-radius: var(--radius-lg);">
       <a href="{{ admin_path | default('/admin') }}/users/"
-         class="px-4 py-2 rounded-lg border border-[var(--color-gray-300)] text-sm text-[var(--color-gray-700)] hover:bg-[var(--color-gray-50)] transition-colors">
+         class="btn btn-secondary">
         Cancel
       </a>
       <button type="submit"
-              class="btn-primary px-4 py-2 rounded-lg bg-[var(--color-primary-600)] text-white text-sm font-medium hover:bg-[var(--color-primary-500)] transition-colors">
+              class="btn btn-primary">
         {% if user %}Save Changes{% else %}Create User{% endif %}
       </button>
     </div>

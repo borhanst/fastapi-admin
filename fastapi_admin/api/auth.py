@@ -17,6 +17,7 @@ from fastapi_admin.api.schemas import (
     TokenResponse,
 )
 from fastapi_admin.auth.ratelimit import RateLimiter, check_rate_limit
+from fastapi_admin.db import get_db_session
 
 router = APIRouter(prefix="/auth", tags=["api-auth"])
 
@@ -157,7 +158,7 @@ async def obtain_token(
     if auth_backend is None:
         raise HTTPException(status_code=500, detail="Auth backend not configured.")
 
-    db_session = getattr(request.app.state, "admin_db_session", None)
+    db_session = get_db_session(request)
     if db_session is None:
         raise HTTPException(status_code=500, detail="Database session not available.")
 
@@ -203,7 +204,7 @@ async def refresh_token(
     body: RefreshRequest,
 ) -> RefreshResponse:
     """POST /api/auth/refresh — exchange refresh token for new access token."""
-    db_session = getattr(request.app.state, "admin_db_session", None)
+    db_session = get_db_session(request)
     if db_session is None:
         raise HTTPException(status_code=500, detail="Database session not available.")
 
@@ -271,7 +272,7 @@ async def api_logout(
 ) -> dict[str, str]:
     """POST /api/auth/logout — revoke refresh token."""
     if body and body.refresh_token:
-        db_session = getattr(request.app.state, "admin_db_session", None)
+        db_session = get_db_session(request)
         if db_session:
             from sqlalchemy import select
 

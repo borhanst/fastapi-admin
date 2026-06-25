@@ -11,7 +11,7 @@ class AdminTemplate:
 
     def __init__(
         self,
-        title: str = "FastAPI Admin",
+        title: str = "FastAPI Console",
         logo_url: str | None = None,
         favicon_url: str | None = None,
         primary_color: str = "#0ea5e9",
@@ -35,9 +35,10 @@ class AdminTemplate:
 
         templates_dir = Path(__file__).parent.parent / "templates"
         jinja_env = Jinja2Templates(directory=str(templates_dir))
-        slugify = lambda s: (
-            re.sub(r"[^\w]", "-", s, flags=re.A).strip("-").lower()
-        )
+
+        def slugify(s: str) -> str:
+            return re.sub(r"[^\w]", "-", s, flags=re.A).strip("-").lower()
+
         jinja_env.env.filters["slugify"] = slugify
         app.state.admin_jinja_env = jinja_env
 
@@ -53,8 +54,9 @@ class AdminTemplate:
         from sqlalchemy.orm import Session
 
         from fastapi_admin.auth.permissions import PermissionChecker
+        from fastapi_admin.db import get_db_session
 
-        session: Session = request.app.state.admin_db_session
+        session: Session = get_db_session(request)
         checker = (
             PermissionChecker(session=session, user=user) if user else None
         )

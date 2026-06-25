@@ -13,6 +13,7 @@ from typing import Any
 from fastapi import HTTPException, Request
 from fastapi.responses import RedirectResponse, Response
 
+from fastapi_admin.db import get_db_session
 from fastapi_admin.flash import add_flash
 from fastapi_admin.registry import RegisteredModel
 from fastapi_admin.views.context import DisplayColumn
@@ -82,10 +83,10 @@ class BaseView:
                 item_dict[col.name] = str(getattr(obj, col.name, ""))
         return item_dict
 
-    async def html_response(self, request: Request, **kwargs) -> Response:
+    async def html_response(self, request: Request) -> Response:
         raise NotImplementedError
 
-    async def api_response(self, request: Request, **kwargs) -> Response:
+    async def api_response(self, request: Request) -> Response:
         raise NotImplementedError
 
 
@@ -121,7 +122,7 @@ class ListView(BaseView):
         """Build filter field metadata."""
         if not self.admin.list_filter:
             return {}
-        session = request.app.state.admin_db_session
+        session = get_db_session(request)
         model = self.registered.model
         filter_fields: dict[str, dict[str, Any]] = {}
         for filter_field in self.admin.list_filter:
@@ -196,7 +197,7 @@ class ListView(BaseView):
         return template_context
 
     async def html_response(
-        self, request: Request, q: str = "", page: int = 1, **kwargs: Any
+        self, request: Request, q: str = "", page: int = 1
     ) -> Response:
         checker = await _resolve_permission_checker(request)
         if checker:
@@ -211,7 +212,6 @@ class ListView(BaseView):
         per_page: int = 25,
         q: str = "",
         order: str = "",
-        **kwargs: Any,
     ) -> Any:
         items, total, page, per_page = await self.query_provider.get_list(
             request, q, page
@@ -290,22 +290,28 @@ class CreateView(BaseView):
         self, request: Request, parsed: dict[str, Any]
     ) -> RedirectResponse:
         """Create object in database."""
-        session = request.app.state.admin_db_session
-        obj = self.registered.model(**parsed)
-        self.admin.on_create(obj, request)
-        session.add(obj)
-        await session.commit()
-        self.admin.after_create(obj, request)
-        add_flash(
-            request, "success", f"{self.registered.verbose_name} created."
-        )
+        try:
+            session = get_db_session(request)
+            resolved = self._resolve_rel_keys(parsed)
+            obj = self.registered.model(**resolved)
+            self.admin.on_create(obj, request)
+            session.add(obj)
+            await session.commit()
+            self.admin.after_create(obj, request)
+            add_flash(
+                request, "success", f"{self.registered.verbose_name} created."
+            )
+        except Exception:
+            session = get_db_session(request)
+            await session.rollback()
+            raise
         url = (
             f"{request.app.state.admin_config['admin_path']}"
             f"/{self.registered.table_name}/"
         )
         return RedirectResponse(url=url, status_code=303)
 
-    async def html_response(self, request: Request, **kwargs: Any) -> Response:
+    async def html_response(self, request: Request) -> Response:
         checker = await _resolve_permission_checker(request)
         if checker:
             await checker.load_permissions(self.registered.table_name)
@@ -319,7 +325,7 @@ class CreateView(BaseView):
         # POST
         parsed, errors = await self.form_parser.parse(request)
         if errors:
-            session = request.app.state.admin_db_session
+            session = get_db_session(request)
             await session.rollback()
             ctx = self._build_form_context(
                 request,
@@ -332,12 +338,12 @@ class CreateView(BaseView):
 
         return await self._create_object(request, parsed)
 
-    async def api_response(self, request: Request, **kwargs: Any) -> Any:
+    async def api_response(self, request: Request) -> Any:
         parser = JSONBodyParser(self.registered)
         parsed, errors = await parser.parse(request)
         if errors:
             raise HTTPException(status_code=422, detail=errors)
-        session = request.app.state.admin_db_session
+        session = get_db_session(request)
         obj = self.registered.model(**parsed)
         self.admin.on_create(obj, request)
         session.add(obj)
@@ -353,6 +359,36 @@ class EditView(BaseView):
     form_parser_class = HTMLFormParser
     api_renderer_class = ItemAPIRenderer
 
+    async def _resolve_rel_labels(self, obj: Any, request: Request) -> dict[str, str]:
+        """Resolve display labels for relationship fields from FK values."""
+        from sqlalchemy import inspect as sa_inspect
+
+        from fastapi_admin.inspection import model_display_name
+
+        labels: dict[str, str] = {}
+        if obj is None:
+            return labels
+        try:
+            mapper = sa_inspect(type(obj))
+        except Exception:
+            return labels
+        session = get_db_session(request)
+        for rel_key, rel_prop in mapper.relationships.items():
+            local_cols = [c.key for c in rel_prop.local_columns]
+            if not local_cols:
+                continue
+            fk_val = getattr(obj, local_cols[0], None)
+            if fk_val is None:
+                continue
+            target_cls = rel_prop.mapper.class_
+            try:
+                target = await session.get(target_cls, fk_val)
+                if target is not None:
+                    labels[rel_key] = model_display_name(target)
+            except Exception:
+                labels[rel_key] = str(fk_val)
+        return labels
+
     def _build_form_context(
         self,
         request: Request,
@@ -361,6 +397,7 @@ class EditView(BaseView):
         errors: dict[str, list[str]] | None = None,
         is_create: bool = False,
         checker: Any = None,
+        rel_labels: dict[str, str] | None = None,
     ) -> dict[str, Any]:
         """Build form template context."""
         from fastapi_admin.form.pipeline import (
@@ -376,6 +413,7 @@ class EditView(BaseView):
             errors=errors,
             request=request,
             is_create=is_create,
+            rel_labels=rel_labels,
         )
         template_context = {
             "form_context": ctx,
@@ -403,27 +441,124 @@ class EditView(BaseView):
         inject_sidebar_context(request, template_context)
         return template_context
 
+    def _apply_parsed(self, obj: Any, parsed: dict[str, Any]) -> None:
+        """Apply parsed form/JSON data to an ORM object.
+
+        Relationship fields (e.g. ``"user"``) are resolved to their
+        local foreign-key column (e.g. ``"user_id"``) so that the
+        correct column is persisted by SQLAlchemy.
+        """
+        from sqlalchemy import inspect as sa_inspect
+
+        col_names = {c.name for c in self.registered.columns}
+
+        # Build mapping: relationship key -> local FK column key
+        rel_fk_map: dict[str, str] = {}
+        try:
+            mapper = sa_inspect(type(obj))
+        except Exception:
+            mapper = None
+        if mapper is not None:
+            for rel_key, rel_prop in mapper.relationships.items():
+                local_cols = [c.key for c in rel_prop.local_columns]
+                if local_cols:
+                    rel_fk_map[rel_key] = local_cols[0]
+
+        for key, value in parsed.items():
+            if key in col_names:
+                setattr(obj, key, value)
+            elif key in rel_fk_map:
+                setattr(obj, rel_fk_map[key], value)
+            else:
+                setattr(obj, key, value)
+
+    def _resolve_rel_keys(self, parsed: dict[str, Any]) -> dict[str, Any]:
+        """Convert relationship keys in parsed data to their FK column names."""
+        from sqlalchemy import inspect as sa_inspect
+
+        col_names = {c.name for c in self.registered.columns}
+        rel_fk_map: dict[str, str] = {}
+        try:
+            mapper = sa_inspect(self.registered.model)
+        except Exception:
+            mapper = None
+        if mapper is not None:
+            for rel_key, rel_prop in mapper.relationships.items():
+                local_cols = [c.key for c in rel_prop.local_columns]
+                if local_cols:
+                    rel_fk_map[rel_key] = local_cols[0]
+
+        resolved: dict[str, Any] = {}
+        for key, value in parsed.items():
+            if key in rel_fk_map and key not in col_names:
+                resolved[rel_fk_map[key]] = value
+            else:
+                resolved[key] = value
+        return resolved
+
     async def _update_object(
         self, request: Request, obj: Any, parsed: dict[str, Any]
     ) -> RedirectResponse:
         """Update object in database."""
-        self.admin.on_update(obj, parsed, request)
-        for key, value in parsed.items():
-            setattr(obj, key, value)
-        session = request.app.state.admin_db_session
-        await session.commit()
-        self.admin.after_update(obj, request)
-        add_flash(
-            request, "success", f"{self.registered.verbose_name} updated."
-        )
+        try:
+            self._apply_parsed(obj, parsed)
+            self.admin.on_update(obj, parsed, request)
+            session = get_db_session(request)
+            await session.commit()
+            self.admin.after_update(obj, request)
+            add_flash(
+                request, "success", f"{self.registered.verbose_name} updated."
+            )
+        except Exception:
+            session = get_db_session(request)
+            await session.rollback()
+            raise
         url = (
             f"{request.app.state.admin_config['admin_path']}"
             f"/{self.registered.table_name}/"
         )
         return RedirectResponse(url=url, status_code=303)
 
+    async def _build_detail_context(
+        self,
+        request: Request,
+        obj: Any,
+        checker: Any = None,
+    ) -> dict[str, Any]:
+        """Build read-only detail view context with all fields."""
+        from fastapi_admin.form.pipeline import (
+            build_form_context as _build_form_ctx,
+        )
+        from fastapi_admin.types import PermissionSet
+        from fastapi_admin.views.sidebar import inject_sidebar_context
+
+        rel_labels = await self._resolve_rel_labels(obj, request)
+        ctx = _build_form_ctx(
+            self.registered,
+            obj=obj,
+            request=request,
+            is_create=False,
+            rel_labels=rel_labels,
+        )
+        template_context = {
+            "form_context": ctx,
+            "registered": self.registered,
+            "obj": obj,
+            "form_fields": ctx.fieldsets[0].fields if ctx.fieldsets else [],
+            "fieldsets": ctx.fieldsets,
+            "is_create": False,
+            "permissions": checker.permission_set(self.registered.table_name)
+            if checker
+            else PermissionSet(
+                can_view=True, can_create=True, can_edit=True, can_delete=True
+            ),
+        }
+        template_context.update(self._get_extra_context(request))
+        inject_sidebar_context(request, template_context)
+        return template_context
+
     async def html_response(
-        self, request: Request, id: Any = None, **kwargs: Any
+        self, request: Request, id: Any = None
     ) -> Response:
         obj = await self.query_provider.get_object(request, id)
         if not obj:
@@ -433,17 +568,27 @@ class EditView(BaseView):
         if checker:
             await checker.load_permissions(self.registered.table_name)
 
+        perms = checker.permission_set(self.registered.table_name) if checker else None
+
         if request.method == "GET":
+            if perms and not perms.can_edit and perms.can_view:
+                ctx = await self._build_detail_context(request, obj, checker)
+                return request.app.state.admin_jinja_env.TemplateResponse(
+                    request, "pages/detail.html", ctx
+                )
+            rel_labels = await self._resolve_rel_labels(obj, request)
             ctx = self._build_form_context(
-                request, obj=obj, is_create=False, checker=checker
+                request, obj=obj, is_create=False, checker=checker,
+                rel_labels=rel_labels,
             )
             return await self.html_renderer.render(request, ctx)
 
         # POST
         parsed, errors = await self.form_parser.parse(request, obj=obj)
         if errors:
-            session = request.app.state.admin_db_session
+            session = get_db_session(request)
             await session.rollback()
+            rel_labels = await self._resolve_rel_labels(obj, request)
             ctx = self._build_form_context(
                 request,
                 obj=obj,
@@ -451,6 +596,7 @@ class EditView(BaseView):
                 errors=errors,
                 is_create=False,
                 checker=checker,
+                rel_labels=rel_labels,
             )
             return await self.html_renderer.render(request, ctx)
 
@@ -461,7 +607,6 @@ class EditView(BaseView):
         request: Request,
         id: Any = None,
         item_id: Any = None,
-        **kwargs: Any,
     ) -> Any:
         pk = id or item_id
         obj = await self.query_provider.get_object(request, pk)
@@ -474,12 +619,16 @@ class EditView(BaseView):
         # PUT
         parser = JSONBodyParser(self.registered)
         parsed, _ = await parser.parse(request, obj)
-        self.admin.on_update(obj, parsed, request)
-        for key, value in parsed.items():
-            setattr(obj, key, value)
-        session = request.app.state.admin_db_session
-        await session.commit()
-        self.admin.after_update(obj, request)
+        try:
+            self._apply_parsed(obj, parsed)
+            self.admin.on_update(obj, parsed, request)
+            session = get_db_session(request)
+            await session.commit()
+            self.admin.after_update(obj, request)
+        except Exception:
+            session = get_db_session(request)
+            await session.rollback()
+            raise
         return self._serialize(obj)
 
 
@@ -487,14 +636,14 @@ class DeleteView(BaseView):
     """Orchestrates delete: fetch -> delete -> respond."""
 
     async def html_response(
-        self, request: Request, id: Any = None, **kwargs: Any
+        self, request: Request, id: Any = None
     ) -> Response:
         obj = await self.query_provider.get_object(request, id)
         if not obj:
             raise HTTPException(status_code=404, detail="Not found")
         try:
             self.admin.on_delete(obj, request)
-            session = request.app.state.admin_db_session
+            session = get_db_session(request)
             await session.delete(obj)
             await session.commit()
             self.admin.after_delete(obj, request)
@@ -502,7 +651,7 @@ class DeleteView(BaseView):
                 request, "success", f"{self.registered.verbose_name} deleted."
             )
         except Exception:
-            session = request.app.state.admin_db_session
+            session = get_db_session(request)
             await session.rollback()
             raise
         url = (
@@ -516,14 +665,13 @@ class DeleteView(BaseView):
         request: Request,
         id: Any = None,
         item_id: Any = None,
-        **kwargs: Any,
     ) -> Response:
         pk = id or item_id
         obj = await self.query_provider.get_object(request, pk)
         if not obj:
             raise HTTPException(status_code=404, detail="Not found")
         self.admin.on_delete(obj, request)
-        session = request.app.state.admin_db_session
+        session = get_db_session(request)
         await session.delete(obj)
         await session.commit()
         self.admin.after_delete(obj, request)
@@ -535,8 +683,8 @@ class BulkView(BaseView):
 
     html_renderer_class = ListHTMLRenderer
 
-    async def html_response(self, request: Request, **kwargs: Any) -> Response:
-        session = request.app.state.admin_db_session
+    async def html_response(self, request: Request) -> Response:
+        session = get_db_session(request)
         form = await request.form()
         action = form.get("action", "")
         ids = form.getlist("ids[]")
@@ -563,16 +711,32 @@ class BulkView(BaseView):
                     await session.delete(obj)
             await session.commit()
         else:
-            action_fn = getattr(self.admin, f"action_{action}", None)
-            if not action_fn:
-                raise HTTPException(
-                    status_code=400, detail=f"Unknown action: {action}"
-                )
-            for pid in ids:
-                obj = await session.get(self.registered.model, pid)
-                if obj:
-                    action_fn(obj)
-            await session.commit()
+            action_obj = None
+            for a in self.admin.get_list_actions():
+                if a.name == action:
+                    action_obj = a
+                    break
+
+            if action_obj:
+                objects = []
+                for pid in ids:
+                    obj = await session.get(self.registered.model, pid)
+                    if obj:
+                        objects.append(obj)
+                if objects:
+                    await action_obj.execute(objects, request)
+                await session.commit()
+            else:
+                action_fn = getattr(self.admin, f"action_{action}", None)
+                if not action_fn:
+                    raise HTTPException(
+                        status_code=400, detail=f"Unknown action: {action}"
+                    )
+                for pid in ids:
+                    obj = await session.get(self.registered.model, pid)
+                    if obj:
+                        action_fn(obj)
+                await session.commit()
 
         if is_htmx:
             list_view = ListView(self.registered)
@@ -586,10 +750,10 @@ class BulkView(BaseView):
         )
         return RedirectResponse(url=url, status_code=303)
 
-    async def api_response(self, request: Request, **kwargs: Any) -> Any:
+    async def api_response(self, request: Request) -> Any:
         from fastapi.responses import JSONResponse
 
-        session = request.app.state.admin_db_session
+        session = get_db_session(request)
         content_type = request.headers.get("content-type", "")
         is_json = content_type.startswith("application/json")
         body = await request.json() if is_json else {}
@@ -606,6 +770,23 @@ class BulkView(BaseView):
                     deleted += 1
             await session.commit()
             return JSONResponse({"deleted": deleted})
+
+        action_obj = None
+        for a in self.admin.get_list_actions():
+            if a.name == action:
+                action_obj = a
+                break
+
+        if action_obj:
+            objects = []
+            for pid in ids:
+                obj = await session.get(self.registered.model, pid)
+                if obj:
+                    objects.append(obj)
+            if objects:
+                await action_obj.execute(objects, request)
+            await session.commit()
+            return JSONResponse({"executed": len(objects)})
 
         action_fn = getattr(self.admin, f"action_{action}", None)
         if not action_fn:
@@ -627,12 +808,12 @@ class SearchView(BaseView):
     """Orchestrates search/autocomplete for relation pickers."""
 
     async def html_response(
-        self, request: Request, q: str = "", **kwargs: Any
+        self, request: Request, q: str = ""
     ) -> Any:
         return await self._search(request, q)
 
     async def api_response(
-        self, request: Request, q: str = "", **kwargs: Any
+        self, request: Request, q: str = ""
     ) -> Any:
         return await self._search(request, q)
 
@@ -640,7 +821,7 @@ class SearchView(BaseView):
         from fastapi.responses import JSONResponse
         from sqlalchemy import or_, select
 
-        session = request.app.state.admin_db_session
+        session = get_db_session(request)
         model = self.registered.model
         base = select(model)
 
@@ -668,7 +849,8 @@ class SearchView(BaseView):
         results = []
         for row in rows:
             pk = getattr(row, self.registered.pk_field)
-            label = self.admin.__str__(row)
+            from fastapi_admin.inspection import model_display_name
+            label = model_display_name(row)
             results.append({"id": str(pk), "label": label})
 
         return JSONResponse(results)

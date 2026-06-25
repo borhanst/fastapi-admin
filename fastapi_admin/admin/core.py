@@ -124,7 +124,7 @@ class Admin:
         template: AdminTemplate | None = None,
         # Legacy kwargs for backward compatibility
         base: type | None = None,
-        title: str = "FastAPI Admin",
+        title: str = "FastAPI Console",
         logo_url: str | None = None,
         favicon_url: str | None = None,
         primary_color: str = "#0ea5e9",
@@ -428,6 +428,16 @@ class Admin:
             except RuntimeError:
                 pass  # Already started — middleware was added in __init__
 
+        # Add per-request session middleware
+        if not getattr(self, "_session_middleware_added", False):
+            from fastapi_admin.db import SessionMiddleware
+
+            try:
+                app.add_middleware(SessionMiddleware)
+                self._session_middleware_added = True
+            except RuntimeError:
+                pass
+
         # 0. Validate secret_key strength
         if not self.router.secret_key:
             raise ConfigError(
@@ -584,14 +594,19 @@ class Admin:
         if self.config.ui.theme:
             admin_config.update(self.config.ui.theme.to_context())
 
-        # Create async session if engine is async, else None
+        # Create async session factory if engine is async, else None
         db_session = None
+        session_factory = None
         engine = self.database.engine
         if engine is not None:
-            from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
+            from sqlalchemy.ext.asyncio import AsyncEngine
 
             if isinstance(engine, AsyncEngine):
-                db_session = AsyncSession(engine, expire_on_commit=False)
+                from fastapi_admin.db import create_session_factory
+
+                session_factory = create_session_factory(engine)
+                # Legacy fallback — a single session for backward compat
+                db_session = session_factory()
 
         state = AdminState(
             engine=engine,
@@ -618,6 +633,7 @@ class Admin:
         app.state.admin_storage = state.storage
         app.state.admin_registry = state.registry
         app.state.admin_db_session = state.db_session
+        app.state.admin_session_factory = session_factory
         app.state.admin_config = state.config
         app.state.admin_jinja_env = state.jinja_env
         # Unified signing-key source for sessions, CSRF, and JWT (see AdminState).
@@ -652,11 +668,17 @@ class Admin:
 
         templates_dir = Path(__file__).parent.parent / "templates"
         self._jinja_env = Jinja2Templates(directory=str(templates_dir))
-        slugify = lambda s: (
-            re.sub(r"[^\w]", "-", s, flags=re.A).strip("-").lower()
-        )
+
+        def slugify(s: str) -> str:
+            return re.sub(r"[^\w]", "-", s, flags=re.A).strip("-").lower()
+
+        def _attr(obj: Any, name: str) -> Any:
+            return getattr(obj, name, "")
+
         self._jinja_env.env.filters["slugify"] = slugify
-        self._jinja_env.env.globals["attr"] = lambda obj, name: getattr(obj, name, "")
+        self._jinja_env.env.globals["attr"] = _attr
+        from fastapi_admin.inspection import model_display_name
+        self._jinja_env.env.globals["model_display_name"] = model_display_name
         self._jinja_env.env.globals["registered_models"] = self.registry.all()
         self._jinja_env.env.globals["admin_path"] = self.router.admin_path
         self._jinja_env.env.globals["nav_groups"] = self._nav_groups_built

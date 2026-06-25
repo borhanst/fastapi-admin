@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 
 from fastapi_admin.auth.csrf import require_csrf_token
 from fastapi_admin.auth.dependencies import require_permission
+from fastapi_admin.db import get_db_session
 from fastapi_admin.registry import RegisteredModel
 from fastapi_admin.views.class_views import (
     BulkView,
@@ -141,7 +142,7 @@ def build_model_router(registered: RegisteredModel) -> APIRouter:
         _csrf: bool = Depends(require_csrf_token),
     ):
         """Execute a list-level action on selected objects."""
-        session = request.app.state.admin_db_session
+        session = get_db_session(request)
         form = await request.form()
         ids = form.getlist("ids[]")
 
@@ -175,7 +176,7 @@ def build_model_router(registered: RegisteredModel) -> APIRouter:
         _csrf: bool = Depends(require_csrf_token),
     ):
         """Execute a row-level action on a single object."""
-        session = request.app.state.admin_db_session
+        session = get_db_session(request)
 
         action_obj = None
         for a in registered.admin.get_row_actions():
@@ -209,7 +210,7 @@ def build_model_router(registered: RegisteredModel) -> APIRouter:
         if not ordering_field:
             raise HTTPException(status_code=400, detail="Sorting not configured")
 
-        session = request.app.state.admin_db_session
+        session = get_db_session(request)
         items = body.get("items", [])
         for idx, item_id in enumerate(items):
             obj = await session.get(registered.model, item_id)
@@ -231,7 +232,7 @@ def build_model_router(registered: RegisteredModel) -> APIRouter:
         """Search-as-you-type endpoint for relation pickers."""
         from fastapi.responses import JSONResponse
 
-        session = request.app.state.admin_db_session
+        session = get_db_session(request)
         model = registered.model
         results = []
 
@@ -291,7 +292,7 @@ def build_model_router(registered: RegisteredModel) -> APIRouter:
         if col.type.__class__.__name__ == "Boolean":
             new_value = str(new_value).lower() in ("true", "1", "yes")
 
-        session = request.app.state.admin_db_session
+        session = get_db_session(request)
         try:
             obj = await session.get(registered.model, id)
             if obj is None:

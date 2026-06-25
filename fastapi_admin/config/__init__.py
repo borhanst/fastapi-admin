@@ -1,4 +1,4 @@
-"""Configuration classes for FastAPI Admin."""
+"""Configuration classes for FastAPI Console."""
 
 from fastapi_admin.config.audit import AuditConfig
 from fastapi_admin.config.auth import AuthConfig

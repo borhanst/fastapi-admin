@@ -54,7 +54,6 @@ class LocalStorageBackend(StorageBackend):
             f.write(content)
 
         # Return path relative to upload_dir, using forward slashes
-        rel = str(target_path.relative_to(self.upload_dir)).replace("\\", "/")
         if directory:
             return f"{directory}/{filename}"
         return filename

@@ -31,14 +31,9 @@ def _get_session_backend(request: Request) -> SignedCookieSessionBackend:
 
 async def _get_db_session(request: Request) -> AsyncSession:
     """Yield the async SQLAlchemy session from app.state."""
-    session: AsyncSession | None = getattr(
-        request.app.state, "admin_db_session", None
-    )
-    if session is None:
-        raise HTTPException(
-            status_code=500,
-            detail="Admin database session not initialised.",
-        )
+    from fastapi_admin.db import get_db_session
+
+    session: AsyncSession = get_db_session(request)
     yield session
 
 

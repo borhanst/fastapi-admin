@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-import bcrypt
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any
 
+import bcrypt
+
 if TYPE_CHECKING:
-    from sqlalchemy.ext.asyncio import AsyncSession
 
     from fastapi_admin.auth.protocol import AdminUserProtocol
 
@@ -63,7 +63,7 @@ class BuiltinAuthBackend(AuthBackend):
 
         result = await session.execute(
             select(AdminUser).where(
-                AdminUser.email == email, AdminUser.is_active == True
+                AdminUser.email == email, AdminUser.is_active.is_(True)
             )
         )
         user = result.scalar_one_or_none()
@@ -81,7 +81,7 @@ class BuiltinAuthBackend(AuthBackend):
 
         result = await session.execute(
             select(AdminUser).where(
-                AdminUser.id == user_id, AdminUser.is_active == True
+                AdminUser.id == user_id, AdminUser.is_active.is_(True)
             )
         )
         return result.scalar_one_or_none()

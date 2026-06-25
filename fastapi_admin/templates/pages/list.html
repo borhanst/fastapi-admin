@@ -5,9 +5,22 @@
 
 {% block content %}
 <div class="space-y-6">
+  {# Breadcrumb #}
+  <nav class="breadcrumb">
+    <a href="{{ admin_path | default('/admin') }}/" class="breadcrumb-segment">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <use href="/static/icons/heroicons.svg#home"/>
+      </svg>
+      Dashboard
+    </a>
+    <span class="breadcrumb-separator">/</span>
+    <span class="breadcrumb-current">{{ registered.verbose_name_plural }}</span>
+  </nav>
+
   <div class="page-header">
     <div class="page-header-left">
       <h1 class="page-header-title">{{ registered.verbose_name_plural }}</h1>
+      <p class="page-header-subtitle">Manage your {{ registered.verbose_name_plural | lower }} and inventory</p>
     </div>
     {% if permissions.can_create %}
     <div class="page-header-right">
@@ -18,6 +31,7 @@
     {% endif %}
   </div>
 
+  {# Filter Bar #}
   <div class="filter-bar" x-data="filterBar()">
     <div class="filter-bar-search">
       <svg class="filter-bar-search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -163,19 +177,31 @@
     </div>
   </div>
 
+  {# Bulk Actions Bar — Django-style: always visible above table #}
+  {% if permissions.can_delete or list_actions %}
+  <div class="bulk-bar">
+    <div class="bulk-bar-left">
+      <label class="bulk-bar-label" for="bulk-action-select">Action:</label>
+      <select id="bulk-action-select" name="bulk_action" class="bulk-bar-select">
+        <option value="">---------</option>
+        {% if list_actions %}
+        {% for action in list_actions %}
+        <option value="{{ action.name }}">{{ action.label | default(action.name) }}</option>
+        {% endfor %}
+        {% endif %}
+        {% if permissions.can_delete %}
+        <option value="delete_selected">Delete selected</option>
+        {% endif %}
+      </select>
+    </div>
+    <div class="bulk-bar-right">
+      <button type="button" class="btn btn-primary btn-sm" onclick="executeBulkAction()">Go</button>
+    </div>
+  </div>
+  {% endif %}
+
   {% include "partials/list_table.html" %}
 </div>
-
-{% if permissions.can_delete %}
-<form id="bulk-form" method="post" action="{{ admin_path | default('/admin') }}/{{ registered.table_name }}/bulk"
-      hx-post="{{ admin_path | default('/admin') }}/{{ registered.table_name }}/bulk"
-      hx-target="#table-wrapper"
-      hx-swap="outerHTML"
-      hx-include="[name='csrf_token']"
-      style="display: none;">
-  <input type="hidden" name="csrf_token" value="{{ get_csrf_token(request) }}">
-</form>
-{% endif %}
 
 <script>
 function filterBar() {
@@ -183,6 +209,8 @@ function filterBar() {
     hasSearch: false,
     activeFilters: {{ active_filters | tojson }},
     showColumnPicker: false,
+    init() {
+    },
     setFilter(field, value) {
       if (value) {
         this.activeFilters[field] = value;
@@ -212,6 +240,44 @@ function filterBar() {
       htmx.ajax('GET', url, { target: '#table-wrapper', swap: 'outerHTML' });
     }
   };
+}
+
+function executeBulkAction() {
+  var actionSelect = document.getElementById('bulk-action-select');
+  var selected = document.querySelectorAll('input[name="ids[]"]:checked');
+
+  if (selected.length === 0) {
+    alert('Please select at least one item.');
+    return;
+  }
+  if (!actionSelect.value) {
+    alert('Please select an action.');
+    return;
+  }
+  if (actionSelect.value === 'delete_selected') {
+    if (!confirm('Are you sure you want to delete the selected items?')) {
+      return;
+    }
+  }
+
+  var params = new URLSearchParams();
+  params.append('action', actionSelect.value);
+  params.append('csrf_token', document.querySelector('meta[name="csrf-token"]').content);
+  selected.forEach(function(cb) {
+    params.append('ids[]', cb.value);
+  });
+
+  var xhr = new XMLHttpRequest();
+  xhr.open('POST', '{{ admin_path | default("/admin") }}/{{ registered.table_name }}/bulk', true);
+  xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+  xhr.setRequestHeader('HX-Request', 'true');
+  xhr.onload = function() {
+    window.location.reload();
+  };
+  xhr.onerror = function() {
+    window.location.reload();
+  };
+  xhr.send(params.toString());
 }
 </script>
 {% endblock %}

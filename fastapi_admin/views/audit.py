@@ -3,17 +3,15 @@
 from __future__ import annotations
 
 from datetime import date, datetime
-from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from fastapi.responses import HTMLResponse
 from sqlalchemy import desc, select
 
 from fastapi_admin.audit.models import AuditLog
 from fastapi_admin.auth.dependencies import get_current_admin_user
 from fastapi_admin.auth.protocol import AdminUserProtocol
+from fastapi_admin.db import get_db_session
 from fastapi_admin.views.sidebar import inject_sidebar_context
-
 
 router = APIRouter()
 
@@ -40,7 +38,7 @@ async def audit_list_view(
 ):
     """List audit log entries with filters."""
     templates = request.app.state.admin_jinja_env
-    session = request.app.state.admin_db_session
+    session = get_db_session(request)
 
     query = select(AuditLog)
 
@@ -68,9 +66,13 @@ async def audit_list_view(
     if action:
         total_query = total_query.where(AuditLog.action == action)
     if from_date:
-        total_query = total_query.where(AuditLog.timestamp >= datetime.combine(from_date, datetime.min.time()))
+        total_query = total_query.where(
+            AuditLog.timestamp >= datetime.combine(from_date, datetime.min.time())
+        )
     if to_date:
-        total_query = total_query.where(AuditLog.timestamp <= datetime.combine(to_date, datetime.max.time()))
+        total_query = total_query.where(
+            AuditLog.timestamp <= datetime.combine(to_date, datetime.max.time())
+        )
     if object_id:
         total_query = total_query.where(AuditLog.object_id == object_id)
 
@@ -114,7 +116,7 @@ async def audit_detail_view(
 ):
     """Show detailed audit entry with diff snapshot."""
     templates = request.app.state.admin_jinja_env
-    session = request.app.state.admin_db_session
+    session = get_db_session(request)
 
     entry = await session.get(AuditLog, entry_id)
     if entry is None:

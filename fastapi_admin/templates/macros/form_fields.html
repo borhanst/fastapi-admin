@@ -167,7 +167,7 @@ hx-vals='{"field_name": "{{ field_ctx.meta.name }}"}'
        :class="on ? 'active' : ''"
        @click="on = !on">
     <input type="hidden" name="{{ name }}" :value="on ? '1' : '0'">
-    <input type="checkbox" id="{{ name }}" name="{{ name }}" value="1"
+    <input type="checkbox" id="{{ name }}"
            {% if val %}checked{% endif %}
            {% if field_ctx.meta.readonly %}disabled{% endif %}
            class="sr-only">

@@ -8,6 +8,7 @@ from fastapi import HTTPException, Request
 from fastapi.responses import RedirectResponse
 from starlette.datastructures import UploadFile
 
+from fastapi_admin.db import get_db_session
 from fastapi_admin.flash import add_flash
 from fastapi_admin.registry import RegisteredModel
 from fastapi_admin.validation import FormValidator
@@ -15,6 +16,90 @@ from fastapi_admin.views.context import ViewContextBuilder
 from fastapi_admin.widgets.inputs import FileUploadWidget, ImageUploadWidget
 
 _FILE_WIDGET_TYPES = (FileUploadWidget, ImageUploadWidget)
+
+
+def _apply_parsed_to_obj(obj: Any, parsed: dict[str, Any], registered: RegisteredModel) -> None:
+    """Apply parsed data to an ORM object, mapping relationship names to FK columns."""
+    from sqlalchemy import inspect as sa_inspect
+
+    col_names = {c.name for c in registered.columns}
+    rel_fk_map: dict[str, str] = {}
+    try:
+        mapper = sa_inspect(type(obj))
+    except Exception:
+        mapper = None
+    if mapper is not None:
+        for rel_key, rel_prop in mapper.relationships.items():
+            local_cols = [c.key for c in rel_prop.local_columns]
+            if local_cols:
+                rel_fk_map[rel_key] = local_cols[0]
+
+    for key, value in parsed.items():
+        if key in col_names:
+            setattr(obj, key, value)
+        elif key in rel_fk_map:
+            setattr(obj, rel_fk_map[key], value)
+        else:
+            setattr(obj, key, value)
+
+
+def _resolve_rel_keys(parsed: dict[str, Any], registered: RegisteredModel) -> dict[str, Any]:
+    """Convert relationship keys in parsed data to their FK column names."""
+    from sqlalchemy import inspect as sa_inspect
+
+    col_names = {c.name for c in registered.columns}
+    rel_fk_map: dict[str, str] = {}
+    try:
+        model = registered.model
+        mapper = sa_inspect(model)
+    except Exception:
+        mapper = None
+    if mapper is not None:
+        for rel_key, rel_prop in mapper.relationships.items():
+            local_cols = [c.key for c in rel_prop.local_columns]
+            if local_cols:
+                rel_fk_map[rel_key] = local_cols[0]
+
+    resolved: dict[str, Any] = {}
+    for key, value in parsed.items():
+        if key in rel_fk_map and key not in col_names:
+            resolved[rel_fk_map[key]] = value
+        else:
+            resolved[key] = value
+    return resolved
+
+
+async def _resolve_rel_labels(
+    obj: Any, registered: RegisteredModel, request: Any
+) -> dict[str, str]:
+    """Resolve display labels for relationship fields from FK values."""
+    from sqlalchemy import inspect as sa_inspect
+
+    from fastapi_admin.inspection import model_display_name
+
+    labels: dict[str, str] = {}
+    if obj is None:
+        return labels
+    try:
+        mapper = sa_inspect(registered.model)
+    except Exception:
+        return labels
+    session = get_db_session(request)
+    for rel_key, rel_prop in mapper.relationships.items():
+        local_cols = [c.key for c in rel_prop.local_columns]
+        if not local_cols:
+            continue
+        fk_val = getattr(obj, local_cols[0], None)
+        if fk_val is None:
+            continue
+        target_cls = rel_prop.mapper.class_
+        try:
+            target = await session.get(target_cls, fk_val)
+            if target is not None:
+                labels[rel_key] = model_display_name(target)
+        except Exception:
+            labels[rel_key] = str(fk_val)
+    return labels
 
 
 def _get_storage(request: Request):
@@ -38,7 +123,7 @@ async def _resolve_permission_checker(request: Request) -> Any:
     if user is None:
         return None
 
-    async_session = getattr(request.app.state, "admin_db_session", None)
+    async_session = get_db_session(request)
     if async_session is None:
         return None
 
@@ -200,7 +285,7 @@ class ViewFactory:
         """Create a form submission handler for creating new objects."""
         async def create_submit(request: Request, _: Any = None):
             templates = request.app.state.admin_jinja_env
-            session = request.app.state.admin_db_session
+            session = get_db_session(request)
             form_data = await request.form()
             checker = await _resolve_permission_checker(request)
             if checker:
@@ -218,6 +303,7 @@ class ViewFactory:
                 )
                 return templates.TemplateResponse(request, "pages/form.html", ctx, status_code=422)
 
+            parsed = _resolve_rel_keys(parsed, registered)
             obj = registered.model(**parsed)
             registered.admin.on_create(obj, request)
             session.add(obj)
@@ -233,15 +319,17 @@ class ViewFactory:
         """Create a form display handler for editing existing objects."""
         async def edit_form(request: Request, id: str, _: Any = None):
             templates = request.app.state.admin_jinja_env
-            session = request.app.state.admin_db_session
+            session = get_db_session(request)
             obj = await session.get(registered.model, id)
             if not obj:
                 raise HTTPException(status_code=404, detail="Not found")
             checker = await _resolve_permission_checker(request)
             if checker:
                 await checker.load_permissions(registered.table_name)
+            rel_labels = await _resolve_rel_labels(obj, registered, request)
             ctx = self.context_builder.build_form_context(
-                registered, request, obj=obj, is_create=False, permission_checker=checker
+                registered, request, obj=obj, is_create=False,
+                permission_checker=checker, rel_labels=rel_labels,
             )
             return templates.TemplateResponse(request, "pages/form.html", ctx)
         edit_form.__name__ = f"edit_form_{registered.table_name}"
@@ -251,7 +339,7 @@ class ViewFactory:
         """Create a form submission handler for editing existing objects."""
         async def edit_submit(request: Request, id: str, _: Any = None):
             templates = request.app.state.admin_jinja_env
-            session = request.app.state.admin_db_session
+            session = get_db_session(request)
             obj = await session.get(registered.model, id)
             if not obj:
                 raise HTTPException(status_code=404, detail="Not found")
@@ -266,15 +354,15 @@ class ViewFactory:
 
             if errors:
                 await session.rollback()
+                rel_labels = await _resolve_rel_labels(obj, registered, request)
                 ctx = self.context_builder.build_form_context(
                     registered, request, obj=obj, values=parsed, errors=errors, is_create=False,
-                    permission_checker=checker,
+                    permission_checker=checker, rel_labels=rel_labels,
                 )
                 return templates.TemplateResponse(request, "pages/form.html", ctx, status_code=422)
 
             registered.admin.on_update(obj, parsed, request)
-            for key, value in parsed.items():
-                setattr(obj, key, value)
+            _apply_parsed_to_obj(obj, parsed, registered)
             await session.commit()
             registered.admin.after_update(obj, request)
             add_flash(request, "success", f"{registered.verbose_name} updated.")
@@ -286,7 +374,11 @@ class ViewFactory:
     def create_delete_view(self, registered: RegisteredModel):
         """Create a delete handler for removing objects."""
         async def delete_submit(request: Request, id: str, _: Any = None):
-            session = request.app.state.admin_db_session
+            session = get_db_session(request)
+            try:
+                await session.rollback()
+            except Exception:
+                pass
             obj = await session.get(registered.model, id)
             if not obj:
                 raise HTTPException(status_code=404, detail="Not found")
@@ -296,9 +388,9 @@ class ViewFactory:
                 await session.commit()
                 registered.admin.after_delete(obj, request)
                 add_flash(request, "success", f"{registered.verbose_name} deleted.")
-            except Exception:
+            except Exception as e:
                 await session.rollback()
-                raise
+                add_flash(request, "error", f"Cannot delete: {str(e)}")
             url = f"{request.app.state.admin_config['admin_path']}/{registered.table_name}/"
             return RedirectResponse(url=url, status_code=303)
         delete_submit.__name__ = f"delete_{registered.table_name}"
@@ -308,7 +400,11 @@ class ViewFactory:
         """Create a bulk action handler for multiple objects."""
         async def bulk_action(request: Request, _: Any = None):
             templates = request.app.state.admin_jinja_env
-            session = request.app.state.admin_db_session
+            session = get_db_session(request)
+            try:
+                await session.rollback()
+            except Exception:
+                pass
             form = await request.form()
             action = form.get("action", "")
             ids = form.getlist("ids[]")
@@ -324,24 +420,36 @@ class ViewFactory:
                 url = f"{request.app.state.admin_config['admin_path']}/{registered.table_name}/"
                 return RedirectResponse(url=url, status_code=303)
 
-            if action == "delete_selected":
-                for pid in ids:
-                    obj = await session.get(registered.model, pid)
-                    if obj:
-                        registered.admin.on_delete(obj, request)
-                        await session.delete(obj)
-                await session.commit()
-            else:
-                action_fn = getattr(registered.admin, f"action_{action}", None)
-                if not action_fn:
-                    raise HTTPException(
-                        status_code=400, detail=f"Unknown action: {action}"
+            try:
+                if action == "delete_selected":
+                    for pid in ids:
+                        obj = await session.get(registered.model, pid)
+                        if obj:
+                            registered.admin.on_delete(obj, request)
+                            await session.delete(obj)
+                    await session.commit()
+                    add_flash(
+                        request, "success",
+                        f"{len(ids)} {registered.verbose_name}(s) deleted.",
                     )
-                for pid in ids:
-                    obj = await session.get(registered.model, pid)
-                    if obj:
-                        action_fn(obj)
-                await session.commit()
+                else:
+                    action_fn = getattr(registered.admin, f"action_{action}", None)
+                    if not action_fn:
+                        raise HTTPException(
+                            status_code=400, detail=f"Unknown action: {action}"
+                        )
+                    for pid in ids:
+                        obj = await session.get(registered.model, pid)
+                        if obj:
+                            action_fn(obj)
+                    await session.commit()
+                    add_flash(
+                        request, "success",
+                        f"Action '{action}' applied to {len(ids)} item(s).",
+                    )
+            except Exception as e:
+                await session.rollback()
+                add_flash(request, "error", f"Action failed: {str(e)}")
 
             if is_htmx:
                 ctx = await self.context_builder.build_list_context(

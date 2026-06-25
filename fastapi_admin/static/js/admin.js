@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   FastAPI Admin — Alpine.js Stores & Components
+   FastAPI Console — Alpine.js Stores & Components
    Warm Editorial Brutalism
    ═══════════════════════════════════════════════════════════════════════════ */
 

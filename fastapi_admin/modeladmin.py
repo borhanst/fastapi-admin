@@ -92,6 +92,7 @@ class ModelAdmin:
     delete_view_class: Any = None
     bulk_view_class: Any = None
     search_view_class: Any = None
+    detail_view_class: Any = None
 
     # Badge hook — return str e.g. "12" or None
     def get_nav_badge(self, request: Any = None) -> str | None:
@@ -178,8 +179,11 @@ class ModelAdmin:
         raw = []
         if self.fields is not None:
             names = set(self.fields)
-            raw = [c for c in columns if c.name in names and not c.primary_key] + [
-                r for r in relationships if r.name in names and r.direction in ("MANYTOONE", "MANYTOMANY")
+            raw = [
+                c for c in columns if c.name in names and not c.primary_key
+            ] + [
+                r for r in relationships
+                if r.name in names and r.direction in ("MANYTOONE", "MANYTOMANY")
             ]
         else:
             raw = [c for c in columns if not c.primary_key] + [
@@ -253,10 +257,10 @@ class ModelAdmin:
                 _admin = self
 
                 class _FallbackAction(Action):
-                    def __init__(action_self):
+                    def __init__(self):
                         super().__init__(name=name, label=label)
 
-                    async def execute(action_self, objects, request):
+                    async def execute(self, objects, request):
                         import inspect
                         if inspect.iscoroutinefunction(_fn):
                             await _fn(_admin, objects, request)

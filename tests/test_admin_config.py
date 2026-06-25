@@ -120,7 +120,7 @@ class TestUIConfig:
     def test_init_with_defaults(self):
         """Test UIConfig initialization with default values."""
         config = UIConfig()
-        assert config.title == "FastAPI Admin"
+        assert config.title == "FastAPI Console"
         assert config.logo_url is None
         assert config.favicon_url is None
         assert config.primary_color == "#0ea5e9"
