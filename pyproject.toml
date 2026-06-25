@@ -1,5 +1,5 @@
 [project]
-name = "fastapi-admin"
+name = "fastapi-console"
 dynamic = ["version"]
 description = "Drop-in admin panel for FastAPI + SQLAlchemy apps"
 readme = "README.md"
@@ -33,10 +33,10 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/borhan006/fastapi-admin"
-Documentation = "https://borhan006.github.io/fastapi-admin/"
-Repository = "https://github.com/borhan006/fastapi-admin"
-Changelog = "https://github.com/borhan006/fastapi-admin/releases"
+Homepage = "https://github.com/borhan006/fastapi-console"
+Documentation = "https://borhan006.github.io/fastapi-console/"
+Repository = "https://github.com/borhan006/fastapi-console"
+Changelog = "https://github.com/borhan006/fastapi-console/releases"
 
 [project.optional-dependencies]
 dev = [
@@ -55,7 +55,7 @@ docs = [
 ]
 
 [project.scripts]
-fastapi-admin = "fastapi_admin.cli:main"
+fconsole = "fastapi_admin.cli:main"
 
 [build-system]
 requires = ["hatchling"]

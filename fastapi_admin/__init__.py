@@ -1,4 +1,4 @@
-"""FastAPI Admin — Drop-in admin panel for FastAPI + SQLAlchemy apps."""
+"""FastAPI Console — Drop-in admin panel for FastAPI + SQLAlchemy apps."""
 
 from fastapi_admin.admin import Admin
 from fastapi_admin.exceptions import ConfigError

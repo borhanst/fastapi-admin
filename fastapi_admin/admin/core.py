@@ -124,7 +124,7 @@ class Admin:
         template: AdminTemplate | None = None,
         # Legacy kwargs for backward compatibility
         base: type | None = None,
-        title: str = "FastAPI Admin",
+        title: str = "FastAPI Console",
         logo_url: str | None = None,
         favicon_url: str | None = None,
         primary_color: str = "#0ea5e9",

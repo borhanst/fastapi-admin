@@ -1,4 +1,4 @@
-# FastAPI Admin
+# FastAPI Console
 
 A drop-in admin panel for FastAPI + SQLAlchemy apps.
 
@@ -56,7 +56,7 @@ That's it — you now have a full admin panel at `/admin/products/` with list, c
 
     ---
 
-    Install fastapi-admin with pip
+    Install fastapi-console with pip
 
     [:octicons-arrow-right-24: Installation](getting-started/installation.md)
 

@@ -1,4 +1,4 @@
-"""Admin component classes for FastAPI Admin."""
+"""Admin component classes for FastAPI Console."""
 
 from fastapi_admin.admin.admin_config import AdminConfig
 from fastapi_admin.admin.admin_database import AdminDatabase

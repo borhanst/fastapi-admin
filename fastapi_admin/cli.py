@@ -1,4 +1,4 @@
-"""CLI commands for FastAPI Admin."""
+"""CLI commands for FastAPI Console."""
 
 from __future__ import annotations
 
@@ -158,8 +158,8 @@ async def _change_password(args: argparse.Namespace) -> None:
 def main() -> None:
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(
-        prog="fastapi-admin",
-        description="FastAPI Admin CLI — manage admin users and database.",
+        prog="fconsole",
+        description="FastAPI Console CLI — manage admin users and database.",
     )
     subparsers = parser.add_subparsers(
         dest="command", help="Available commands"

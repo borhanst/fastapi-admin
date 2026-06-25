@@ -424,7 +424,7 @@ my_plugin = "my_plugin:MyPlugin"
 3. Users install with:
 
 ```bash
-pip install fastapi-admin-my-plugin
+pip install fastapi-console-my-plugin
 ```
 
 4. Auto-discover:

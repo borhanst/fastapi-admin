@@ -1,6 +1,6 @@
 # Contributing
 
-Thank you for your interest in contributing to FastAPI Admin!
+Thank you for your interest in contributing to FastAPI Console!
 
 ## Development Setup
 
@@ -12,8 +12,8 @@ Thank you for your interest in contributing to FastAPI Admin!
 ### Clone and Install
 
 ```bash
-git clone https://github.com/your-username/fastapi-admin.git
-cd fastapi-admin
+git clone https://github.com/borhan006/fastapi-console.git
+cd fastapi-console
 uv sync
 ```
 

@@ -1,8 +1,8 @@
-# FastAPI Admin
+# FastAPI Console
 
-[![PyPI version](https://img.shields.io/pypi/v/fastapi-admin.svg)](https://pypi.org/project/fastapi-admin/)
-[![Python versions](https://img.shields.io/pypi/pyversions/fastapi-admin.svg)](https://pypi.org/project/fastapi-admin/)
-[![License](https://img.shields.io/pypi/l/fastapi-admin.svg)](https://github.com/borhan006/fastapi-admin/blob/main/LICENSE)
+[![PyPI version](https://img.shields.io/pypi/v/fastapi-console.svg)](https://pypi.org/project/fastapi-console/)
+[![Python versions](https://img.shields.io/pypi/pyversions/fastapi-console.svg)](https://pypi.org/project/fastapi-console/)
+[![License](https://img.shields.io/pypi/l/fastapi-console.svg)](https://github.com/borhan006/fastapi-console/blob/main/LICENSE)
 
 A drop-in admin panel for FastAPI + SQLAlchemy apps, inspired by Django Unfold.
 
@@ -18,14 +18,14 @@ A drop-in admin panel for FastAPI + SQLAlchemy apps, inspired by Django Unfold.
 ## Installation
 
 ```bash
-pip install fastapi-admin
+pip install fastapi-console
 ```
 
 For database-specific async drivers:
 
 ```bash
-pip install fastapi-admin[postgres]  # PostgreSQL via asyncpg
-pip install fastapi-admin[mysql]     # MySQL via aiomysql
+pip install fastapi-console[postgres]  # PostgreSQL via asyncpg
+pip install fastapi-console[mysql]     # MySQL via aiomysql
 ```
 
 ## Quick Start
@@ -95,13 +95,13 @@ Default login: `admin@example.com` / `admin`
 
 ```bash
 # Create a superuser
-fastapi-admin create-superuser -e admin@example.com -p mypassword
+fconsole create-superuser -e admin@example.com -p mypassword
 
 # List all admin users
-fastapi-admin list-users
+fconsole list-users
 
 # Change a user's password
-fastapi-admin changepassword -e admin@example.com -p newpassword
+fconsole changepassword -e admin@example.com -p newpassword
 ```
 
 All commands accept `-d DATABASE_URL` or read the `DATABASE_URL` environment variable.
@@ -139,8 +139,8 @@ admin = Admin(
 ### Database Support
 
 - **SQLite** (default, built-in via `aiosqlite`)
-- **PostgreSQL**: `pip install fastapi-admin[postgres]` + set `DATABASE_URL=postgresql+asyncpg://...`
-- **MySQL**: `pip install fastapi-admin[mysql]` + set `DATABASE_URL=mysql+aiomysql://...`
+- **PostgreSQL**: `pip install fastapi-console[postgres]` + set `DATABASE_URL=postgresql+asyncpg://...`
+- **MySQL**: `pip install fastapi-console[mysql]` + set `DATABASE_URL=mysql+aiomysql://...`
 
 ## Development
 

@@ -1,4 +1,4 @@
-"""Example usage of FastAPI Admin with UnfoldAdmin features."""
+"""Example usage of FastAPI Console with UnfoldAdmin features."""
 
 import os
 from contextlib import asynccontextmanager
@@ -607,7 +607,7 @@ async def seed_admin_user(session: AsyncSession) -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Handle startup and shutdown events."""
-    print("Starting FastAPI Admin Example...")
+    print("Starting FastAPI Console Example...")
 
     # Create all tables (user models + admin internals)
     async with engine.begin() as conn:
@@ -622,7 +622,7 @@ async def lifespan(app: FastAPI):
 
     # Initialize admin
     await admin.setup(app)
-    print("FastAPI Admin initialized successfully!")
+    print("FastAPI Console initialized successfully!")
 
     yield
 
@@ -633,8 +633,8 @@ async def lifespan(app: FastAPI):
 
 # Create FastAPI app
 app = FastAPI(
-    title="FastAPI Admin Example",
-    description="Demonstration of FastAPI Admin with UnfoldAdmin features",
+    title="FastAPI Console Example",
+    description="Demonstration of FastAPI Console with UnfoldAdmin features",
     version="2.0.0",
     lifespan=lifespan,
 )
@@ -708,7 +708,7 @@ admin.register(Order, OrderAdmin)
 async def root():
     """Root endpoint."""
     return {
-        "message": "Welcome to FastAPI Admin Example!",
+        "message": "Welcome to FastAPI Console Example!",
         "docs": "/docs",
         "admin": "/admin",
         "models": ["categories", "products", "users", "orders"],

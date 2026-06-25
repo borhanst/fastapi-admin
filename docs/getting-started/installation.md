@@ -9,26 +9,26 @@
 ## Install with pip
 
 ```bash
-pip install fastapi-admin
+pip install fastapi-console
 ```
 
 ## Install with uv (recommended)
 
 ```bash
-uv add fastapi-admin
+uv add fastapi-console
 ```
 
 ## Install from source
 
 ```bash
-git clone https://github.com/your-username/fastapi-admin.git
-cd fastapi-admin
+git clone https://github.com/borhan006/fastapi-console.git
+cd fastapi-console
 pip install -e .
 ```
 
 ## Dependencies
 
-fastapi-admin automatically installs:
+fastapi-console automatically installs:
 
 - `fastapi` — Web framework
 - `sqlalchemy` — ORM
@@ -41,7 +41,7 @@ fastapi-admin automatically installs:
 
 ```python
 from fastapi_admin import Admin
-print("fastapi-admin installed successfully")
+print("fastapi-console installed successfully")
 ```
 
 ## Next Steps
