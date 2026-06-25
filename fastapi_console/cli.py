@@ -26,9 +26,9 @@ async def _create_superadmin(args: argparse.Namespace) -> None:
     from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
     from sqlalchemy.orm import sessionmaker
 
-    from fastapi_admin.auth.backend import pwd_context
-    from fastapi_admin.auth.models import AdminUser
-    from fastapi_admin.models.base import Base
+    from fastapi_console.auth.backend import pwd_context
+    from fastapi_console.auth.models import AdminUser
+    from fastapi_console.models.base import Base
 
     database_url = _resolve_database_url(args.database_url)
     engine = create_async_engine(database_url)
@@ -77,8 +77,8 @@ async def _list_users(args: argparse.Namespace) -> None:
     from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
     from sqlalchemy.orm import sessionmaker
 
-    from fastapi_admin.auth.models import AdminUser
-    from fastapi_admin.models.base import Base
+    from fastapi_console.auth.models import AdminUser
+    from fastapi_console.models.base import Base
 
     database_url = _resolve_database_url(args.database_url)
     engine = create_async_engine(database_url)
@@ -120,9 +120,9 @@ async def _change_password(args: argparse.Namespace) -> None:
     from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
     from sqlalchemy.orm import sessionmaker
 
-    from fastapi_admin.auth.backend import pwd_context
-    from fastapi_admin.auth.models import AdminUser
-    from fastapi_admin.models.base import Base
+    from fastapi_console.auth.backend import pwd_context
+    from fastapi_console.auth.models import AdminUser
+    from fastapi_console.models.base import Base
 
     database_url = _resolve_database_url(args.database_url)
     engine = create_async_engine(database_url)
