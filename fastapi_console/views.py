@@ -86,11 +86,24 @@ def create_delete_view(registered: RegisteredModel) -> Any:
 
 def create_model_router(registered: RegisteredModel) -> APIRouter:
     """Create all CRUD routes for a registered model."""
-    router = APIRouter(prefix=f"/{registered.table_name}", tags=[registered.verbose_name])
+    router = APIRouter(
+        prefix=f"/{registered.table_name}", tags=[registered.verbose_name]
+    )
 
-    router.add_api_route("/", create_list_view(registered), methods=["GET"], name="list")
-    router.add_api_route("/create", create_create_view(registered), methods=["GET", "POST"], name="create")
-    router.add_api_route("/{item_id}", create_edit_view(registered), methods=["GET", "POST"], name="edit")
-    router.add_api_route("/{item_id}/delete", create_delete_view(registered), methods=["POST"], name="delete")
+    router.add_api_route(
+        "/", create_list_view(registered), methods=["GET"], name="list"
+    )
+    router.add_api_route(
+        "/create", create_create_view(registered),
+        methods=["GET", "POST"], name="create",
+    )
+    router.add_api_route(
+        "/{item_id}", create_edit_view(registered),
+        methods=["GET", "POST"], name="edit",
+    )
+    router.add_api_route(
+        "/{item_id}/delete", create_delete_view(registered),
+        methods=["POST"], name="delete",
+    )
 
     return router

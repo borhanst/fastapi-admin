@@ -2,22 +2,20 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 from fastapi import APIRouter, Depends, HTTPException, Request
 
+from fastapi_console.auth.dependencies import require_permission
 from fastapi_console.registry import RegisteredModel
 from fastapi_console.views import (
+    bulk_factory,
     create_form_factory,
     create_submit_factory,
+    delete_factory,
     edit_form_factory,
     edit_submit_factory,
-    delete_factory,
-    bulk_factory,
-    search_factory,
     list_view_factory,
+    search_factory,
 )
-from fastapi_console.auth.dependencies import require_permission
 
 
 def build_model_router(registered: RegisteredModel) -> APIRouter:

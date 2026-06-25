@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 from sqlalchemy import (
+    JSON,
     Column,
     DateTime,
     ForeignKey,
     Index,
     Integer,
-    JSON,
     String,
     Text,
 )

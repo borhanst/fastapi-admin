@@ -5,7 +5,8 @@ from __future__ import annotations
 from typing import Any
 
 from fastapi import Request
-from sqlalchemy import select, or_, String
+from sqlalchemy import String, or_, select
+
 from fastapi_console.registry import RegisteredModel
 
 

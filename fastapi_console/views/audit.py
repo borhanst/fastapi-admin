@@ -3,17 +3,14 @@
 from __future__ import annotations
 
 from datetime import date, datetime
-from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from fastapi.responses import HTMLResponse
 from sqlalchemy import desc, select
 
 from fastapi_console.audit.models import AuditLog
 from fastapi_console.auth.dependencies import get_current_admin_user
 from fastapi_console.auth.protocol import AdminUserProtocol
 from fastapi_console.views.sidebar import inject_sidebar_context
-
 
 router = APIRouter()
 
@@ -68,9 +65,13 @@ async def audit_list_view(
     if action:
         total_query = total_query.where(AuditLog.action == action)
     if from_date:
-        total_query = total_query.where(AuditLog.timestamp >= datetime.combine(from_date, datetime.min.time()))
+        total_query = total_query.where(
+            AuditLog.timestamp >= datetime.combine(from_date, datetime.min.time())
+        )
     if to_date:
-        total_query = total_query.where(AuditLog.timestamp <= datetime.combine(to_date, datetime.max.time()))
+        total_query = total_query.where(
+            AuditLog.timestamp <= datetime.combine(to_date, datetime.max.time())
+        )
     if object_id:
         total_query = total_query.where(AuditLog.object_id == object_id)
 

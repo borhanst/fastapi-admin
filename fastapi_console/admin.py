@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import re
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -10,9 +11,7 @@ from typing import TYPE_CHECKING, Any
 
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-from jinja2 import Environment, FileSystemLoader
-
-import re
+from jinja2 import Environment
 
 from fastapi_console.exceptions import ConfigError
 from fastapi_console.registry import AdminRegistry, RegisteredModel
@@ -352,10 +351,11 @@ class Admin:
         """Create all admin database tables (async-safe)."""
         from sqlalchemy.ext.asyncio import AsyncEngine
 
-        from fastapi_console.models.base import Base as AdminBase
+        from fastapi_console.audit import models as _audit_models  # noqa: F401
+
         # Import models to register them with metadata
         from fastapi_console.auth import models as _auth_models  # noqa: F401
-        from fastapi_console.audit import models as _audit_models  # noqa: F401
+        from fastapi_console.models.base import Base as AdminBase
 
         if isinstance(self.engine, AsyncEngine):
             # Async engine - use run_sync
@@ -383,10 +383,10 @@ class Admin:
 
         if is_async:
             # Use AsyncSession for async engine
-            SessionLocal = sessionmaker(
+            session_local = sessionmaker(
                 self.engine, class_=AsyncSession, expire_on_commit=False
             )
-            async with SessionLocal() as session:
+            async with session_local() as session:
                 # Check existing count
                 result = await session.execute(select(AdminRole))
                 existing_count = len(result.scalars().all())
@@ -525,7 +525,11 @@ class Admin:
 
         templates_dir = Path(__file__).parent / "templates"
         self._jinja_env = Jinja2Templates(directory=str(templates_dir))
-        self._jinja_env.env.filters["slugify"] = lambda s: re.sub(r"[^\w]", "-", s, flags=re.A).strip("-").lower()
+
+        def slugify(s: str) -> str:
+            return re.sub(r"[^\w]", "-", s, flags=re.A).strip("-").lower()
+
+        self._jinja_env.env.filters["slugify"] = slugify
         self._jinja_env.env.globals["registered_models"] = self.registry.all()
         self._jinja_env.env.globals["admin_path"] = self.admin_path
         self._jinja_env.env.globals["nav_groups"] = self._nav_groups_built
@@ -536,8 +540,8 @@ class Admin:
         if self._router_built:
             return
 
-        from fastapi_console.router import build_model_router
         from fastapi_console.auth.router import router as auth_router
+        from fastapi_console.router import build_model_router
         from fastapi_console.views.audit import router as audit_router
         from fastapi_console.views.roles import router as roles_router
 
@@ -600,6 +604,7 @@ class Admin:
             user = getattr(request.state, "admin_user", None)
 
         from sqlalchemy.orm import Session
+
         from fastapi_console.auth.permissions import PermissionChecker
 
         session: Session = request.app.state.admin_db_session

@@ -12,8 +12,8 @@ from fastapi_console.audit.listener import (
     attach_audit_listener,
     is_registered_model,
 )
-from fastapi_console.audit.models import AuditLog
 from fastapi_console.audit.middleware import audit_context_middleware
+from fastapi_console.audit.models import AuditLog
 
 __all__ = [
     "AuditLog",

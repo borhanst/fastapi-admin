@@ -42,7 +42,7 @@ class ModelAdmin:
     tag: str | None = None
     tags: list[str] | None = None
     nav_order: int = 999
-    nav_children: list["NavItemConfig"] | None = None
+    nav_children: list[NavItemConfig] | None = None
 
     # Badge hook — return str e.g. "12" or None
     def get_nav_badge(self, request: Any = None) -> str | None:
@@ -129,8 +129,11 @@ class ModelAdmin:
         raw = []
         if self.fields is not None:
             names = set(self.fields)
-            raw = [c for c in columns if c.name in names and not c.primary_key] + [
-                r for r in relationships if r.name in names and r.direction in ("MANYTOONE", "MANYTOMANY")
+            raw = [
+                c for c in columns if c.name in names and not c.primary_key
+            ] + [
+                r for r in relationships
+                if r.name in names and r.direction in ("MANYTOONE", "MANYTOMANY")
             ]
         else:
             raw = [c for c in columns if not c.primary_key] + [

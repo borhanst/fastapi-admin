@@ -5,13 +5,11 @@ from __future__ import annotations
 from typing import Any
 
 from fastapi_console.types import (
-    FieldsetContext,
     FieldRenderContext,
-    PermissionSet,
+    FieldsetContext,
     FormContext,
+    PermissionSet,
 )
-from fastapi_console.widgets.registry import widget_registry
-from fastapi_console.inspection import auto_label, get_pk_field
 
 
 def build_form_context(
@@ -27,11 +25,8 @@ def build_form_context(
     rendered: list[FieldRenderContext] = []
     fieldsets: list[FieldsetContext] = [FieldsetContext(fields=[])]
 
-    pk = registered.pk_field if is_create else registered.pk_field
-
     for field_meta in registered.form_fields:
         col = next((c for c in registered.columns if c.name == field_meta.name), None)
-        rel = next((r for r in registered.relationships if r.name == field_meta.name), None)
         widget = registered.get_widget(field_meta.name)
 
         value = values.get(field_meta.name)

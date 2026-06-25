@@ -3,10 +3,8 @@
 from __future__ import annotations
 
 import re
-from typing import Any
 
 from sqlalchemy import inspect
-from sqlalchemy.orm import DeclarativeBase
 
 from fastapi_console.types import ColumnMeta, RelationMeta
 

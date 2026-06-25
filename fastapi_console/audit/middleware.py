@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-from typing import Callable
+from collections.abc import Callable
 
 from fastapi import Request, Response
-from starlette.types import ASGIApp
 
 from fastapi_console.audit.context import clear_audit_context, set_audit_context
 

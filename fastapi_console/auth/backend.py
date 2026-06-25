@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-import bcrypt
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any
+
+import bcrypt
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session

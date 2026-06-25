@@ -1,4 +1,4 @@
-"""FastAPI Admin — Drop-in admin panel for FastAPI + SQLAlchemy apps."""
+"""FastAPI Console — Drop-in admin panel for FastAPI + SQLAlchemy apps."""
 
 from fastapi_console.admin import Admin
 from fastapi_console.exceptions import ConfigError
@@ -45,6 +45,7 @@ __all__ = [
     "ExtraField",
     "FieldRenderContext",
     "FieldsetContext",
+    "FieldsetSpec",
     "FormContext",
 ]
-__version__ = "0.1.0"
+__version__ = "0.1.3"

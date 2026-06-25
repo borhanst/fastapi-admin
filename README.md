@@ -37,8 +37,8 @@ from sqlalchemy import Column, Float, Integer, String
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
-from fastapi_admin import Admin
-from fastapi_admin.auth.backend import BuiltinAuthBackend
+from fastapi_console import Admin
+from fastapi_console.auth.backend import BuiltinAuthBackend
 
 
 class Base(DeclarativeBase):
@@ -139,7 +139,7 @@ pip install -e ".[dev]"
 pytest
 
 # Lint
-ruff check fastapi_admin/
+ruff check fastapi_console/
 
 # Build distribution
 pip install hatch

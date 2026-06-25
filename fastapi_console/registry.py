@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from fastapi_console.inspection import ColumnMeta, RelationMeta, inspect_model
 
@@ -17,7 +17,7 @@ class RegisteredModel:
     """Central dataclass holding a registered model and its admin config."""
 
     model: type
-    admin: "ModelAdmin"
+    admin: ModelAdmin
     table_name: str
     verbose_name: str
     verbose_name_plural: str
@@ -46,19 +46,23 @@ class RegisteredModel:
             return [f for f in self.admin.list_display if f in valid]
         return [c.name for c in self.columns if not c.primary_key]
 
-    def get_widget(self, field_name: str) -> "Widget":
-        from fastapi_console.widgets.registry import widget_registry
+    def get_widget(self, field_name: str) -> Widget:
         from fastapi_console.inspection import auto_label
+        from fastapi_console.widgets.registry import widget_registry
         from fastapi_console.widgets.relation import (
-            RelationPickerWidget,
             MultiRelationWidget,
+            RelationPickerWidget,
         )
 
         col = next((c for c in self.columns if c.name == field_name), None)
         rel = next((r for r in self.relationships if r.name == field_name), None)
         if col is not None:
             widget = widget_registry.resolve(col)
-            if isinstance(widget, RelationPickerWidget) and not widget.related_table and col.foreign_keys:
+            if (
+                isinstance(widget, RelationPickerWidget)
+                and not widget.related_table
+                and col.foreign_keys
+            ):
                 fk = col.foreign_keys[0]
                 widget.related_table = fk.column.table.name
             return widget
@@ -112,7 +116,11 @@ class AdminRegistry:
         verbose_name = admin.verbose_name or table_name.replace("_", " ").title()
         if admin.verbose_name_plural:
             verbose_name_plural = admin.verbose_name_plural
-        elif verbose_name.endswith("y") and len(verbose_name) > 1 and verbose_name[-2].lower() not in "aeiou":
+        elif (
+            verbose_name.endswith("y")
+            and len(verbose_name) > 1
+            and verbose_name[-2].lower() not in "aeiou"
+        ):
             verbose_name_plural = f"{verbose_name[:-1]}ies"
         else:
             verbose_name_plural = f"{verbose_name}s"

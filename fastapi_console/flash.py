@@ -5,8 +5,6 @@ Stored in a signed session cookie so they survive exactly one redirect-safe read
 
 from __future__ import annotations
 
-from typing import Any
-
 from fastapi import Request
 
 SESSION_KEY = "admin_flash"

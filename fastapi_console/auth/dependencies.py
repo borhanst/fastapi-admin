@@ -6,11 +6,10 @@ from typing import Any
 
 from fastapi import Depends, HTTPException, Request
 from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.orm import Session
 
 from fastapi_console.auth.protocol import AdminUserProtocol
 from fastapi_console.auth.session import SignedCookieSessionBackend
-
 
 # ---------------------------------------------------------------------------
 # Session helpers
@@ -46,7 +45,9 @@ def _get_sync_engine(request: Request):
         return async_engine
 
     # Extract the URL and create a sync engine
-    sync_url = str(async_engine.url).replace("+aiosqlite", "").replace("+asyncpg", "").replace("+asyncmy", "")
+    sync_url = str(async_engine.url)
+    for suffix in ("+aiosqlite", "+asyncpg", "+asyncmy"):
+        sync_url = sync_url.replace(suffix, "")
     if not hasattr(request.app.state, "_admin_sync_engine"):
         request.app.state._admin_sync_engine = create_engine(sync_url, echo=False)
     return request.app.state._admin_sync_engine

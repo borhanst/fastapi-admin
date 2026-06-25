@@ -2,19 +2,14 @@
 
 from __future__ import annotations
 
-from typing import Any
-
-from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy import select
 
-from fastapi_console.admin import Admin
 from fastapi_console.auth.dependencies import get_current_admin_user
-from fastapi_console.auth.models import AdminFieldPermission, AdminPermission, AdminRole, AdminUser
-from fastapi_console.registry import AdminRegistry
+from fastapi_console.auth.models import AdminFieldPermission, AdminPermission, AdminRole
 from fastapi_console.auth.protocol import AdminUserProtocol
 from fastapi_console.views.sidebar import inject_sidebar_context
-
 
 router = APIRouter()
 
@@ -95,8 +90,18 @@ async def role_edit_view(
 
     models = registry.all()
 
-    perms = (await session.execute(select(AdminPermission).where(AdminPermission.role_id == role_id))).scalars().all()
-    f_perms = (await session.execute(select(AdminFieldPermission).where(AdminFieldPermission.role_id == role_id))).scalars().all()
+    perms = (
+        await session.execute(
+            select(AdminPermission).where(AdminPermission.role_id == role_id)
+        )
+    ).scalars().all()
+    f_perms = (
+        await session.execute(
+            select(AdminFieldPermission).where(
+                AdminFieldPermission.role_id == role_id
+            )
+        )
+    ).scalars().all()
 
     perm_map = {(p.table_name): p for p in perms}
     f_perms_map = {}
@@ -125,7 +130,6 @@ async def role_save_view(
 ):
     """Save role permissions from form submission."""
     session = request.app.state.admin_db_session
-    registry = request.app.state.admin_registry
 
     role = await session.get(AdminRole, role_id)
     if role is None:
@@ -147,7 +151,11 @@ async def role_save_view(
                 table, field, mode = parts
                 field_perm_data.setdefault(table, {}).setdefault(field, {})[mode] = value
 
-    existing_perms = (await session.execute(select(AdminPermission).where(AdminPermission.role_id == role_id))).scalars().all()
+    existing_perms = (
+        await session.execute(
+            select(AdminPermission).where(AdminPermission.role_id == role_id)
+        )
+    ).scalars().all()
     existing_perm_map = {p.table_name: p for p in existing_perms}
 
     for table, data in perm_data.items():
@@ -170,7 +178,11 @@ async def role_save_view(
 
     await session.flush()
 
-    await session.execute(select(AdminFieldPermission).where(AdminFieldPermission.role_id == role_id).delete())
+    await session.execute(
+        select(AdminFieldPermission)
+        .where(AdminFieldPermission.role_id == role_id)
+        .delete()
+    )
     for table, fields in field_perm_data.items():
         for field, modes in fields.items():
             f_perm = AdminFieldPermission(

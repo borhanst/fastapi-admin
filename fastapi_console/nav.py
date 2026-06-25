@@ -8,8 +8,9 @@ Implements the full tag system from TAG_SPEC.md:
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Callable, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
 if TYPE_CHECKING:
     from fastapi_console.registry import RegisteredModel
@@ -52,7 +53,7 @@ class BuiltNavItem:
     order: int = 999
     badge_fn: Callable | None = None
     permission_table: str | None = None
-    children: list["BuiltNavItem"] = field(default_factory=list)
+    children: list[BuiltNavItem] = field(default_factory=list)
 
 
 @dataclass
@@ -91,10 +92,6 @@ class DefaultSidebarBuilder:
         nav_group_configs: list[NavGroupConfig],
         admin_path: str = "/admin",
     ) -> list[BuiltNavGroup]:
-        group_index: dict[str, NavGroupConfig] = {
-            cfg.tag.lower(): cfg for cfg in nav_group_configs
-        }
-
         buckets: dict[str, list[BuiltNavItem]] = {}
         for registered in registry:
             tags = self._get_tags(registered)

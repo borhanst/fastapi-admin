@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import Request, Depends
+from fastapi import Depends, Request
 from fastapi.responses import HTMLResponse
-from sqlalchemy import create_engine, select, func
+from sqlalchemy import create_engine, func, select
 from sqlalchemy.orm import Session
 
 from fastapi_console.auth.dependencies import get_current_admin_user
@@ -21,7 +21,9 @@ def _get_sync_engine(request: Request):
         return async_engine
 
     if not hasattr(request.app.state, "_admin_sync_engine"):
-        sync_url = str(async_engine.url).replace("+aiosqlite", "").replace("+asyncpg", "").replace("+asyncmy", "")
+        sync_url = str(async_engine.url)
+        for suffix in ("+aiosqlite", "+asyncpg", "+asyncmy"):
+            sync_url = sync_url.replace(suffix, "")
         request.app.state._admin_sync_engine = create_engine(sync_url, echo=False)
     return request.app.state._admin_sync_engine
 
