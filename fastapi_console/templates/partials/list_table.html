@@ -56,10 +56,12 @@
                   Active
                 {% elif val is sameas false %}
                   Inactive
-                {% elif val is string %}
+                {% elif val is string or val is number %}
                   {{ val }}
-                {% else %}
+                {% elif val is iterable and val is not string %}
                   {{ model_display_name(val) }}
+                {% else %}
+                  {{ val | string }}
                 {% endif %}
                 </a>
               {% else %}
@@ -79,10 +81,12 @@
                     </svg>
                     Inactive
                   </span>
-                {% elif val is string %}
+                {% elif val is string or val is number %}
                   {{ val }}
-                {% else %}
+                {% elif val is iterable and val is not string %}
                   {{ model_display_name(val) }}
+                {% else %}
+                  {{ val | string }}
                 {% endif %}
               {% endif %}
             </td>
