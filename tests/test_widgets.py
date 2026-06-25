@@ -5,8 +5,8 @@ from datetime import date, datetime, time
 
 import pytest
 
-from fastapi_admin.types import ColumnMeta, FieldMeta
-from fastapi_admin.widgets.base import Widget
+from fastapi_console.types import ColumnMeta, FieldMeta
+from fastapi_console.widgets.base import Widget
 
 
 # ---------------------------------------------------------------------------
@@ -75,31 +75,31 @@ class TestWidgetBase:
 
 class TestTextInputWidget:
     def test_parse_string(self):
-        from fastapi_admin.widgets.inputs import TextInputWidget
+        from fastapi_console.widgets.inputs import TextInputWidget
         w = TextInputWidget()
         assert w.parse("hello") == "hello"
 
     def test_parse_none(self):
-        from fastapi_admin.widgets.inputs import TextInputWidget
+        from fastapi_console.widgets.inputs import TextInputWidget
         w = TextInputWidget()
         assert w.parse(None) is None
 
     def test_validate_maxlength(self):
-        from fastapi_admin.widgets.inputs import TextInputWidget
+        from fastapi_console.widgets.inputs import TextInputWidget
         w = TextInputWidget(maxlength=5)
         field = _field()
         errors = w.validate("toolong", field)
         assert any("5 characters" in e for e in errors)
 
     def test_validate_maxlength_ok(self):
-        from fastapi_admin.widgets.inputs import TextInputWidget
+        from fastapi_console.widgets.inputs import TextInputWidget
         w = TextInputWidget(maxlength=10)
         field = _field()
         errors = w.validate("short", field)
         assert errors == []
 
     def test_render_context_includes_maxlength(self):
-        from fastapi_admin.widgets.inputs import TextInputWidget
+        from fastapi_console.widgets.inputs import TextInputWidget
         w = TextInputWidget(maxlength=100)
         field = _field()
         ctx = w.render_context(field, "val")
@@ -108,12 +108,12 @@ class TestTextInputWidget:
 
 class TestTextareaWidget:
     def test_parse(self):
-        from fastapi_admin.widgets.inputs import TextareaWidget
+        from fastapi_console.widgets.inputs import TextareaWidget
         w = TextareaWidget()
         assert w.parse("multiline") == "multiline"
 
     def test_render_context_rows(self):
-        from fastapi_admin.widgets.inputs import TextareaWidget
+        from fastapi_console.widgets.inputs import TextareaWidget
         w = TextareaWidget(rows=10)
         field = _field()
         ctx = w.render_context(field, "")
@@ -122,29 +122,29 @@ class TestTextareaWidget:
 
 class TestNumberInputWidget:
     def test_parse_int(self):
-        from fastapi_admin.widgets.inputs import NumberInputWidget
+        from fastapi_console.widgets.inputs import NumberInputWidget
         w = NumberInputWidget()
         assert w.parse("42") == 42
 
     def test_parse_float(self):
-        from fastapi_admin.widgets.inputs import NumberInputWidget
+        from fastapi_console.widgets.inputs import NumberInputWidget
         w = NumberInputWidget()
         assert w.parse("3.14") == pytest.approx(3.14)
 
     def test_parse_none(self):
-        from fastapi_admin.widgets.inputs import NumberInputWidget
+        from fastapi_console.widgets.inputs import NumberInputWidget
         w = NumberInputWidget()
         assert w.parse(None) is None
 
     def test_validate_non_numeric(self):
-        from fastapi_admin.widgets.inputs import NumberInputWidget
+        from fastapi_console.widgets.inputs import NumberInputWidget
         w = NumberInputWidget()
         field = _field()
         errors = w.validate("abc", field)
         assert any("number" in e.lower() for e in errors)
 
     def test_render_context_step(self):
-        from fastapi_admin.widgets.inputs import NumberInputWidget
+        from fastapi_console.widgets.inputs import NumberInputWidget
         w = NumberInputWidget(step="0.01", min="0", max="100")
         field = _field()
         ctx = w.render_context(field, 0)
@@ -155,22 +155,22 @@ class TestNumberInputWidget:
 
 class TestToggleWidget:
     def test_parse_on(self):
-        from fastapi_admin.widgets.inputs import ToggleWidget
+        from fastapi_console.widgets.inputs import ToggleWidget
         w = ToggleWidget()
         assert w.parse("on") is True
 
     def test_parse_off(self):
-        from fastapi_admin.widgets.inputs import ToggleWidget
+        from fastapi_console.widgets.inputs import ToggleWidget
         w = ToggleWidget()
         assert w.parse(None) is False
 
     def test_parse_true_string(self):
-        from fastapi_admin.widgets.inputs import ToggleWidget
+        from fastapi_console.widgets.inputs import ToggleWidget
         w = ToggleWidget()
         assert w.parse("true") is True
 
     def test_always_valid(self):
-        from fastapi_admin.widgets.inputs import ToggleWidget
+        from fastapi_console.widgets.inputs import ToggleWidget
         w = ToggleWidget()
         field = _field()
         assert w.validate(True, field) == []
@@ -179,25 +179,25 @@ class TestToggleWidget:
 
 class TestSelectWidget:
     def test_parse(self):
-        from fastapi_admin.widgets.inputs import SelectWidget
+        from fastapi_console.widgets.inputs import SelectWidget
         w = SelectWidget(choices=[("a", "A"), ("b", "B")])
         assert w.parse("a") == "a"
 
     def test_validate_invalid_choice(self):
-        from fastapi_admin.widgets.inputs import SelectWidget
+        from fastapi_console.widgets.inputs import SelectWidget
         w = SelectWidget(choices=[("a", "A"), ("b", "B")])
         field = _field()
         errors = w.validate("z", field)
         assert any("not a valid choice" in e.lower() for e in errors)
 
     def test_validate_valid_choice(self):
-        from fastapi_admin.widgets.inputs import SelectWidget
+        from fastapi_console.widgets.inputs import SelectWidget
         w = SelectWidget(choices=[("a", "A")])
         field = _field()
         assert w.validate("a", field) == []
 
     def test_render_context_choices(self):
-        from fastapi_admin.widgets.inputs import SelectWidget
+        from fastapi_console.widgets.inputs import SelectWidget
         choices = [("x", "X")]
         w = SelectWidget(choices=choices)
         field = _field()
@@ -207,25 +207,25 @@ class TestSelectWidget:
 
 class TestDatePickerWidget:
     def test_parse_valid_date(self):
-        from fastapi_admin.widgets.inputs import DatePickerWidget
+        from fastapi_console.widgets.inputs import DatePickerWidget
         w = DatePickerWidget()
         result = w.parse("2024-01-15")
         assert isinstance(result, date)
         assert result.year == 2024
 
     def test_parse_none(self):
-        from fastapi_admin.widgets.inputs import DatePickerWidget
+        from fastapi_console.widgets.inputs import DatePickerWidget
         w = DatePickerWidget()
         assert w.parse(None) is None
 
     def test_parse_invalid(self):
-        from fastapi_admin.widgets.inputs import DatePickerWidget
+        from fastapi_console.widgets.inputs import DatePickerWidget
         w = DatePickerWidget()
         result = w.parse("not-a-date")
         assert result == "not-a-date"
 
     def test_validate_non_date(self):
-        from fastapi_admin.widgets.inputs import DatePickerWidget
+        from fastapi_console.widgets.inputs import DatePickerWidget
         w = DatePickerWidget()
         field = _field()
         errors = w.validate("not-a-date", field)
@@ -234,18 +234,18 @@ class TestDatePickerWidget:
 
 class TestDateTimePickerWidget:
     def test_parse_valid(self):
-        from fastapi_admin.widgets.inputs import DateTimePickerWidget
+        from fastapi_console.widgets.inputs import DateTimePickerWidget
         w = DateTimePickerWidget()
         result = w.parse("2024-01-15T14:30")
         assert isinstance(result, datetime)
 
     def test_parse_none(self):
-        from fastapi_admin.widgets.inputs import DateTimePickerWidget
+        from fastapi_console.widgets.inputs import DateTimePickerWidget
         w = DateTimePickerWidget()
         assert w.parse(None) is None
 
     def test_validate_non_datetime(self):
-        from fastapi_admin.widgets.inputs import DateTimePickerWidget
+        from fastapi_console.widgets.inputs import DateTimePickerWidget
         w = DateTimePickerWidget()
         field = _field()
         errors = w.validate("bad", field)
@@ -254,24 +254,24 @@ class TestDateTimePickerWidget:
 
 class TestJsonEditorWidget:
     def test_parse_valid_json(self):
-        from fastapi_admin.widgets.inputs import JsonEditorWidget
+        from fastapi_console.widgets.inputs import JsonEditorWidget
         w = JsonEditorWidget()
         result = w.parse('{"key": "value"}')
         assert result == {"key": "value"}
 
     def test_parse_none(self):
-        from fastapi_admin.widgets.inputs import JsonEditorWidget
+        from fastapi_console.widgets.inputs import JsonEditorWidget
         w = JsonEditorWidget()
         assert w.parse(None) is None
 
     def test_parse_invalid_json(self):
-        from fastapi_admin.widgets.inputs import JsonEditorWidget
+        from fastapi_console.widgets.inputs import JsonEditorWidget
         w = JsonEditorWidget()
         result = w.parse("{invalid}")
         assert result is None
 
     def test_validate_invalid_json_string(self):
-        from fastapi_admin.widgets.inputs import JsonEditorWidget
+        from fastapi_console.widgets.inputs import JsonEditorWidget
         w = JsonEditorWidget()
         field = _field()
         errors = w.validate("{bad json}", field)
@@ -280,18 +280,18 @@ class TestJsonEditorWidget:
 
 class TestPasswordWidget:
     def test_parse_returns_raw_value(self):
-        from fastapi_admin.widgets.inputs import PasswordWidget
+        from fastapi_console.widgets.inputs import PasswordWidget
         w = PasswordWidget()
         result = w.parse("secret123")
         assert result == "secret123"
 
     def test_parse_none(self):
-        from fastapi_admin.widgets.inputs import PasswordWidget
+        from fastapi_console.widgets.inputs import PasswordWidget
         w = PasswordWidget()
         assert w.parse(None) is None
 
     def test_render_context_never_prefills(self):
-        from fastapi_admin.widgets.inputs import PasswordWidget
+        from fastapi_console.widgets.inputs import PasswordWidget
         w = PasswordWidget()
         field = _field()
         ctx = w.render_context(field, "existing-hash")
@@ -300,12 +300,12 @@ class TestPasswordWidget:
 
 class TestReadOnlyWidget:
     def test_parse_returns_none(self):
-        from fastapi_admin.widgets.inputs import ReadOnlyWidget
+        from fastapi_console.widgets.inputs import ReadOnlyWidget
         w = ReadOnlyWidget()
         assert w.parse("anything") is None
 
     def test_always_valid(self):
-        from fastapi_admin.widgets.inputs import ReadOnlyWidget
+        from fastapi_console.widgets.inputs import ReadOnlyWidget
         w = ReadOnlyWidget()
         field = _field()
         assert w.validate("x", field) == []
@@ -313,7 +313,7 @@ class TestReadOnlyWidget:
 
 class TestHiddenWidget:
     def test_macro_name(self):
-        from fastapi_admin.widgets.inputs import HiddenWidget
+        from fastapi_console.widgets.inputs import HiddenWidget
         w = HiddenWidget()
         assert w.macro_name == "hidden"
 
@@ -325,23 +325,23 @@ class TestHiddenWidget:
 
 class TestRelationPickerWidget:
     def test_parse_int_fk(self):
-        from fastapi_admin.widgets.relation import RelationPickerWidget
+        from fastapi_console.widgets.relation import RelationPickerWidget
         w = RelationPickerWidget(related_table="categories", related_verbose="Category")
         assert w.parse("42") == 42
 
     def test_parse_none(self):
-        from fastapi_admin.widgets.relation import RelationPickerWidget
+        from fastapi_console.widgets.relation import RelationPickerWidget
         w = RelationPickerWidget(related_table="categories", related_verbose="Category")
         assert w.parse(None) is None
 
     def test_parse_uuid_fk(self):
-        from fastapi_admin.widgets.relation import RelationPickerWidget
+        from fastapi_console.widgets.relation import RelationPickerWidget
         w = RelationPickerWidget(related_table="categories", related_verbose="Category")
         result = w.parse("550e8400-e29b-41d4-a716-446655440000")
         assert result == "550e8400-e29b-41d4-a716-446655440000"
 
     def test_render_context(self):
-        from fastapi_admin.widgets.relation import RelationPickerWidget
+        from fastapi_console.widgets.relation import RelationPickerWidget
         w = RelationPickerWidget(related_table="categories", related_verbose="Category")
         field = _field("category_id")
         ctx = w.render_context(field, 3)
@@ -352,23 +352,23 @@ class TestRelationPickerWidget:
 
 class TestMultiRelationWidget:
     def test_parse_list(self):
-        from fastapi_admin.widgets.relation import MultiRelationWidget
+        from fastapi_console.widgets.relation import MultiRelationWidget
         w = MultiRelationWidget()
         result = w.parse(["1", "2", "3"])
         assert result == ["1", "2", "3"]
 
     def test_parse_none(self):
-        from fastapi_admin.widgets.relation import MultiRelationWidget
+        from fastapi_console.widgets.relation import MultiRelationWidget
         w = MultiRelationWidget()
         assert w.parse(None) == []
 
     def test_parse_single(self):
-        from fastapi_admin.widgets.relation import MultiRelationWidget
+        from fastapi_console.widgets.relation import MultiRelationWidget
         w = MultiRelationWidget()
         assert w.parse("5") == ["5"]
 
     def test_always_valid(self):
-        from fastapi_admin.widgets.relation import MultiRelationWidget
+        from fastapi_console.widgets.relation import MultiRelationWidget
         w = MultiRelationWidget()
         field = _field()
         assert w.validate(["1", "2"], field) == []
@@ -381,31 +381,31 @@ class TestMultiRelationWidget:
 
 class TestWidgetRegistry:
     def test_register_and_get(self):
-        from fastapi_admin.widgets.registry import WidgetRegistry
-        from fastapi_admin.widgets.inputs import TextInputWidget
+        from fastapi_console.widgets.registry import WidgetRegistry
+        from fastapi_console.widgets.inputs import TextInputWidget
         reg = WidgetRegistry()
         reg.register_type(str, TextInputWidget)
         w = reg.resolve(_col(col_type=str))
         assert isinstance(w, TextInputWidget)
 
     def test_fallback_to_text_input(self):
-        from fastapi_admin.widgets.registry import WidgetRegistry
-        from fastapi_admin.widgets.inputs import TextInputWidget
+        from fastapi_console.widgets.registry import WidgetRegistry
+        from fastapi_console.widgets.inputs import TextInputWidget
         reg = WidgetRegistry()
         w = reg.resolve(_col(col_type=type("Unknown", (), {})))
         assert isinstance(w, TextInputWidget)
 
     def test_fk_resolves_to_relation_picker(self):
-        from fastapi_admin.widgets.registry import WidgetRegistry
-        from fastapi_admin.widgets.relation import RelationPickerWidget
+        from fastapi_console.widgets.registry import WidgetRegistry
+        from fastapi_console.widgets.relation import RelationPickerWidget
         reg = WidgetRegistry()
         col = _col(name="category_id", foreign_keys=[1])
         w = reg.resolve(col)
         assert isinstance(w, RelationPickerWidget)
 
     def test_name_pattern_password(self):
-        from fastapi_admin.widgets.registry import WidgetRegistry
-        from fastapi_admin.widgets.inputs import PasswordWidget
+        from fastapi_console.widgets.registry import WidgetRegistry
+        from fastapi_console.widgets.inputs import PasswordWidget
         reg = WidgetRegistry()
         reg.register_name("password", PasswordWidget)
         col = _col(name="user_password")
@@ -413,8 +413,8 @@ class TestWidgetRegistry:
         assert isinstance(w, PasswordWidget)
 
     def test_name_pattern_takes_priority_over_type(self):
-        from fastapi_admin.widgets.registry import WidgetRegistry
-        from fastapi_admin.widgets.inputs import PasswordWidget, TextInputWidget
+        from fastapi_console.widgets.registry import WidgetRegistry
+        from fastapi_console.widgets.inputs import PasswordWidget, TextInputWidget
         reg = WidgetRegistry()
         reg.register_name("password", PasswordWidget)
         reg.register_type(str, TextInputWidget)

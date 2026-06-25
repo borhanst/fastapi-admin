@@ -3,7 +3,7 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
-from fastapi_admin.models.base import Base as AdminBase
+from fastapi_console.models.base import Base as AdminBase
 from tests.test_registry import Product
 
 
@@ -30,7 +30,7 @@ def app():
 @pytest.fixture
 def admin_user(engine):
     from sqlalchemy.orm import sessionmaker
-    from fastapi_admin.auth.models import AdminRole, AdminUser
+    from fastapi_console.auth.models import AdminRole, AdminUser
 
     SessionLocal = sessionmaker(engine)
     session = SessionLocal()
@@ -56,6 +56,6 @@ def admin_user(engine):
 
 @pytest.fixture
 def admin_app(app, engine, admin_user):
-    from fastapi_admin import Admin
+    from fastapi_console import Admin
     admin = Admin(app=app, engine=engine, secret_key="test-secret", auto_discover=False)
     return app

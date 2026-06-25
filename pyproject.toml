@@ -1,5 +1,5 @@
 [project]
-name = "fastapi-admin"
+name = "fastapi-console"
 version = "0.1.0"
 description = "Drop-in admin panel for FastAPI + SQLAlchemy apps"
 readme = "AGENT.md"

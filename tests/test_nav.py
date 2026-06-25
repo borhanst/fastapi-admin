@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from fastapi_admin.nav import (
+from fastapi_console.nav import (
     BuiltNavGroup,
     BuiltNavItem,
     DefaultSidebarBuilder,
@@ -12,9 +12,9 @@ from fastapi_admin.nav import (
     NavItemConfig,
     SidebarBuilder,
 )
-from fastapi_admin.registry import AdminRegistry, RegisteredModel, RegisteredModel
-from fastapi_admin.views import ModelAdmin
-from fastapi_admin.exceptions import ConfigError
+from fastapi_console.registry import AdminRegistry, RegisteredModel, RegisteredModel
+from fastapi_console.views import ModelAdmin
+from fastapi_console.exceptions import ConfigError
 
 
 # ── helpers ──────────────────────────────────────────────────────────────────
@@ -115,7 +115,7 @@ class TestOrdering:
 
 class TestRequireTags:
     def test_untagged_raises(self):
-        import fastapi_admin as fpa
+        import fastapi_console as fpa
 
         class M:
             __tablename__ = "m"

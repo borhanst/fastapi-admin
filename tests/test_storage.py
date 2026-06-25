@@ -10,10 +10,10 @@ from pathlib import Path
 import pytest
 from starlette.datastructures import UploadFile
 
-from fastapi_admin.storage.base import StorageBackend
-from fastapi_admin.storage.local import LocalStorageBackend
-from fastapi_admin.widgets.inputs import FileUploadWidget, ImageUploadWidget
-from fastapi_admin.types import FieldMeta
+from fastapi_console.storage.base import StorageBackend
+from fastapi_console.storage.local import LocalStorageBackend
+from fastapi_console.widgets.inputs import FileUploadWidget, ImageUploadWidget
+from fastapi_console.types import FieldMeta
 
 
 # ---------------------------------------------------------------------------
@@ -243,8 +243,8 @@ class TestImageUploadWidget:
 
 class TestRegistryMapping:
     def test_large_binary_maps_to_file_upload(self):
-        from fastapi_admin.widgets.registry import widget_registry
-        from fastapi_admin.types import ColumnMeta
+        from fastapi_console.widgets.registry import widget_registry
+        from fastapi_console.types import ColumnMeta
         from sqlalchemy import LargeBinary
 
         col = ColumnMeta(name="avatar", type=LargeBinary())

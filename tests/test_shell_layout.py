@@ -8,10 +8,10 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from fastapi_admin import Admin
-from fastapi_admin.auth.backend import BuiltinAuthBackend
-from fastapi_admin.auth.models import AdminRole, AdminUser
-from fastapi_admin.models.base import Base as AdminBase
+from fastapi_console import Admin
+from fastapi_console.auth.backend import BuiltinAuthBackend
+from fastapi_console.auth.models import AdminRole, AdminUser
+from fastapi_console.models.base import Base as AdminBase
 from tests.test_registry import Product, Category
 
 

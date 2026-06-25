@@ -9,8 +9,8 @@ from fastapi.testclient import TestClient
 from sqlalchemy import Column, ForeignKey, Integer, String, create_engine
 from sqlalchemy.orm import DeclarativeBase, Session, relationship
 
-from fastapi_admin.models.base import Base as AdminBase
-from fastapi_admin.registry import AdminRegistry
+from fastapi_console.models.base import Base as AdminBase
+from fastapi_console.registry import AdminRegistry
 
 
 # ---------------------------------------------------------------------------
@@ -81,7 +81,7 @@ def app():
 
 @pytest.fixture()
 async def admin_app(app, engine):
-    from fastapi_admin.admin import Admin
+    from fastapi_console.admin import Admin
 
     admin = Admin(app=app, engine=engine, secret_key="test-secret", auto_discover=False)
     admin.register(_Category)

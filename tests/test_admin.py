@@ -5,8 +5,8 @@ from fastapi import FastAPI
 from sqlalchemy import Boolean, Column, Integer, String
 from sqlalchemy.orm import DeclarativeBase
 
-from fastapi_admin.admin import Admin
-from fastapi_admin.exceptions import ConfigError
+from fastapi_console.admin import Admin
+from fastapi_console.exceptions import ConfigError
 
 # ---------------------------------------------------------------------------
 # Test models
@@ -42,7 +42,7 @@ def _make_engine():
     """Create an in-memory SQLite engine with all test + admin tables."""
     from sqlalchemy import create_engine
 
-    from fastapi_admin.models.base import Base
+    from fastapi_console.models.base import Base
 
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(bind=engine)
@@ -115,7 +115,7 @@ class TestAdminConstruction:
         assert admin.seed_roles[3].name == "Viewer"
 
     def test_seed_roles_custom(self):
-        from fastapi_admin.types import SeedRole
+        from fastapi_console.types import SeedRole
 
         custom = [SeedRole(name="Custom", description="Custom role")]
         admin = Admin(seed_roles=custom)
@@ -135,7 +135,7 @@ class TestAdminConstruction:
 class TestAdminSetup:
     @pytest.fixture(autouse=True)
     def _clear_registry(self):
-        from fastapi_admin.registry import AdminRegistry
+        from fastapi_console.registry import AdminRegistry
 
         AdminRegistry().clear()
         yield
@@ -167,12 +167,12 @@ class TestAdminSetup:
         admin = Admin(app=app, engine=engine, secret_key="test-key", auto_discover=False)
         await admin.setup()
 
-        from fastapi_admin.auth.session import SignedCookieSessionBackend
+        from fastapi_console.auth.session import SignedCookieSessionBackend
 
         assert isinstance(app.state.admin_session_backend, SignedCookieSessionBackend)
 
     async def test_setup_stores_auth_backend(self, engine, app):
-        from fastapi_admin.auth.backend import BuiltinAuthBackend
+        from fastapi_console.auth.backend import BuiltinAuthBackend
 
         backend = BuiltinAuthBackend()
         admin = Admin(
@@ -213,7 +213,7 @@ class TestAdminSetup:
 class TestSeedRoles:
     @pytest.fixture(autouse=True)
     def _clear_registry(self):
-        from fastapi_admin.registry import AdminRegistry
+        from fastapi_console.registry import AdminRegistry
 
         AdminRegistry().clear()
         yield
@@ -230,7 +230,7 @@ class TestSeedRoles:
     async def test_default_roles_seeded(self, engine, app):
         from sqlalchemy.orm import Session
 
-        from fastapi_admin.auth.models import AdminRole
+        from fastapi_console.auth.models import AdminRole
 
         admin = Admin(app=app, engine=engine, secret_key="test-key", auto_discover=False)
         await admin.setup()
@@ -249,7 +249,7 @@ class TestSeedRoles:
     async def test_roles_not_reseeded_by_default(self, engine, app):
         from sqlalchemy.orm import Session
 
-        from fastapi_admin.auth.models import AdminRole
+        from fastapi_console.auth.models import AdminRole
 
         # First setup — seeds roles
         admin1 = Admin(app=app, engine=engine, secret_key="test-key", auto_discover=False)
@@ -276,7 +276,7 @@ class TestSeedRoles:
     async def test_roles_overwrite(self, engine, app):
         from sqlalchemy.orm import Session
 
-        from fastapi_admin.auth.models import AdminRole
+        from fastapi_console.auth.models import AdminRole
 
         # First setup
         admin1 = Admin(app=app, engine=engine, secret_key="test-key", auto_discover=False)
@@ -291,7 +291,7 @@ class TestSeedRoles:
 
         # Second setup with overwrite
         app2 = FastAPI()
-        from fastapi_admin.types import SeedRole
+        from fastapi_console.types import SeedRole
 
         admin2 = Admin(
             app=app2,
@@ -314,8 +314,8 @@ class TestSeedRoles:
     async def test_custom_seed_roles_with_permissions(self, engine, app):
         from sqlalchemy.orm import Session
 
-        from fastapi_admin.auth.models import AdminPermission, AdminRole
-        from fastapi_admin.types import SeedRole
+        from fastapi_console.auth.models import AdminPermission, AdminRole
+        from fastapi_console.types import SeedRole
 
         admin = Admin(
             app=app,
@@ -359,7 +359,7 @@ class TestAutoDiscover:
     @pytest.fixture(autouse=True)
     def _clear_registry(self):
         """Clear the singleton registry between tests."""
-        from fastapi_admin.registry import AdminRegistry
+        from fastapi_console.registry import AdminRegistry
 
         AdminRegistry().clear()
         yield
@@ -399,7 +399,7 @@ class TestAutoDiscover:
 class TestAdminRegister:
     @pytest.fixture(autouse=True)
     def _clear_registry(self):
-        from fastapi_admin.registry import AdminRegistry
+        from fastapi_console.registry import AdminRegistry
 
         AdminRegistry().clear()
         yield
@@ -412,7 +412,7 @@ class TestAdminRegister:
         assert result.model is _Product
 
     def test_register_decorator(self):
-        from fastapi_admin.views import ModelAdmin
+        from fastapi_console.views import ModelAdmin
 
         admin = Admin()
 
@@ -429,7 +429,7 @@ class TestAdminRegister:
         assert registered.admin.list_display == ["name"]
 
     def test_register_with_explicit_admin_class(self):
-        from fastapi_admin.views import ModelAdmin
+        from fastapi_console.views import ModelAdmin
 
         class ProdAdmin(ModelAdmin):
             list_display = ["name", "price"]
@@ -448,7 +448,7 @@ class TestLifespan:
     async def test_lifespan_context_manager(self):
         from sqlalchemy import create_engine
 
-        from fastapi_admin.models.base import Base
+        from fastapi_console.models.base import Base
 
         engine = create_engine("sqlite:///:memory:")
         Base.metadata.create_all(bind=engine)
@@ -478,7 +478,7 @@ class TestLifespan:
 class TestAuthModelValidation:
     def test_valid_auth_model(self):
         """A model with the right attrs should not raise."""
-        from fastapi_admin.auth.models import AdminUser
+        from fastapi_console.auth.models import AdminUser
 
         # AdminUser has id, email, is_active, is_superuser, role_id
         admin = Admin(auth_model=AdminUser)

@@ -4,15 +4,15 @@ import pytest
 from sqlalchemy import create_engine, inspect
 from sqlalchemy.orm import Session
 
-from fastapi_admin.audit.models import AuditLog
-from fastapi_admin.auth.models import (
+from fastapi_console.audit.models import AuditLog
+from fastapi_console.auth.models import (
     AdminFieldPermission,
     AdminPermission,
     AdminRole,
     AdminUser,
 )
-from fastapi_admin.auth.protocol import AdminUserProtocol
-from fastapi_admin.models import Base
+from fastapi_console.auth.protocol import AdminUserProtocol
+from fastapi_console.models import Base
 
 
 @pytest.fixture
@@ -277,11 +277,11 @@ def test_admin_role_does_not_satisfy_protocol():
 
 
 def test_models_package_exports():
-    from fastapi_admin.models import Base
+    from fastapi_console.models import Base
 
     assert Base is not None
 
-    from fastapi_admin.auth.models import (
+    from fastapi_console.auth.models import (
         AdminFieldPermission,
         AdminPermission,
         AdminRole,
@@ -295,6 +295,6 @@ def test_models_package_exports():
 
 
 def test_audit_log_exportable():
-    from fastapi_admin.audit.models import AuditLog
+    from fastapi_console.audit.models import AuditLog
 
     assert AuditLog is not None

@@ -43,67 +43,67 @@ class Article(Base):
 
 class TestModelAdminDefaults:
     def test_list_display_none(self):
-        from fastapi_admin.modeladmin import ModelAdmin
+        from fastapi_console.modeladmin import ModelAdmin
 
         admin = ModelAdmin()
         assert admin.list_display is None
 
     def test_list_filter_none(self):
-        from fastapi_admin.modeladmin import ModelAdmin
+        from fastapi_console.modeladmin import ModelAdmin
 
         admin = ModelAdmin()
         assert admin.list_filter is None
 
     def test_search_fields_none(self):
-        from fastapi_admin.modeladmin import ModelAdmin
+        from fastapi_console.modeladmin import ModelAdmin
 
         admin = ModelAdmin()
         assert admin.search_fields is None
 
     def test_ordering_none(self):
-        from fastapi_admin.modeladmin import ModelAdmin
+        from fastapi_console.modeladmin import ModelAdmin
 
         admin = ModelAdmin()
         assert admin.ordering is None
 
     def test_per_page_default(self):
-        from fastapi_admin.modeladmin import ModelAdmin
+        from fastapi_console.modeladmin import ModelAdmin
 
         admin = ModelAdmin()
         assert admin.per_page == 20
 
     def test_fields_none(self):
-        from fastapi_admin.modeladmin import ModelAdmin
+        from fastapi_console.modeladmin import ModelAdmin
 
         admin = ModelAdmin()
         assert admin.fields is None
 
     def test_exclude_none(self):
-        from fastapi_admin.modeladmin import ModelAdmin
+        from fastapi_console.modeladmin import ModelAdmin
 
         admin = ModelAdmin()
         assert admin.exclude is None
 
     def test_readonly_fields_none(self):
-        from fastapi_admin.modeladmin import ModelAdmin
+        from fastapi_console.modeladmin import ModelAdmin
 
         admin = ModelAdmin()
         assert admin.readonly_fields is None
 
     def test_verbose_name_none(self):
-        from fastapi_admin.modeladmin import ModelAdmin
+        from fastapi_console.modeladmin import ModelAdmin
 
         admin = ModelAdmin()
         assert admin.verbose_name is None
 
     def test_verbose_name_plural_none(self):
-        from fastapi_admin.modeladmin import ModelAdmin
+        from fastapi_console.modeladmin import ModelAdmin
 
         admin = ModelAdmin()
         assert admin.verbose_name_plural is None
 
     def test_icon_none(self):
-        from fastapi_admin.modeladmin import ModelAdmin
+        from fastapi_console.modeladmin import ModelAdmin
 
         admin = ModelAdmin()
         assert admin.icon is None
@@ -111,28 +111,28 @@ class TestModelAdminDefaults:
 
 class TestModelAdminStr:
     def test_str_prefers_name(self):
-        from fastapi_admin.modeladmin import ModelAdmin
+        from fastapi_console.modeladmin import ModelAdmin
 
         admin = ModelAdmin()
         obj = type("Obj", (), {"name": "Widget", "id": 1})()
         assert admin.__str__(obj) == "Widget"
 
     def test_str_falls_back_to_title(self):
-        from fastapi_admin.modeladmin import ModelAdmin
+        from fastapi_console.modeladmin import ModelAdmin
 
         admin = ModelAdmin()
         obj = type("Obj", (), {"title": "My Article", "id": 5})()
         assert admin.__str__(obj) == "My Article"
 
     def test_str_falls_back_to_id(self):
-        from fastapi_admin.modeladmin import ModelAdmin
+        from fastapi_console.modeladmin import ModelAdmin
 
         admin = ModelAdmin()
         obj = type("Obj", (), {"id": 42})()
         assert admin.__str__(obj) == "#42"
 
     def test_str_fallback_question_mark(self):
-        from fastapi_admin.modeladmin import ModelAdmin
+        from fastapi_console.modeladmin import ModelAdmin
 
         admin = ModelAdmin()
         obj = type("Obj", (), {})()
@@ -141,7 +141,7 @@ class TestModelAdminStr:
 
 class TestModelAdminCustomConfig:
     def test_subclass_override(self):
-        from fastapi_admin.modeladmin import ModelAdmin
+        from fastapi_console.modeladmin import ModelAdmin
 
         class ProductAdmin(ModelAdmin):
             list_display = ["name", "price"]
@@ -156,7 +156,7 @@ class TestModelAdminCustomConfig:
 
 class TestModelAdminLifecycleHooks:
     def test_on_create_is_noop(self):
-        from fastapi_admin.modeladmin import ModelAdmin
+        from fastapi_console.modeladmin import ModelAdmin
 
         admin = ModelAdmin()
         obj = object()
@@ -165,31 +165,31 @@ class TestModelAdminLifecycleHooks:
         admin.on_create(obj, request=None)
 
     def test_after_create_is_noop(self):
-        from fastapi_admin.modeladmin import ModelAdmin
+        from fastapi_console.modeladmin import ModelAdmin
 
         admin = ModelAdmin()
         admin.after_create(object())
 
     def test_on_update_is_noop(self):
-        from fastapi_admin.modeladmin import ModelAdmin
+        from fastapi_console.modeladmin import ModelAdmin
 
         admin = ModelAdmin()
         admin.on_update(object(), {"name": "new"})
 
     def test_after_update_is_noop(self):
-        from fastapi_admin.modeladmin import ModelAdmin
+        from fastapi_console.modeladmin import ModelAdmin
 
         admin = ModelAdmin()
         admin.after_update(object())
 
     def test_on_delete_is_noop(self):
-        from fastapi_admin.modeladmin import ModelAdmin
+        from fastapi_console.modeladmin import ModelAdmin
 
         admin = ModelAdmin()
         admin.on_delete(object())
 
     def test_after_delete_is_noop(self):
-        from fastapi_admin.modeladmin import ModelAdmin
+        from fastapi_console.modeladmin import ModelAdmin
 
         admin = ModelAdmin()
         admin.after_delete(object())
@@ -197,14 +197,14 @@ class TestModelAdminLifecycleHooks:
 
 class TestModelAdminValidation:
     def test_validate_create_returns_data(self):
-        from fastapi_admin.modeladmin import ModelAdmin
+        from fastapi_console.modeladmin import ModelAdmin
 
         admin = ModelAdmin()
         data = {"name": "Test"}
         assert admin.validate_create(data) is data
 
     def test_validate_update_returns_data(self):
-        from fastapi_admin.modeladmin import ModelAdmin
+        from fastapi_console.modeladmin import ModelAdmin
 
         admin = ModelAdmin()
         obj = object()
@@ -214,7 +214,7 @@ class TestModelAdminValidation:
 
 class TestModelAdminPermissions:
     def test_all_permissions_true_by_default(self):
-        from fastapi_admin.modeladmin import ModelAdmin
+        from fastapi_console.modeladmin import ModelAdmin
 
         admin = ModelAdmin()
         assert admin.has_view_permission() is True
@@ -225,7 +225,7 @@ class TestModelAdminPermissions:
 
 class TestModelAdminCustomHooks:
     def test_subclass_can_override_hooks(self):
-        from fastapi_admin.modeladmin import ModelAdmin
+        from fastapi_console.modeladmin import ModelAdmin
 
         calls = []
 
@@ -252,20 +252,20 @@ class TestModelAdminCustomHooks:
 
 class TestAdminRegistry:
     def setup_method(self):
-        from fastapi_admin.registry import AdminRegistry
+        from fastapi_console.registry import AdminRegistry
 
         self.registry = AdminRegistry()
         self.registry.clear()
 
     def test_singleton(self):
-        from fastapi_admin.registry import AdminRegistry
+        from fastapi_console.registry import AdminRegistry
 
         r1 = AdminRegistry()
         r2 = AdminRegistry()
         assert r1 is r2
 
     def test_register_model(self):
-        from fastapi_admin.registry import AdminRegistry
+        from fastapi_console.registry import AdminRegistry
 
         reg = AdminRegistry()
         reg.clear()
@@ -278,8 +278,8 @@ class TestAdminRegistry:
         assert registered.pk_field == "id"
 
     def test_register_with_admin_class(self):
-        from fastapi_admin.modeladmin import ModelAdmin
-        from fastapi_admin.registry import AdminRegistry
+        from fastapi_console.modeladmin import ModelAdmin
+        from fastapi_console.registry import AdminRegistry
 
         class ProductAdmin(ModelAdmin):
             list_display = ["name", "price"]
@@ -293,7 +293,7 @@ class TestAdminRegistry:
         assert registered.verbose_name_plural == "Items"
 
     def test_register_generates_verbose_name_from_table(self):
-        from fastapi_admin.registry import AdminRegistry
+        from fastapi_console.registry import AdminRegistry
 
         reg = AdminRegistry()
         reg.clear()
@@ -302,7 +302,7 @@ class TestAdminRegistry:
         assert registered.verbose_name_plural == "Categoriess"
 
     def test_register_strips_id_from_foreign_key(self):
-        from fastapi_admin.registry import AdminRegistry
+        from fastapi_console.registry import AdminRegistry
 
         reg = AdminRegistry()
         reg.clear()
@@ -311,7 +311,7 @@ class TestAdminRegistry:
         assert cat_col.is_foreign_key is True
 
     def test_get_returns_registered(self):
-        from fastapi_admin.registry import AdminRegistry
+        from fastapi_console.registry import AdminRegistry
 
         reg = AdminRegistry()
         reg.clear()
@@ -321,14 +321,14 @@ class TestAdminRegistry:
         assert result.table_name == "products"
 
     def test_get_returns_none_for_unknown(self):
-        from fastapi_admin.registry import AdminRegistry
+        from fastapi_console.registry import AdminRegistry
 
         reg = AdminRegistry()
         reg.clear()
         assert reg.get("nonexistent") is None
 
     def test_all_returns_list(self):
-        from fastapi_admin.registry import AdminRegistry
+        from fastapi_console.registry import AdminRegistry
 
         reg = AdminRegistry()
         reg.clear()
@@ -340,7 +340,7 @@ class TestAdminRegistry:
         assert table_names == {"products", "categories"}
 
     def test_clear(self):
-        from fastapi_admin.registry import AdminRegistry
+        from fastapi_console.registry import AdminRegistry
 
         reg = AdminRegistry()
         reg.register(Product)
@@ -349,7 +349,7 @@ class TestAdminRegistry:
         assert len(reg.all()) == 0
 
     def test_register_rejects_non_model(self):
-        from fastapi_admin.registry import AdminRegistry
+        from fastapi_console.registry import AdminRegistry
 
         reg = AdminRegistry()
         reg.clear()
@@ -357,7 +357,7 @@ class TestAdminRegistry:
             reg.register(str)
 
     def test_pk_field_detected(self):
-        from fastapi_admin.registry import AdminRegistry
+        from fastapi_console.registry import AdminRegistry
 
         reg = AdminRegistry()
         reg.clear()
@@ -365,7 +365,7 @@ class TestAdminRegistry:
         assert registered.pk_field == "id"
 
     def test_relationships_detected(self):
-        from fastapi_admin.registry import AdminRegistry
+        from fastapi_console.registry import AdminRegistry
 
         reg = AdminRegistry()
         reg.clear()
@@ -381,12 +381,12 @@ class TestAdminRegistry:
 
 class TestAdminRegisterDecorator:
     def setup_method(self):
-        from fastapi_admin.registry import AdminRegistry
+        from fastapi_console.registry import AdminRegistry
 
         AdminRegistry().clear()
 
     def test_function_call_pattern(self):
-        from fastapi_admin.admin import Admin
+        from fastapi_console.admin import Admin
 
         admin = Admin()
         registered = admin.register(Product)
@@ -394,8 +394,8 @@ class TestAdminRegisterDecorator:
         assert registered.table_name == "products"
 
     def test_decorator_pattern(self):
-        from fastapi_admin.admin import Admin
-        from fastapi_admin.modeladmin import ModelAdmin
+        from fastapi_console.admin import Admin
+        from fastapi_console.modeladmin import ModelAdmin
 
         admin = Admin()
 
@@ -411,9 +411,9 @@ class TestAdminRegisterDecorator:
         assert registered.admin.per_page == 10
 
     def test_decorator_returns_registered_model(self):
-        from fastapi_admin.admin import Admin
-        from fastapi_admin.modeladmin import ModelAdmin
-        from fastapi_admin.registry import RegisteredModel
+        from fastapi_console.admin import Admin
+        from fastapi_console.modeladmin import ModelAdmin
+        from fastapi_console.registry import RegisteredModel
 
         admin = Admin()
 
@@ -426,7 +426,7 @@ class TestAdminRegisterDecorator:
         assert ArticleAdmin.model is Article
 
     def test_get_registered(self):
-        from fastapi_admin.admin import Admin
+        from fastapi_console.admin import Admin
 
         admin = Admin()
         admin.register(Product)
@@ -435,7 +435,7 @@ class TestAdminRegisterDecorator:
         assert result.model is Product
 
     def test_all_registered(self):
-        from fastapi_admin.admin import Admin
+        from fastapi_console.admin import Admin
 
         admin = Admin()
         admin.register(Product)
@@ -451,7 +451,7 @@ class TestAdminRegisterDecorator:
 
 class TestRegisteredModel:
     def test_dataclass_fields(self):
-        from fastapi_admin.registry import AdminRegistry
+        from fastapi_console.registry import AdminRegistry
 
         reg = AdminRegistry()
         reg.clear()
@@ -462,7 +462,7 @@ class TestRegisteredModel:
         assert registered.table_name == "products"
 
     def test_pk_field_from_columns(self):
-        from fastapi_admin.registry import AdminRegistry
+        from fastapi_console.registry import AdminRegistry
 
         reg = AdminRegistry()
         reg.clear()
@@ -477,14 +477,14 @@ class TestRegisteredModel:
 
 class TestViewsPackage:
     def test_imports(self):
-        from fastapi_admin.views import ModelAdmin, create_model_router
+        from fastapi_console.views import ModelAdmin, create_model_router
 
         assert ModelAdmin is not None
         assert callable(create_model_router)
 
     def test_create_model_router(self):
-        from fastapi_admin.registry import AdminRegistry
-        from fastapi_admin.views import create_model_router
+        from fastapi_console.registry import AdminRegistry
+        from fastapi_console.views import create_model_router
 
         reg = AdminRegistry()
         reg.clear()

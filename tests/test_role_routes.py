@@ -7,11 +7,11 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.pool import StaticPool
 
-from fastapi_admin.admin import Admin
-from fastapi_admin.auth.backend import BuiltinAuthBackend
-from fastapi_admin.auth.models import AdminRole, AdminUser
-from fastapi_admin.models.base import Base as AdminBase
-from fastapi_admin.views.roles import router as roles_router
+from fastapi_console.admin import Admin
+from fastapi_console.auth.backend import BuiltinAuthBackend
+from fastapi_console.auth.models import AdminRole, AdminUser
+from fastapi_console.models.base import Base as AdminBase
+from fastapi_console.views.roles import router as roles_router
 
 
 @pytest.fixture(name="app")

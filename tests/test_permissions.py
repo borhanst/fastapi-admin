@@ -4,15 +4,15 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
-from fastapi_admin.auth.models import (
+from fastapi_console.auth.models import (
     AdminFieldPermission,
     AdminPermission,
     AdminRole,
     AdminUser,
 )
-from fastapi_admin.auth.permissions import PermissionChecker
-from fastapi_admin.models import Base
-from fastapi_admin.types import PermissionSet
+from fastapi_console.auth.permissions import PermissionChecker
+from fastapi_console.models import Base
+from fastapi_console.types import PermissionSet
 
 
 # ---------------------------------------------------------------------------

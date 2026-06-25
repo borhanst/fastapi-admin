@@ -6,10 +6,10 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
-from fastapi_admin.auth.backend import AuthBackend, BuiltinAuthBackend, _PasswordHasher
-from fastapi_admin.auth.models import AdminRole, AdminUser
-from fastapi_admin.auth.session import SessionBackend, SignedCookieSessionBackend
-from fastapi_admin.models import Base
+from fastapi_console.auth.backend import AuthBackend, BuiltinAuthBackend, _PasswordHasher
+from fastapi_console.auth.models import AdminRole, AdminUser
+from fastapi_console.auth.session import SessionBackend, SignedCookieSessionBackend
+from fastapi_console.models import Base
 
 
 # ---------------------------------------------------------------------------

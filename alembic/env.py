@@ -16,7 +16,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 try:
     from example import Base as UserBase
-    from fastapi_admin.models.base import Base as AdminBase
+    from fastapi_console.models.base import Base as AdminBase
 
     # Merge metadata from both bases
     target_metadata = UserBase.metadata

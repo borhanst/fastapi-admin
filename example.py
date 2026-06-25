@@ -21,13 +21,13 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import DeclarativeBase, relationship, sessionmaker
 from sqlalchemy.sql import func
 
-from fastapi_admin import Admin, ModelAdmin
-from fastapi_admin.audit.models import (
+from fastapi_console import Admin, ModelAdmin
+from fastapi_console.audit.models import (
     AuditLog,  # noqa: F401 — ensure table is created
 )
-from fastapi_admin.auth.backend import BuiltinAuthBackend
-from fastapi_admin.auth.models import AdminUser
-from fastapi_admin.models import Base as AdminBase
+from fastapi_console.auth.backend import BuiltinAuthBackend
+from fastapi_console.auth.models import AdminUser
+from fastapi_console.models import Base as AdminBase
 
 # ============================================================================
 # SQLAlchemy Models
