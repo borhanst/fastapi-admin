@@ -4,11 +4,11 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from fastapi_admin.admin.admin_config import AdminConfig
-from fastapi_admin.admin.admin_database import AdminDatabase
-from fastapi_admin.admin.admin_router import AdminRouter
-from fastapi_admin.admin.admin_template import AdminTemplate
-from fastapi_admin.config import AuthConfig, UIConfig
+from fastapi_console.admin.admin_config import AdminConfig
+from fastapi_console.admin.admin_database import AdminDatabase
+from fastapi_console.admin.admin_router import AdminRouter
+from fastapi_console.admin.admin_template import AdminTemplate
+from fastapi_console.config import AuthConfig, UIConfig
 
 
 class TestAdminConfig:
@@ -162,7 +162,10 @@ class TestAdminRouter:
 
     def test_init_with_custom_values(self):
         """Test AdminRouter initialization with custom values."""
-        router = AdminRouter(admin_path="/custom", secret_key="test-secret-key-long-enough-for-security!")
+        router = AdminRouter(
+            admin_path="/custom",
+            secret_key="test-secret-key-long-enough-for-security!",
+        )
         assert router.admin_path == "/custom"
         assert router.secret_key == "test_key"
 
@@ -188,7 +191,7 @@ class TestAdminRouter:
         router = AdminRouter()
         router._init_jinja(mock_app)
 
-        assert hasattr(mock_app.state, 'admin_jinja_env')
+        assert hasattr(mock_app.state, "admin_jinja_env")
 
 
 class TestAdminTemplate:
@@ -219,16 +222,18 @@ class TestAdminTemplate:
         template = AdminTemplate()
         template._init_jinja(mock_app)
 
-        assert hasattr(mock_app.state, 'admin_jinja_env')
+        assert hasattr(mock_app.state, "admin_jinja_env")
 
     def test_sidebar_template_kwargs(self):
         """Test sidebar_template_kwargs method."""
         mock_request = MagicMock()
         template = AdminTemplate()
 
-        with patch.object(template, 'build_sidebar_context', return_value={'nav_groups': []}):
+        with patch.object(
+            template, "build_sidebar_context", return_value={"nav_groups": []}
+        ):
             result = template.sidebar_template_kwargs(mock_request)
-            assert result == {'nav_groups': []}
+            assert result == {"nav_groups": []}
 
     def test_build_sidebar_context_without_user(self):
         """Test build_sidebar_context without user."""
@@ -237,13 +242,13 @@ class TestAdminTemplate:
         template = AdminTemplate()
 
         with patch(
-            'fastapi_admin.auth.permissions.PermissionChecker',
+            "fastapi_console.auth.permissions.PermissionChecker",
             return_value=None,
             create=True,
         ):
             result = template.build_sidebar_context(mock_request)
-            assert result['current_user'] is None
-            assert 'nav_groups' in result
+            assert result["current_user"] is None
+            assert "nav_groups" in result
 
     def test_build_sidebar_context_with_user(self):
         """Test build_sidebar_context with user."""
@@ -253,22 +258,32 @@ class TestAdminTemplate:
 
         template = AdminTemplate()
 
-        with patch('fastapi_admin.auth.permissions.PermissionChecker') as mock_checker:
-            mock_checker.return_value.permission_set.return_value = {'view': True}
-            result = template.build_sidebar_context(mock_request, user=mock_user)
+        with patch(
+            "fastapi_console.auth.permissions.PermissionChecker"
+        ) as mock_checker:
+            mock_checker.return_value.permission_set.return_value = {
+                "view": True
+            }
+            result = template.build_sidebar_context(
+                mock_request, user=mock_user
+            )
 
-            assert result['current_user'] is mock_user
-            assert 'nav_groups' in result
+            assert result["current_user"] is mock_user
+            assert "nav_groups" in result
 
     def test_apply_sidebar_context(self):
         """Test apply_sidebar_context method."""
         mock_request = MagicMock()
         mock_user = MagicMock()
-        context = {'existing_key': 'existing_value'}
+        context = {"existing_key": "existing_value"}
 
         template = AdminTemplate()
 
-        with patch.object(template, 'build_sidebar_context', return_value={'nav_groups': []}):
-            result = template.apply_sidebar_context(mock_request, mock_user, context)
-            assert result['existing_key'] == 'existing_value'
-            assert result['nav_groups'] == []
+        with patch.object(
+            template, "build_sidebar_context", return_value={"nav_groups": []}
+        ):
+            result = template.apply_sidebar_context(
+                mock_request, mock_user, context
+            )
+            assert result["existing_key"] == "existing_value"
+            assert result["nav_groups"] == []

@@ -41,7 +41,7 @@ Open `http://localhost:8000` in your browser.
 ## Project Structure
 
 ```
-fastapi_admin/
+fastapi_console/
 ├── admin/          # Admin class and configuration
 ├── auth/           # Authentication and RBAC
 ├── audit/          # Audit logging

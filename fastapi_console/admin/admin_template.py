@@ -53,8 +53,8 @@ class AdminTemplate:
 
         from sqlalchemy.orm import Session
 
-        from fastapi_admin.auth.permissions import PermissionChecker
-        from fastapi_admin.db import get_db_session
+        from fastapi_console.auth.permissions import PermissionChecker
+        from fastapi_console.db import get_db_session
 
         session: Session = get_db_session(request)
         checker = (
@@ -64,7 +64,7 @@ class AdminTemplate:
         permissions_map: dict[str, Any] = {}
         nav_groups = self._nav_groups_built
         if checker:
-            from fastapi_admin.types import PermissionSet
+            from fastapi_console.types import PermissionSet
 
             for group in nav_groups:
                 for item in group.items:

@@ -1,6 +1,6 @@
 # Admin
 
-::: fastapi_admin.Admin
+::: fastapi_console.Admin
     options:
       show_source: true
       show_root_heading: true
@@ -9,7 +9,7 @@
 
 ## AdminConfig
 
-::: fastapi_admin.admin.AdminConfig
+::: fastapi_console.admin.AdminConfig
     options:
       show_source: true
       show_root_heading: true
@@ -18,7 +18,7 @@
 
 ## AdminRegistry
 
-::: fastapi_admin.AdminRegistry
+::: fastapi_console.AdminRegistry
     options:
       show_source: true
       show_root_heading: true
@@ -27,7 +27,7 @@
 
 ## RegisteredModel
 
-::: fastapi_admin.RegisteredModel
+::: fastapi_console.RegisteredModel
     options:
       show_source: true
       show_root_heading: true
@@ -36,7 +36,7 @@
 
 ## ModelAdmin
 
-::: fastapi_admin.ModelAdmin
+::: fastapi_console.ModelAdmin
     options:
       show_source: true
       show_root_heading: true
@@ -47,7 +47,7 @@
 
 ### ThemeConfig
 
-::: fastapi_admin.config.ThemeConfig
+::: fastapi_console.config.ThemeConfig
     options:
       show_source: true
       show_root_heading: true
@@ -56,7 +56,7 @@
 
 ### BehaviorConfig
 
-::: fastapi_admin.config.BehaviorConfig
+::: fastapi_console.config.BehaviorConfig
     options:
       show_source: true
       show_root_heading: true
@@ -65,7 +65,7 @@
 
 ### AuthConfig
 
-::: fastapi_admin.config.AuthConfig
+::: fastapi_console.config.AuthConfig
     options:
       show_source: true
       show_root_heading: true
@@ -74,7 +74,7 @@
 
 ### AuditConfig
 
-::: fastapi_admin.config.AuditConfig
+::: fastapi_console.config.AuditConfig
     options:
       show_source: true
       show_root_heading: true
@@ -83,7 +83,7 @@
 
 ### UIConfig
 
-::: fastapi_admin.config.UIConfig
+::: fastapi_console.config.UIConfig
     options:
       show_source: true
       show_root_heading: true
@@ -92,7 +92,7 @@
 
 ### StorageConfig
 
-::: fastapi_admin.config.StorageConfig
+::: fastapi_console.config.StorageConfig
     options:
       show_source: true
       show_root_heading: true
@@ -101,7 +101,7 @@
 
 ### NavConfig
 
-::: fastapi_admin.config.NavConfig
+::: fastapi_console.config.NavConfig
     options:
       show_source: true
       show_root_heading: true

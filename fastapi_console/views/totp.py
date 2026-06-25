@@ -8,19 +8,19 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy import select
 
-from fastapi_admin.auth.csrf import require_csrf_token
-from fastapi_admin.auth.dependencies import get_current_admin_user
-from fastapi_admin.auth.models import AdminUserTOTP
-from fastapi_admin.auth.protocol import AdminUserProtocol
-from fastapi_admin.auth.totp import (
+from fastapi_console.auth.csrf import require_csrf_token
+from fastapi_console.auth.dependencies import get_current_admin_user
+from fastapi_console.auth.models import AdminUserTOTP
+from fastapi_console.auth.protocol import AdminUserProtocol
+from fastapi_console.auth.totp import (
     generate_backup_codes,
     generate_secret,
     get_totp_uri,
     hash_backup_code,
     verify_totp,
 )
-from fastapi_admin.db import get_db_session
-from fastapi_admin.views.sidebar import inject_sidebar_context
+from fastapi_console.db import get_db_session
+from fastapi_console.views.sidebar import inject_sidebar_context
 
 router = APIRouter()
 
@@ -63,11 +63,14 @@ async def totp_setup_view(
     return templates.TemplateResponse(
         request,
         "pages/2fa/setup.html",
-        inject_sidebar_context(request, {
-            "secret": secret,
-            "qr_uri": qr_uri,
-            "totp_enabled": enabled,
-        }),
+        inject_sidebar_context(
+            request,
+            {
+                "secret": secret,
+                "qr_uri": qr_uri,
+                "totp_enabled": enabled,
+            },
+        ),
     )
 
 
@@ -96,12 +99,15 @@ async def totp_enable_post(
         return templates.TemplateResponse(
             request,
             "pages/2fa/setup.html",
-            inject_sidebar_context(request, {
-                "secret": totp_record.secret_key,
-                "qr_uri": get_totp_uri(totp_record.secret_key, user.email),
-                "totp_enabled": False,
-                "error": "Invalid TOTP code. Please try again.",
-            }),
+            inject_sidebar_context(
+                request,
+                {
+                    "secret": totp_record.secret_key,
+                    "qr_uri": get_totp_uri(totp_record.secret_key, user.email),
+                    "totp_enabled": False,
+                    "error": "Invalid TOTP code. Please try again.",
+                },
+            ),
         )
 
     backup_codes = generate_backup_codes()
@@ -115,13 +121,16 @@ async def totp_enable_post(
     return templates.TemplateResponse(
         request,
         "pages/2fa/setup.html",
-        inject_sidebar_context(request, {
-            "secret": None,
-            "qr_uri": None,
-            "totp_enabled": True,
-            "backup_codes": backup_codes,
-            "success": "2FA enabled successfully. Save your backup codes!",
-        }),
+        inject_sidebar_context(
+            request,
+            {
+                "secret": None,
+                "qr_uri": None,
+                "totp_enabled": True,
+                "backup_codes": backup_codes,
+                "success": "2FA enabled successfully. Save your backup codes!",
+            },
+        ),
     )
 
 
@@ -132,7 +141,7 @@ async def totp_disable_post(
     _csrf: bool = Depends(require_csrf_token),
 ):
     """Disable 2FA after verifying TOTP code and password."""
-    from fastapi_admin.auth.backend import pwd_context
+    from fastapi_console.auth.backend import pwd_context
 
     session = get_db_session(request)
     form = await request.form()
@@ -145,10 +154,13 @@ async def totp_disable_post(
         return templates.TemplateResponse(
             request,
             "pages/2fa/setup.html",
-            inject_sidebar_context(request, {
-                "totp_enabled": True,
-                "error": "Incorrect password.",
-            }),
+            inject_sidebar_context(
+                request,
+                {
+                    "totp_enabled": True,
+                    "error": "Incorrect password.",
+                },
+            ),
         )
 
     result = await session.execute(
@@ -164,10 +176,13 @@ async def totp_disable_post(
         return templates.TemplateResponse(
             request,
             "pages/2fa/setup.html",
-            inject_sidebar_context(request, {
-                "totp_enabled": True,
-                "error": "Invalid TOTP code.",
-            }),
+            inject_sidebar_context(
+                request,
+                {
+                    "totp_enabled": True,
+                    "error": "Invalid TOTP code.",
+                },
+            ),
         )
 
     totp_record.enabled = False
@@ -204,11 +219,14 @@ async def totp_regenerate_backup_codes(
     return templates.TemplateResponse(
         request,
         "pages/2fa/setup.html",
-        inject_sidebar_context(request, {
-            "totp_enabled": True,
-            "backup_codes": backup_codes,
-            "success": "New backup codes generated. Old codes are now invalid.",
-        }),
+        inject_sidebar_context(
+            request,
+            {
+                "totp_enabled": True,
+                "backup_codes": backup_codes,
+                "success": "New backup codes generated. Old codes are now invalid.",
+            },
+        ),
     )
 
 
@@ -222,7 +240,10 @@ async def totp_verify_view(
     return templates.TemplateResponse(
         request,
         "pages/2fa/verify.html",
-        inject_sidebar_context(request, {
-            "temp_token": temp_token,
-        }),
+        inject_sidebar_context(
+            request,
+            {
+                "temp_token": temp_token,
+            },
+        ),
     )

@@ -19,11 +19,11 @@ class AdminRouter:
 
     def _build_router(self, app: Any) -> None:
         """Build and mount routers for all registered models."""
-        from fastapi_admin.auth.router import router as auth_router
-        from fastapi_admin.registry import AdminRegistry
-        from fastapi_admin.router import build_model_router
-        from fastapi_admin.views.audit import router as audit_router
-        from fastapi_admin.views.roles import router as roles_router
+        from fastapi_console.auth.router import router as auth_router
+        from fastapi_console.registry import AdminRegistry
+        from fastapi_console.router import build_model_router
+        from fastapi_console.views.audit import router as audit_router
+        from fastapi_console.views.roles import router as roles_router
 
         registry = AdminRegistry()
 

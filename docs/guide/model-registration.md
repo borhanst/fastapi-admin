@@ -9,7 +9,7 @@ Register your SQLAlchemy models with the admin to get automatic CRUD UIs.
 Register a model with no configuration:
 
 ```python
-from fastapi_admin import Admin
+from fastapi_console import Admin
 
 admin = Admin(app, engine, secret_key="...")
 admin.register(Product)
@@ -147,7 +147,7 @@ class ProductAdmin(ModelAdmin):
 Add bulk actions to the list view:
 
 ```python
-from fastapi_admin.actions import Action
+from fastapi_console.actions import Action
 
 @admin.register(Product)
 class ProductAdmin(ModelAdmin):

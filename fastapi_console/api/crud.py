@@ -9,7 +9,7 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query, Request
 
-from fastapi_admin.views.class_views import (
+from fastapi_console.views.class_views import (
     CreateView,
     DeleteView,
     EditView,
@@ -20,7 +20,7 @@ from fastapi_admin.views.class_views import (
 
 async def _get_current_user(request: Request) -> dict[str, Any]:
     """Extract and validate the current user from a Bearer token."""
-    from fastapi_admin.api.deps import get_api_current_user
+    from fastapi_console.api.deps import get_api_current_user
 
     return await get_api_current_user(request)
 
@@ -59,9 +59,13 @@ def _register_model_routes(router: APIRouter, registered: Any) -> None:
     # DIP: resolve view classes from ModelAdmin config
     admin = registered.admin
     list_v = _resolve_view_class(admin, "list_view_class", ListView)(registered)
-    create_v = _resolve_view_class(admin, "create_view_class", CreateView)(registered)
+    create_v = _resolve_view_class(admin, "create_view_class", CreateView)(
+        registered
+    )
     edit_v = _resolve_view_class(admin, "edit_view_class", EditView)(registered)
-    delete_v = _resolve_view_class(admin, "delete_view_class", DeleteView)(registered)
+    delete_v = _resolve_view_class(admin, "delete_view_class", DeleteView)(
+        registered
+    )
 
     @router.get(prefix)
     async def list_items(

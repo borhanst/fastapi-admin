@@ -38,7 +38,7 @@ You can override either layer independently:
 For `String` and `VARCHAR` columns:
 
 ```python
-from fastapi_admin.widgets import TextInputWidget
+from fastapi_console.widgets import TextInputWidget
 
 class ProductAdmin(ModelAdmin):
     form_widgets = {
@@ -51,7 +51,7 @@ class ProductAdmin(ModelAdmin):
 For `Text` columns:
 
 ```python
-from fastapi_admin.widgets import TextareaWidget
+from fastapi_console.widgets import TextareaWidget
 
 class ProductAdmin(ModelAdmin):
     form_widgets = {
@@ -64,7 +64,7 @@ class ProductAdmin(ModelAdmin):
 For `Integer`, `Float`, `Numeric` columns:
 
 ```python
-from fastapi_admin.widgets import NumberInputWidget
+from fastapi_console.widgets import NumberInputWidget
 
 class ProductAdmin(ModelAdmin):
     form_widgets = {
@@ -78,7 +78,7 @@ class ProductAdmin(ModelAdmin):
 For `Boolean` columns:
 
 ```python
-from fastapi_admin.widgets import ToggleWidget
+from fastapi_console.widgets import ToggleWidget
 
 class ProductAdmin(ModelAdmin):
     form_widgets = {
@@ -91,7 +91,7 @@ class ProductAdmin(ModelAdmin):
 For `Enum` columns:
 
 ```python
-from fastapi_admin.widgets import SelectWidget
+from fastapi_console.widgets import SelectWidget
 
 class ProductAdmin(ModelAdmin):
     form_widgets = {
@@ -108,7 +108,7 @@ class ProductAdmin(ModelAdmin):
 For `DateTime` and `Date` columns:
 
 ```python
-from fastapi_admin.widgets import DateTimeWidget
+from fastapi_console.widgets import DateTimeWidget
 
 class ProductAdmin(ModelAdmin):
     form_widgets = {
@@ -121,7 +121,7 @@ class ProductAdmin(ModelAdmin):
 For `JSON` columns:
 
 ```python
-from fastapi_admin.widgets import JSONEditorWidget
+from fastapi_console.widgets import JSONEditorWidget
 
 class ProductAdmin(ModelAdmin):
     form_widgets = {
@@ -134,7 +134,7 @@ class ProductAdmin(ModelAdmin):
 For `ForeignKey` columns:
 
 ```python
-from fastapi_admin.widgets import RelationPickerWidget
+from fastapi_console.widgets import RelationPickerWidget
 
 class ProductAdmin(ModelAdmin):
     form_widgets = {
@@ -150,7 +150,7 @@ class ProductAdmin(ModelAdmin):
 For `relationship()` with `uselist=True`:
 
 ```python
-from fastapi_admin.widgets import MultiRelationPickerWidget
+from fastapi_console.widgets import MultiRelationPickerWidget
 
 class ProductAdmin(ModelAdmin):
     form_widgets = {
@@ -166,7 +166,7 @@ class ProductAdmin(ModelAdmin):
 Create your own widget by extending the base class:
 
 ```python
-from fastapi_admin.widgets.base import Widget, FieldMeta
+from fastapi_console.widgets.base import Widget, FieldMeta
 from typing import Any
 
 class ColorPickerWidget(Widget):
@@ -192,7 +192,7 @@ class ColorPickerWidget(Widget):
 ### Register the Widget
 
 ```python
-from fastapi_admin.widgets import WidgetRegistry
+from fastapi_console.widgets import WidgetRegistry
 
 # Register globally
 WidgetRegistry.register("color", ColorPickerWidget)
@@ -238,7 +238,7 @@ class ProductAdmin(ModelAdmin):
 The widget registry maps column types to widgets:
 
 ```python
-from fastapi_admin.widgets import WidgetRegistry
+from fastapi_console.widgets import WidgetRegistry
 
 # Default mappings
 WidgetRegistry.COLUMN_TYPE_MAP = {
@@ -273,7 +273,7 @@ WidgetRegistry.register_field_pattern("description", TextareaWidget(rows=10))
 ### Field-Level Validation
 
 ```python
-from fastapi_admin.widgets.base import Widget, FieldMeta
+from fastapi_console.widgets.base import Widget, FieldMeta
 from typing import Any
 
 class PriceWidget(Widget):

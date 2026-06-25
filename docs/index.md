@@ -18,7 +18,7 @@ A drop-in admin panel for FastAPI + SQLAlchemy apps.
 from fastapi import FastAPI
 from sqlalchemy import Column, Integer, String, Float
 from sqlalchemy.orm import DeclarativeBase
-from fastapi_admin import Admin
+from fastapi_console import Admin
 
 class Base(DeclarativeBase):
     pass

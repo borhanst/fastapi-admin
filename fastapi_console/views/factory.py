@@ -8,17 +8,19 @@ from fastapi import HTTPException, Request
 from fastapi.responses import RedirectResponse
 from starlette.datastructures import UploadFile
 
-from fastapi_admin.db import get_db_session
-from fastapi_admin.flash import add_flash
-from fastapi_admin.registry import RegisteredModel
-from fastapi_admin.validation import FormValidator
-from fastapi_admin.views.context import ViewContextBuilder
-from fastapi_admin.widgets.inputs import FileUploadWidget, ImageUploadWidget
+from fastapi_console.db import get_db_session
+from fastapi_console.flash import add_flash
+from fastapi_console.registry import RegisteredModel
+from fastapi_console.validation import FormValidator
+from fastapi_console.views.context import ViewContextBuilder
+from fastapi_console.widgets.inputs import FileUploadWidget, ImageUploadWidget
 
 _FILE_WIDGET_TYPES = (FileUploadWidget, ImageUploadWidget)
 
 
-def _apply_parsed_to_obj(obj: Any, parsed: dict[str, Any], registered: RegisteredModel) -> None:
+def _apply_parsed_to_obj(
+    obj: Any, parsed: dict[str, Any], registered: RegisteredModel
+) -> None:
     """Apply parsed data to an ORM object, mapping relationship names to FK columns."""
     from sqlalchemy import inspect as sa_inspect
 
@@ -43,7 +45,9 @@ def _apply_parsed_to_obj(obj: Any, parsed: dict[str, Any], registered: Registere
             setattr(obj, key, value)
 
 
-def _resolve_rel_keys(parsed: dict[str, Any], registered: RegisteredModel) -> dict[str, Any]:
+def _resolve_rel_keys(
+    parsed: dict[str, Any], registered: RegisteredModel
+) -> dict[str, Any]:
     """Convert relationship keys in parsed data to their FK column names."""
     from sqlalchemy import inspect as sa_inspect
 
@@ -75,7 +79,7 @@ async def _resolve_rel_labels(
     """Resolve display labels for relationship fields from FK values."""
     from sqlalchemy import inspect as sa_inspect
 
-    from fastapi_admin.inspection import model_display_name
+    from fastapi_console.inspection import model_display_name
 
     labels: dict[str, str] = {}
     if obj is None:
@@ -111,13 +115,13 @@ async def _resolve_permission_checker(request: Request) -> Any:
     """Resolve a PermissionChecker for the current request.
 
     Returns None if the user is not authenticated or the checker cannot be built.
-    Delegates current-user resolution to :mod:`fastapi_admin.auth.identity`, the
+    Delegates current-user resolution to :mod:`fastapi_console.auth.identity`, the
     single request-authentication seam — so the user is loaded per request on
     ``request.state.admin_user`` and never cached on ``app.state`` (which
     previously leaked identity across concurrent requests).
     """
-    from fastapi_admin.auth.identity import get_current_user_from_cookie
-    from fastapi_admin.auth.permissions import PermissionChecker
+    from fastapi_console.auth.identity import get_current_user_from_cookie
+    from fastapi_console.auth.permissions import PermissionChecker
 
     user = await get_current_user_from_cookie(request)
     if user is None:
@@ -227,13 +231,26 @@ class ViewFactory:
             widget = registered.get_widget(field_meta.name)
 
             if isinstance(widget, _FILE_WIDGET_TYPES):
-                action = form_data.get(f"_action_{field_meta.name}", "keep") if obj else None
-                await _handle_file_field(
-                    request, widget, field_meta, form_data,
-                    obj=obj, action=action,
-                    parsed=parsed, errors=errors,
+                action = (
+                    form_data.get(f"_action_{field_meta.name}", "keep")
+                    if obj
+                    else None
                 )
-                if obj is None and field_meta.name not in errors and field_meta.name not in parsed:
+                await _handle_file_field(
+                    request,
+                    widget,
+                    field_meta,
+                    form_data,
+                    obj=obj,
+                    action=action,
+                    parsed=parsed,
+                    errors=errors,
+                )
+                if (
+                    obj is None
+                    and field_meta.name not in errors
+                    and field_meta.name not in parsed
+                ):
                     parsed[field_meta.name] = None
                 continue
 
@@ -252,7 +269,10 @@ class ViewFactory:
 
     def create_list_view(self, registered: RegisteredModel):
         """Create a list view handler for the given model."""
-        async def list_view(request: Request, q: str = "", page: int = 1, _: Any = None):
+
+        async def list_view(
+            request: Request, q: str = "", page: int = 1, _: Any = None
+        ):
             templates = request.app.state.admin_jinja_env
             checker = await _resolve_permission_checker(request)
             if checker:
@@ -262,13 +282,17 @@ class ViewFactory:
             )
             is_htmx = request.headers.get("HX-Request") == "true"
             if is_htmx:
-                return templates.TemplateResponse(request, "partials/list_table.html", ctx)
+                return templates.TemplateResponse(
+                    request, "partials/list_table.html", ctx
+                )
             return templates.TemplateResponse(request, "pages/list.html", ctx)
+
         list_view.__name__ = f"list_{registered.table_name}"
         return list_view
 
     def create_create_form_view(self, registered: RegisteredModel):
         """Create a form display handler for creating new objects."""
+
         async def create_form(request: Request, _: Any = None):
             templates = request.app.state.admin_jinja_env
             checker = await _resolve_permission_checker(request)
@@ -278,11 +302,13 @@ class ViewFactory:
                 registered, request, is_create=True, permission_checker=checker
             )
             return templates.TemplateResponse(request, "pages/form.html", ctx)
+
         create_form.__name__ = f"create_form_{registered.table_name}"
         return create_form
 
     def create_create_submit_view(self, registered: RegisteredModel):
         """Create a form submission handler for creating new objects."""
+
         async def create_submit(request: Request, _: Any = None):
             templates = request.app.state.admin_jinja_env
             session = get_db_session(request)
@@ -298,10 +324,16 @@ class ViewFactory:
             if errors:
                 await session.rollback()
                 ctx = self.context_builder.build_form_context(
-                    registered, request, values=parsed, errors=errors, is_create=True,
+                    registered,
+                    request,
+                    values=parsed,
+                    errors=errors,
+                    is_create=True,
                     permission_checker=checker,
                 )
-                return templates.TemplateResponse(request, "pages/form.html", ctx, status_code=422)
+                return templates.TemplateResponse(
+                    request, "pages/form.html", ctx, status_code=422
+                )
 
             parsed = _resolve_rel_keys(parsed, registered)
             obj = registered.model(**parsed)
@@ -312,11 +344,13 @@ class ViewFactory:
             add_flash(request, "success", f"{registered.verbose_name} created.")
             url = f"{request.app.state.admin_config['admin_path']}/{registered.table_name}/"
             return RedirectResponse(url=url, status_code=303)
+
         create_submit.__name__ = f"create_submit_{registered.table_name}"
         return create_submit
 
     def create_edit_form_view(self, registered: RegisteredModel):
         """Create a form display handler for editing existing objects."""
+
         async def edit_form(request: Request, id: str, _: Any = None):
             templates = request.app.state.admin_jinja_env
             session = get_db_session(request)
@@ -328,15 +362,21 @@ class ViewFactory:
                 await checker.load_permissions(registered.table_name)
             rel_labels = await _resolve_rel_labels(obj, registered, request)
             ctx = self.context_builder.build_form_context(
-                registered, request, obj=obj, is_create=False,
-                permission_checker=checker, rel_labels=rel_labels,
+                registered,
+                request,
+                obj=obj,
+                is_create=False,
+                permission_checker=checker,
+                rel_labels=rel_labels,
             )
             return templates.TemplateResponse(request, "pages/form.html", ctx)
+
         edit_form.__name__ = f"edit_form_{registered.table_name}"
         return edit_form
 
     def create_edit_submit_view(self, registered: RegisteredModel):
         """Create a form submission handler for editing existing objects."""
+
         async def edit_submit(request: Request, id: str, _: Any = None):
             templates = request.app.state.admin_jinja_env
             session = get_db_session(request)
@@ -356,10 +396,18 @@ class ViewFactory:
                 await session.rollback()
                 rel_labels = await _resolve_rel_labels(obj, registered, request)
                 ctx = self.context_builder.build_form_context(
-                    registered, request, obj=obj, values=parsed, errors=errors, is_create=False,
-                    permission_checker=checker, rel_labels=rel_labels,
+                    registered,
+                    request,
+                    obj=obj,
+                    values=parsed,
+                    errors=errors,
+                    is_create=False,
+                    permission_checker=checker,
+                    rel_labels=rel_labels,
                 )
-                return templates.TemplateResponse(request, "pages/form.html", ctx, status_code=422)
+                return templates.TemplateResponse(
+                    request, "pages/form.html", ctx, status_code=422
+                )
 
             registered.admin.on_update(obj, parsed, request)
             _apply_parsed_to_obj(obj, parsed, registered)
@@ -368,11 +416,13 @@ class ViewFactory:
             add_flash(request, "success", f"{registered.verbose_name} updated.")
             url = f"{request.app.state.admin_config['admin_path']}/{registered.table_name}/"
             return RedirectResponse(url=url, status_code=303)
+
         edit_submit.__name__ = f"edit_submit_{registered.table_name}"
         return edit_submit
 
     def create_delete_view(self, registered: RegisteredModel):
         """Create a delete handler for removing objects."""
+
         async def delete_submit(request: Request, id: str, _: Any = None):
             session = get_db_session(request)
             try:
@@ -387,17 +437,21 @@ class ViewFactory:
                 await session.delete(obj)
                 await session.commit()
                 registered.admin.after_delete(obj, request)
-                add_flash(request, "success", f"{registered.verbose_name} deleted.")
+                add_flash(
+                    request, "success", f"{registered.verbose_name} deleted."
+                )
             except Exception as e:
                 await session.rollback()
                 add_flash(request, "error", f"Cannot delete: {str(e)}")
             url = f"{request.app.state.admin_config['admin_path']}/{registered.table_name}/"
             return RedirectResponse(url=url, status_code=303)
+
         delete_submit.__name__ = f"delete_{registered.table_name}"
         return delete_submit
 
     def create_bulk_view(self, registered: RegisteredModel):
         """Create a bulk action handler for multiple objects."""
+
         async def bulk_action(request: Request, _: Any = None):
             templates = request.app.state.admin_jinja_env
             session = get_db_session(request)
@@ -416,7 +470,9 @@ class ViewFactory:
                     ctx = await self.context_builder.build_list_context(
                         registered, request, permission_checker=None
                     )
-                    return templates.TemplateResponse(request, "partials/list_table.html", ctx)
+                    return templates.TemplateResponse(
+                        request, "partials/list_table.html", ctx
+                    )
                 url = f"{request.app.state.admin_config['admin_path']}/{registered.table_name}/"
                 return RedirectResponse(url=url, status_code=303)
 
@@ -429,11 +485,14 @@ class ViewFactory:
                             await session.delete(obj)
                     await session.commit()
                     add_flash(
-                        request, "success",
+                        request,
+                        "success",
                         f"{len(ids)} {registered.verbose_name}(s) deleted.",
                     )
                 else:
-                    action_fn = getattr(registered.admin, f"action_{action}", None)
+                    action_fn = getattr(
+                        registered.admin, f"action_{action}", None
+                    )
                     if not action_fn:
                         raise HTTPException(
                             status_code=400, detail=f"Unknown action: {action}"
@@ -444,7 +503,8 @@ class ViewFactory:
                             action_fn(obj)
                     await session.commit()
                     add_flash(
-                        request, "success",
+                        request,
+                        "success",
                         f"Action '{action}' applied to {len(ids)} item(s).",
                     )
             except Exception as e:
@@ -455,10 +515,13 @@ class ViewFactory:
                 ctx = await self.context_builder.build_list_context(
                     registered, request, permission_checker=None
                 )
-                return templates.TemplateResponse(request, "partials/list_table.html", ctx)
+                return templates.TemplateResponse(
+                    request, "partials/list_table.html", ctx
+                )
 
             url = f"{request.app.state.admin_config['admin_path']}/{registered.table_name}/"
             return RedirectResponse(url=url, status_code=303)
+
         bulk_action.__name__ = f"bulk_{registered.table_name}"
         return bulk_action
 

@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import inspect
 
-from fastapi_admin.types import ColumnMeta, RelationMeta
+from fastapi_console.types import ColumnMeta, RelationMeta
 
 if TYPE_CHECKING:
     pass

@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-import pytest
-from fastapi_admin.auth.password import validate_password_strength
+from fastapi_console.auth.password import validate_password_strength
 
 
 class TestPasswordValidation:
@@ -27,12 +26,14 @@ class TestUserManagementPermissions:
 
     def test_superuser_required_for_list(self):
         """User list requires superuser role."""
-        from fastapi_admin.auth.dependencies import require_superuser
+        from fastapi_console.auth.dependencies import require_superuser
+
         assert require_superuser is not None
 
     def test_superuser_required_for_create(self):
         """User create requires superuser role."""
-        from fastapi_admin.views.users import _require_superuser
+        from fastapi_console.views.users import _require_superuser
+
         assert _require_superuser is not None
 
 
@@ -41,7 +42,7 @@ class TestSoftDelete:
 
     def test_soft_delete_sets_inactive(self):
         """Soft-delete sets is_active=False."""
-        from fastapi_admin.auth.models import AdminUser
+        from fastapi_console.auth.models import AdminUser
 
         user = AdminUser(
             email="test@test.com",

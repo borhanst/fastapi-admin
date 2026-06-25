@@ -2,7 +2,7 @@
 
 ## Base Widget
 
-::: fastapi_admin.widgets.base.Widget
+::: fastapi_console.widgets.base.Widget
     options:
       show_source: true
       show_root_heading: true
@@ -11,7 +11,7 @@
 
 ## FieldMeta
 
-::: fastapi_admin.widgets.base.FieldMeta
+::: fastapi_console.widgets.base.FieldMeta
     options:
       show_source: true
       show_root_heading: true
@@ -22,7 +22,7 @@
 
 ### TextInputWidget
 
-::: fastapi_admin.widgets.inputs.TextInputWidget
+::: fastapi_console.widgets.inputs.TextInputWidget
     options:
       show_source: true
       show_root_heading: true
@@ -31,7 +31,7 @@
 
 ### TextareaWidget
 
-::: fastapi_admin.widgets.inputs.TextareaWidget
+::: fastapi_console.widgets.inputs.TextareaWidget
     options:
       show_source: true
       show_root_heading: true
@@ -40,7 +40,7 @@
 
 ### NumberInputWidget
 
-::: fastapi_admin.widgets.inputs.NumberInputWidget
+::: fastapi_console.widgets.inputs.NumberInputWidget
     options:
       show_source: true
       show_root_heading: true
@@ -49,7 +49,7 @@
 
 ### ToggleWidget
 
-::: fastapi_admin.widgets.inputs.ToggleWidget
+::: fastapi_console.widgets.inputs.ToggleWidget
     options:
       show_source: true
       show_root_heading: true
@@ -58,7 +58,7 @@
 
 ### SelectWidget
 
-::: fastapi_admin.widgets.inputs.SelectWidget
+::: fastapi_console.widgets.inputs.SelectWidget
     options:
       show_source: true
       show_root_heading: true
@@ -67,7 +67,7 @@
 
 ### DatePickerWidget
 
-::: fastapi_admin.widgets.inputs.DatePickerWidget
+::: fastapi_console.widgets.inputs.DatePickerWidget
     options:
       show_source: true
       show_root_heading: true
@@ -76,7 +76,7 @@
 
 ### DateTimePickerWidget
 
-::: fastapi_admin.widgets.inputs.DateTimePickerWidget
+::: fastapi_console.widgets.inputs.DateTimePickerWidget
     options:
       show_source: true
       show_root_heading: true
@@ -85,7 +85,7 @@
 
 ### JsonEditorWidget
 
-::: fastapi_admin.widgets.inputs.JsonEditorWidget
+::: fastapi_console.widgets.inputs.JsonEditorWidget
     options:
       show_source: true
       show_root_heading: true
@@ -96,7 +96,7 @@
 
 ### RelationPickerWidget
 
-::: fastapi_admin.widgets.relation.RelationPickerWidget
+::: fastapi_console.widgets.relation.RelationPickerWidget
     options:
       show_source: true
       show_root_heading: true
@@ -105,7 +105,7 @@
 
 ### MultiRelationWidget
 
-::: fastapi_admin.widgets.relation.MultiRelationWidget
+::: fastapi_console.widgets.relation.MultiRelationWidget
     options:
       show_source: true
       show_root_heading: true
@@ -114,7 +114,7 @@
 
 ## Widget Registry
 
-::: fastapi_admin.widgets.registry.WidgetRegistry
+::: fastapi_console.widgets.registry.WidgetRegistry
     options:
       show_source: true
       show_root_heading: true

@@ -6,7 +6,7 @@ from typing import Any
 
 from fastapi import Request
 
-from fastapi_admin.actions.base import Action
+from fastapi_console.actions.base import Action
 
 
 class DeleteSelectedAction(Action):

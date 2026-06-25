@@ -13,11 +13,11 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from jinja2 import Environment
 
-from fastapi_admin.admin.admin_config import AdminConfig
-from fastapi_admin.admin.admin_database import AdminDatabase
-from fastapi_admin.admin.admin_router import AdminRouter
-from fastapi_admin.admin.admin_template import AdminTemplate
-from fastapi_admin.config import (
+from fastapi_console.admin.admin_config import AdminConfig
+from fastapi_console.admin.admin_database import AdminDatabase
+from fastapi_console.admin.admin_router import AdminRouter
+from fastapi_console.admin.admin_template import AdminTemplate
+from fastapi_console.config import (
     AuditConfig,
     AuthConfig,
     BehaviorConfig,
@@ -26,17 +26,17 @@ from fastapi_admin.config import (
     ThemeConfig,
     UIConfig,
 )
-from fastapi_admin.exceptions import ConfigError
-from fastapi_admin.registry import AdminRegistry, RegisteredModel
-from fastapi_admin.types import SeedRole
+from fastapi_console.exceptions import ConfigError
+from fastapi_console.registry import AdminRegistry, RegisteredModel
+from fastapi_console.types import SeedRole
 
 if TYPE_CHECKING:
     from sqlalchemy.engine import Engine
 
-    from fastapi_admin.auth.backend import AuthBackend
-    from fastapi_admin.nav import NavGroupConfig, SidebarBuilder
-    from fastapi_admin.storage.base import StorageBackend
-    from fastapi_admin.views import ModelAdmin
+    from fastapi_console.auth.backend import AuthBackend
+    from fastapi_console.nav import NavGroupConfig, SidebarBuilder
+    from fastapi_console.storage.base import StorageBackend
+    from fastapi_console.views import ModelAdmin
 
 
 # ---------------------------------------------------------------------------
@@ -179,7 +179,10 @@ class Admin:
 
         # Add CSRF middleware early (must be before app starts)
         if app is not None:
-            from fastapi_admin.auth.csrf import CSRFMiddleware, auth_redirect_handler
+            from fastapi_console.auth.csrf import (
+                CSRFMiddleware,
+                auth_redirect_handler,
+            )
 
             app.add_exception_handler(401, auth_redirect_handler)
             app.add_middleware(CSRFMiddleware)
@@ -420,7 +423,10 @@ class Admin:
 
         # Add CSRF middleware if not already added in __init__
         if not getattr(self, "_csrf_middleware_added", False):
-            from fastapi_admin.auth.csrf import CSRFMiddleware, auth_redirect_handler
+            from fastapi_console.auth.csrf import (
+                CSRFMiddleware,
+                auth_redirect_handler,
+            )
 
             try:
                 app.add_exception_handler(401, auth_redirect_handler)
@@ -430,7 +436,7 @@ class Admin:
 
         # Add per-request session middleware
         if not getattr(self, "_session_middleware_added", False):
-            from fastapi_admin.db import SessionMiddleware
+            from fastapi_console.db import SessionMiddleware
 
             try:
                 app.add_middleware(SessionMiddleware)
@@ -573,7 +579,7 @@ class Admin:
 
     def _wire_app_state(self, app: FastAPI) -> None:
         """Store backends and configuration on app.state as typed AdminState."""
-        from fastapi_admin.admin.state import AdminState
+        from fastapi_console.admin.state import AdminState
 
         admin_config = {
             "title": self.config.ui.title,
@@ -602,7 +608,7 @@ class Admin:
             from sqlalchemy.ext.asyncio import AsyncEngine
 
             if isinstance(engine, AsyncEngine):
-                from fastapi_admin.db import create_session_factory
+                from fastapi_console.db import create_session_factory
 
                 session_factory = create_session_factory(engine)
                 # Legacy fallback — a single session for backward compat
@@ -650,7 +656,7 @@ class Admin:
             )
 
         # Mount uploads directory if using LocalStorageBackend
-        from fastapi_admin.storage.local import LocalStorageBackend
+        from fastapi_console.storage.local import LocalStorageBackend
 
         if isinstance(self.config.storage.storage, LocalStorageBackend):
             self.config.storage.storage.ensure_dir()
@@ -677,7 +683,8 @@ class Admin:
 
         self._jinja_env.env.filters["slugify"] = slugify
         self._jinja_env.env.globals["attr"] = _attr
-        from fastapi_admin.inspection import model_display_name
+        from fastapi_console.inspection import model_display_name
+
         self._jinja_env.env.globals["model_display_name"] = model_display_name
         self._jinja_env.env.globals["registered_models"] = self.registry.all()
         self._jinja_env.env.globals["admin_path"] = self.router.admin_path
@@ -693,14 +700,18 @@ class Admin:
         def _get_flash_messages(request) -> list[dict[str, str]]:
             try:
                 session_backend = request.app.state.admin_session_backend
-                cookie_name = getattr(session_backend, "cookie_name", "admin_session")
+                cookie_name = getattr(
+                    session_backend, "cookie_name", "admin_session"
+                )
                 raw = request.cookies.get(cookie_name)
                 if not raw or not hasattr(session_backend, "load"):
                     return []
                 data = session_backend.load(raw)
                 if not isinstance(data, dict):
                     return []
-                return data.pop("admin_flash", []) if "admin_flash" in data else []
+                return (
+                    data.pop("admin_flash", []) if "admin_flash" in data else []
+                )
             except Exception:
                 return []
 
@@ -727,8 +738,12 @@ class Admin:
             self._jinja_env.env.globals["theme_font_import_url"] = (
                 self.config.ui.theme.font_import_url
             )
-            self._jinja_env.env.globals["theme_preset"] = self.config.ui.theme.preset
-        self._jinja_env.env.globals["ui_config"] = self.config.ui.apply_to_template_context()
+            self._jinja_env.env.globals["theme_preset"] = (
+                self.config.ui.theme.preset
+            )
+        self._jinja_env.env.globals["ui_config"] = (
+            self.config.ui.apply_to_template_context()
+        )
 
         app.state.admin_jinja_env = self._jinja_env
 
@@ -737,14 +752,14 @@ class Admin:
         if self._router_built:
             return
 
-        from fastapi_admin.auth.router import router as auth_router
-        from fastapi_admin.router import build_model_router
-        from fastapi_admin.views.audit import router as audit_router
-        from fastapi_admin.views.profile import router as profile_router
-        from fastapi_admin.views.roles import router as roles_router
-        from fastapi_admin.views.settings import router as settings_router
-        from fastapi_admin.views.totp import router as totp_router
-        from fastapi_admin.views.users import router as users_router
+        from fastapi_console.auth.router import router as auth_router
+        from fastapi_console.router import build_model_router
+        from fastapi_console.views.audit import router as audit_router
+        from fastapi_console.views.profile import router as profile_router
+        from fastapi_console.views.roles import router as roles_router
+        from fastapi_console.views.settings import router as settings_router
+        from fastapi_console.views.totp import router as totp_router
+        from fastapi_console.views.users import router as users_router
 
         for registered in self.registry.all():
             model_router = build_model_router(registered)
@@ -762,7 +777,7 @@ class Admin:
         app.include_router(totp_router, prefix=self.router.admin_path)
 
         # Dashboard route
-        from fastapi_admin.views.dashboard import dashboard_view_factory
+        from fastapi_console.views.dashboard import dashboard_view_factory
 
         dashboard_view = dashboard_view_factory(self)
         app.add_api_route(
@@ -773,7 +788,7 @@ class Admin:
         )
 
         # JSON API for external frontend apps
-        from fastapi_admin.api import AdminAPIRouter
+        from fastapi_console.api import AdminAPIRouter
 
         api_router = AdminAPIRouter(registry=self.registry)
         app.include_router(api_router.build_router())
@@ -805,7 +820,7 @@ class Admin:
 
     def _build_sidebar(self) -> list:
         """Build the sidebar group structure once at startup."""
-        from fastapi_admin.nav import DefaultSidebarBuilder
+        from fastapi_console.nav import DefaultSidebarBuilder
 
         builder = self.config.nav.sidebar_builder or DefaultSidebarBuilder()
         return builder.build(

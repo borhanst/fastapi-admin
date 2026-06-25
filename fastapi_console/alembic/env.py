@@ -1,12 +1,12 @@
 import asyncio
 from logging.config import fileConfig
 
-from alembic import context
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
-from fastapi_admin.models.base import Base as AdminBase
+from alembic import context
+from fastapi_console.models.base import Base as AdminBase
 
 target_metadata = AdminBase.metadata
 

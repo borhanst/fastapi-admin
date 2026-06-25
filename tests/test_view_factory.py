@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock
+
 from sqlalchemy import Boolean, Column, ForeignKey, Integer, String
 from sqlalchemy.orm import DeclarativeBase, relationship
 
@@ -38,12 +38,12 @@ class TestProduct(Base):
 
 class TestViewContextBuilder:
     def setup_method(self):
-        from fastapi_admin.registry import AdminRegistry
+        from fastapi_console.registry import AdminRegistry
 
         AdminRegistry().clear()
 
     def test_init_default(self):
-        from fastapi_admin.views.context import ViewContextBuilder
+        from fastapi_console.views.context import ViewContextBuilder
 
         builder = ViewContextBuilder()
         assert builder.registry is None
@@ -51,7 +51,7 @@ class TestViewContextBuilder:
         assert builder.widget_resolver is None
 
     def test_init_with_dependencies(self):
-        from fastapi_admin.views.context import ViewContextBuilder
+        from fastapi_console.views.context import ViewContextBuilder
 
         registry = MagicMock()
         checker = MagicMock()
@@ -66,35 +66,35 @@ class TestViewContextBuilder:
         assert builder.widget_resolver is resolver
 
     def test_get_field_type_relation(self):
-        from fastapi_admin.views.context import ViewContextBuilder
+        from fastapi_console.views.context import ViewContextBuilder
 
         builder = ViewContextBuilder()
         field_type = builder._get_field_type(TestProduct, "category")
         assert field_type == "relation"
 
     def test_get_field_type_boolean(self):
-        from fastapi_admin.views.context import ViewContextBuilder
+        from fastapi_console.views.context import ViewContextBuilder
 
         builder = ViewContextBuilder()
         field_type = builder._get_field_type(TestProduct, "is_active")
         assert field_type == "boolean"
 
     def test_get_field_type_text(self):
-        from fastapi_admin.views.context import ViewContextBuilder
+        from fastapi_console.views.context import ViewContextBuilder
 
         builder = ViewContextBuilder()
         field_type = builder._get_field_type(TestProduct, "name")
         assert field_type == "text"
 
     def test_get_eager_loads(self):
-        from fastapi_admin.views.context import ViewContextBuilder
+        from fastapi_console.views.context import ViewContextBuilder
 
         builder = ViewContextBuilder()
         loads = builder._get_eager_loads(TestProduct, ["name", "category"])
         assert len(loads) == 1
 
     def test_get_eager_loads_no_relations(self):
-        from fastapi_admin.views.context import ViewContextBuilder
+        from fastapi_console.views.context import ViewContextBuilder
 
         builder = ViewContextBuilder()
         loads = builder._get_eager_loads(TestProduct, ["name", "price"])
@@ -108,29 +108,29 @@ class TestViewContextBuilder:
 
 class TestViewFactory:
     def setup_method(self):
-        from fastapi_admin.registry import AdminRegistry
+        from fastapi_console.registry import AdminRegistry
 
         AdminRegistry().clear()
 
     def test_init_default(self):
-        from fastapi_admin.views.factory import ViewFactory
-        from fastapi_admin.views.context import ViewContextBuilder
+        from fastapi_console.views.context import ViewContextBuilder
+        from fastapi_console.views.factory import ViewFactory
 
         factory = ViewFactory()
         assert isinstance(factory.context_builder, ViewContextBuilder)
         assert factory.validation_engine is not None
 
     def test_init_with_custom_builder(self):
-        from fastapi_admin.views.factory import ViewFactory
-        from fastapi_admin.views.context import ViewContextBuilder
+        from fastapi_console.views.context import ViewContextBuilder
+        from fastapi_console.views.factory import ViewFactory
 
         builder = ViewContextBuilder()
         factory = ViewFactory(context_builder=builder)
         assert factory.context_builder is builder
 
     def test_create_list_view(self):
-        from fastapi_admin.views.factory import ViewFactory
-        from fastapi_admin.registry import AdminRegistry
+        from fastapi_console.registry import AdminRegistry
+        from fastapi_console.views.factory import ViewFactory
 
         reg = AdminRegistry()
         reg.clear()
@@ -142,8 +142,8 @@ class TestViewFactory:
         assert view.__name__ == "list_test_products"
 
     def test_create_create_form_view(self):
-        from fastapi_admin.views.factory import ViewFactory
-        from fastapi_admin.registry import AdminRegistry
+        from fastapi_console.registry import AdminRegistry
+        from fastapi_console.views.factory import ViewFactory
 
         reg = AdminRegistry()
         reg.clear()
@@ -155,8 +155,8 @@ class TestViewFactory:
         assert view.__name__ == "create_form_test_products"
 
     def test_create_create_submit_view(self):
-        from fastapi_admin.views.factory import ViewFactory
-        from fastapi_admin.registry import AdminRegistry
+        from fastapi_console.registry import AdminRegistry
+        from fastapi_console.views.factory import ViewFactory
 
         reg = AdminRegistry()
         reg.clear()
@@ -168,8 +168,8 @@ class TestViewFactory:
         assert view.__name__ == "create_submit_test_products"
 
     def test_create_edit_form_view(self):
-        from fastapi_admin.views.factory import ViewFactory
-        from fastapi_admin.registry import AdminRegistry
+        from fastapi_console.registry import AdminRegistry
+        from fastapi_console.views.factory import ViewFactory
 
         reg = AdminRegistry()
         reg.clear()
@@ -181,8 +181,8 @@ class TestViewFactory:
         assert view.__name__ == "edit_form_test_products"
 
     def test_create_edit_submit_view(self):
-        from fastapi_admin.views.factory import ViewFactory
-        from fastapi_admin.registry import AdminRegistry
+        from fastapi_console.registry import AdminRegistry
+        from fastapi_console.views.factory import ViewFactory
 
         reg = AdminRegistry()
         reg.clear()
@@ -194,8 +194,8 @@ class TestViewFactory:
         assert view.__name__ == "edit_submit_test_products"
 
     def test_create_delete_view(self):
-        from fastapi_admin.views.factory import ViewFactory
-        from fastapi_admin.registry import AdminRegistry
+        from fastapi_console.registry import AdminRegistry
+        from fastapi_console.views.factory import ViewFactory
 
         reg = AdminRegistry()
         reg.clear()
@@ -207,8 +207,8 @@ class TestViewFactory:
         assert view.__name__ == "delete_test_products"
 
     def test_create_bulk_view(self):
-        from fastapi_admin.views.factory import ViewFactory
-        from fastapi_admin.registry import AdminRegistry
+        from fastapi_console.registry import AdminRegistry
+        from fastapi_console.views.factory import ViewFactory
 
         reg = AdminRegistry()
         reg.clear()
@@ -220,8 +220,8 @@ class TestViewFactory:
         assert view.__name__ == "bulk_test_products"
 
     def test_create_all_views(self):
-        from fastapi_admin.views.factory import ViewFactory
-        from fastapi_admin.registry import AdminRegistry
+        from fastapi_console.registry import AdminRegistry
+        from fastapi_console.views.factory import ViewFactory
 
         reg = AdminRegistry()
         reg.clear()
@@ -251,13 +251,13 @@ class TestViewFactory:
 
 class TestBackwardCompatibility:
     def setup_method(self):
-        from fastapi_admin.registry import AdminRegistry
+        from fastapi_console.registry import AdminRegistry
 
         AdminRegistry().clear()
 
     def test_list_view_factory_import(self):
-        from fastapi_admin.views.list import list_view_factory
-        from fastapi_admin.registry import AdminRegistry
+        from fastapi_console.registry import AdminRegistry
+        from fastapi_console.views.list import list_view_factory
 
         reg = AdminRegistry()
         reg.clear()
@@ -268,8 +268,8 @@ class TestBackwardCompatibility:
         assert view.__name__ == "list_test_products"
 
     def test_create_form_factory_import(self):
-        from fastapi_admin.views.form import create_form_factory
-        from fastapi_admin.registry import AdminRegistry
+        from fastapi_console.registry import AdminRegistry
+        from fastapi_console.views.form import create_form_factory
 
         reg = AdminRegistry()
         reg.clear()
@@ -280,8 +280,8 @@ class TestBackwardCompatibility:
         assert view.__name__ == "create_form_test_products"
 
     def test_edit_form_factory_import(self):
-        from fastapi_admin.views.form import edit_form_factory
-        from fastapi_admin.registry import AdminRegistry
+        from fastapi_console.registry import AdminRegistry
+        from fastapi_console.views.form import edit_form_factory
 
         reg = AdminRegistry()
         reg.clear()
@@ -292,8 +292,8 @@ class TestBackwardCompatibility:
         assert view.__name__ == "edit_form_test_products"
 
     def test_delete_factory_import(self):
-        from fastapi_admin.views.delete import delete_factory
-        from fastapi_admin.registry import AdminRegistry
+        from fastapi_console.registry import AdminRegistry
+        from fastapi_console.views.delete import delete_factory
 
         reg = AdminRegistry()
         reg.clear()
@@ -304,8 +304,8 @@ class TestBackwardCompatibility:
         assert view.__name__ == "delete_test_products"
 
     def test_bulk_factory_import(self):
-        from fastapi_admin.views.bulk import bulk_factory
-        from fastapi_admin.registry import AdminRegistry
+        from fastapi_console.registry import AdminRegistry
+        from fastapi_console.views.bulk import bulk_factory
 
         reg = AdminRegistry()
         reg.clear()
@@ -323,21 +323,25 @@ class TestBackwardCompatibility:
 
 class TestViewsPackageExports:
     def test_imports_view_factory(self):
-        from fastapi_admin.views import ViewFactory, ViewContextBuilder, DisplayColumn
+        from fastapi_console.views import (
+            DisplayColumn,
+            ViewContextBuilder,
+            ViewFactory,
+        )
 
         assert ViewFactory is not None
         assert ViewContextBuilder is not None
         assert DisplayColumn is not None
 
     def test_imports_backward_compatible(self):
-        from fastapi_admin.views import (
-            list_view_factory,
+        from fastapi_console.views import (
+            bulk_factory,
             create_form_factory,
             create_submit_factory,
+            delete_factory,
             edit_form_factory,
             edit_submit_factory,
-            delete_factory,
-            bulk_factory,
+            list_view_factory,
         )
 
         assert callable(list_view_factory)
@@ -356,7 +360,7 @@ class TestViewsPackageExports:
 
 class TestDisplayColumn:
     def test_init(self):
-        from fastapi_admin.views.context import DisplayColumn
+        from fastapi_console.views.context import DisplayColumn
 
         col = DisplayColumn("name", "Name", is_relation=False)
         assert col.name == "name"
@@ -364,14 +368,14 @@ class TestDisplayColumn:
         assert col.is_relation is False
 
     def test_value(self):
-        from fastapi_admin.views.context import DisplayColumn
+        from fastapi_console.views.context import DisplayColumn
 
         col = DisplayColumn("name", "Name")
         obj = type("Obj", (), {"name": "Test"})()
         assert col.value(obj) == "Test"
 
     def test_value_default(self):
-        from fastapi_admin.views.context import DisplayColumn
+        from fastapi_console.views.context import DisplayColumn
 
         col = DisplayColumn("missing", "Missing")
         obj = type("Obj", (), {})()

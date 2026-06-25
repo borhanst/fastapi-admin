@@ -6,9 +6,9 @@ from typing import Any
 
 from fastapi import APIRouter
 
-from fastapi_admin.api.auth import router as auth_router
-from fastapi_admin.api.crud import build_api_router
-from fastapi_admin.api.roles import router as roles_router
+from fastapi_console.api.auth import router as auth_router
+from fastapi_console.api.crud import build_api_router
+from fastapi_console.api.roles import router as roles_router
 
 
 class AdminAPIRouter:

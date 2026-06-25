@@ -8,8 +8,8 @@ from __future__ import annotations
 from typing import Any
 
 from fastapi import Request
+from starlette.datastructures import UploadFile
 
-<<<<<<< HEAD:fastapi_console/views/form.py
 from fastapi_console.flash import add_flash
 from fastapi_console.form.pipeline import build_form_context
 from fastapi_console.registry import RegisteredModel
@@ -117,28 +117,11 @@ def create_form_factory(registered: RegisteredModel):
         )
     create_form.__name__ = f"create_form_{registered.table_name}"
     return create_form
-=======
-from fastapi_admin.registry import RegisteredModel
-
-
-def create_form_factory(registered: RegisteredModel):
-    """Create form display handler — delegates to CreateView.html_response."""
-    from fastapi_admin.views.class_views import CreateView, _resolve_view_class
-
-    view_class = _resolve_view_class(registered.admin, "create_view_class", CreateView)
-    view_instance = view_class(registered)
-
-    async def _handler(request: Request, **kwargs: Any):
-        return await view_instance.html_response(request, **kwargs)
-
-    _handler.__name__ = f"create_form_{registered.table_name}"
-    return _handler
->>>>>>> 6fbbaad1ffffd156930439440a97eefaf7f5c603:fastapi_admin/views/form.py
 
 
 def create_submit_factory(registered: RegisteredModel):
     """Create form submission handler — delegates to CreateView.html_response."""
-    from fastapi_admin.views.class_views import CreateView, _resolve_view_class
+    from fastapi_console.views.class_views import CreateView, _resolve_view_class
 
     view_class = _resolve_view_class(registered.admin, "create_view_class", CreateView)
     view_instance = view_class(registered)
@@ -146,68 +129,13 @@ def create_submit_factory(registered: RegisteredModel):
     async def _handler(request: Request, **kwargs: Any):
         return await view_instance.html_response(request, **kwargs)
 
-<<<<<<< HEAD:fastapi_console/views/form.py
-            raw = form_data.get(field_meta.name)
-            value = widget.parse(raw)
-            field_errors = widget.validate(value, field_meta)
-            if field_errors:
-                errors[field_meta.name] = field_errors
-            else:
-                parsed[field_meta.name] = value
-
-        if not errors:
-            validator = FormValidator()
-            errors = validator.run(registered, parsed, obj=None)
-
-        if errors:
-            ctx = build_form_context(
-                registered, values=parsed, errors=errors, is_create=True
-            )
-            context = inject_sidebar_context(request, {
-                "form_context": ctx,
-                "is_create": True,
-            })
-            return templates.TemplateResponse(
-                request, "pages/form.html", context, status_code=422
-            )
-
-        obj = registered.model(**parsed)
-        registered.admin.on_create(obj, request)
-        session.add(obj)
-        await session.commit()
-        registered.admin.after_create(obj, request)
-        add_flash(request, "success", f"{registered.verbose_name} created.")
-        url = f"{request.app.state.admin_config['admin_path']}/{registered.table_name}/"
-        return RedirectResponse(url=url, status_code=303)
-    create_submit.__name__ = f"create_submit_{registered.table_name}"
-    return create_submit
-
-
-def edit_form_factory(registered: RegisteredModel):
-    async def edit_form(request: Request, id: str, _: Any = None):
-        templates = request.app.state.admin_jinja_env
-        session = request.app.state.admin_db_session
-        obj = await session.get(registered.model, id)
-        if not obj:
-            raise HTTPException(status_code=404, detail="Not found")
-        form_ctx = build_form_context(registered, obj=obj, is_create=False)
-        context = inject_sidebar_context(request, {
-            "form_context": form_ctx,
-            "is_create": False,
-        })
-        return templates.TemplateResponse(
-            request, "pages/form.html", context
-        )
-    edit_form.__name__ = f"edit_form_{registered.table_name}"
-    return edit_form
-=======
     _handler.__name__ = f"create_submit_{registered.table_name}"
     return _handler
 
 
 def edit_form_factory(registered: RegisteredModel):
     """Edit form display handler — delegates to EditView.html_response."""
-    from fastapi_admin.views.class_views import EditView, _resolve_view_class
+    from fastapi_console.views.class_views import EditView, _resolve_view_class
 
     view_class = _resolve_view_class(registered.admin, "edit_view_class", EditView)
     view_instance = view_class(registered)
@@ -217,12 +145,11 @@ def edit_form_factory(registered: RegisteredModel):
 
     _handler.__name__ = f"edit_form_{registered.table_name}"
     return _handler
->>>>>>> 6fbbaad1ffffd156930439440a97eefaf7f5c603:fastapi_admin/views/form.py
 
 
 def edit_submit_factory(registered: RegisteredModel):
     """Edit form submission handler — delegates to EditView.html_response."""
-    from fastapi_admin.views.class_views import EditView, _resolve_view_class
+    from fastapi_console.views.class_views import EditView, _resolve_view_class
 
     view_class = _resolve_view_class(registered.admin, "edit_view_class", EditView)
     view_instance = view_class(registered)
@@ -230,42 +157,5 @@ def edit_submit_factory(registered: RegisteredModel):
     async def _handler(request: Request, **kwargs: Any):
         return await view_instance.html_response(request, **kwargs)
 
-<<<<<<< HEAD:fastapi_console/views/form.py
-            raw = form_data.get(field_meta.name)
-            value = widget.parse(raw)
-            field_errors = widget.validate(value, field_meta)
-            if field_errors:
-                errors[field_meta.name] = field_errors
-            else:
-                parsed[field_meta.name] = value
-
-        if not errors:
-            validator = FormValidator()
-            errors = validator.run(registered, parsed, obj=obj)
-
-        if errors:
-            ctx = build_form_context(
-                registered, obj=obj, values=parsed, errors=errors, is_create=False
-            )
-            context = inject_sidebar_context(request, {
-                "form_context": ctx,
-                "is_create": False,
-            })
-            return templates.TemplateResponse(
-                request, "pages/form.html", context, status_code=422
-            )
-
-        registered.admin.on_update(obj, parsed, request)
-        for key, value in parsed.items():
-            setattr(obj, key, value)
-        await session.commit()
-        registered.admin.after_update(obj, request)
-        add_flash(request, "success", f"{registered.verbose_name} updated.")
-        url = f"{request.app.state.admin_config['admin_path']}/{registered.table_name}/"
-        return RedirectResponse(url=url, status_code=303)
-    edit_submit.__name__ = f"edit_submit_{registered.table_name}"
-    return edit_submit
-=======
     _handler.__name__ = f"edit_submit_{registered.table_name}"
     return _handler
->>>>>>> 6fbbaad1ffffd156930439440a97eefaf7f5c603:fastapi_admin/views/form.py

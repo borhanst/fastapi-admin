@@ -8,9 +8,9 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 from sqlalchemy import select
 
-from fastapi_admin.api.deps import require_api_superuser
-from fastapi_admin.auth.models import AdminRole
-from fastapi_admin.db import get_db_session
+from fastapi_console.api.deps import require_api_superuser
+from fastapi_console.auth.models import AdminRole
+from fastapi_console.db import get_db_session
 
 router = APIRouter(prefix="/roles", tags=["api-roles"])
 
@@ -72,7 +72,9 @@ async def create_role(
     await db_session.commit()
     await db_session.refresh(role)
 
-    return RoleResponse(id=role.id, name=role.name, description=role.description)
+    return RoleResponse(
+        id=role.id, name=role.name, description=role.description
+    )
 
 
 @router.put("/{role_id}", response_model=RoleResponse)

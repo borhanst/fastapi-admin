@@ -15,11 +15,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from fastapi_admin.types import ColumnMeta
+from fastapi_console.types import ColumnMeta
 
 if TYPE_CHECKING:
-    from fastapi_admin.widgets.base import Widget
-    from fastapi_admin.widgets.registry import WidgetRegistry
+    from fastapi_console.widgets.base import Widget
+    from fastapi_console.widgets.registry import WidgetRegistry
 
 
 class WidgetResolver:
@@ -52,26 +52,26 @@ class WidgetResolver:
                 return widget_cls()
 
         if col.foreign_keys:
-            from fastapi_admin.widgets.relation import RelationPickerWidget
+            from fastapi_console.widgets.relation import RelationPickerWidget
 
             return RelationPickerWidget()
 
         col_type = col.type
         if hasattr(col_type, "enums") and col_type.enums:
             choices = [(v, v.replace("_", " ").title()) for v in col_type.enums]
-            from fastapi_admin.widgets.inputs import SelectWidget
+            from fastapi_console.widgets.inputs import SelectWidget
 
             return SelectWidget(choices=choices)
 
         for sa_type, widget_cls in self._registry.type_map.items():
             if isinstance(col_type, sa_type):
-                from fastapi_admin.widgets.inputs import TextInputWidget
+                from fastapi_console.widgets.inputs import TextInputWidget
 
                 has_length = hasattr(col_type, "length") and col_type.length
                 if widget_cls == TextInputWidget and has_length:
                     return TextInputWidget(maxlength=col_type.length)
                 return widget_cls()
 
-        from fastapi_admin.widgets.inputs import TextInputWidget
+        from fastapi_console.widgets.inputs import TextInputWidget
 
         return TextInputWidget()

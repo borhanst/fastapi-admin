@@ -1,6 +1,6 @@
 """Audit configuration."""
 
-from fastapi_admin.exceptions import ConfigError
+from fastapi_console.exceptions import ConfigError
 
 
 class AuditConfig:

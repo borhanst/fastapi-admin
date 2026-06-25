@@ -9,10 +9,10 @@ from fastapi import Request
 from sqlalchemy import and_, asc, desc, func, or_, select
 from sqlalchemy.orm import joinedload
 
-from fastapi_admin.db import get_db_session
-from fastapi_admin.registry import RegisteredModel
-from fastapi_admin.types import PermissionSet
-from fastapi_admin.views.sidebar import inject_sidebar_context
+from fastapi_console.db import get_db_session
+from fastapi_console.registry import RegisteredModel
+from fastapi_console.types import PermissionSet
+from fastapi_console.views.sidebar import inject_sidebar_context
 
 
 class DisplayColumn:
@@ -110,7 +110,10 @@ class ViewContextBuilder:
                                 col = prop.columns[0] if prop.columns else None
                                 if col is not None:
                                     for fk in col.foreign_keys:
-                                        if fk.column.table == rel.mapper.persist_selectable:
+                                        if (
+                                            fk.column.table
+                                            == rel.mapper.persist_selectable
+                                        ):
                                             target_model = rel.mapper.class_
                                             break
                         if target_model is not None:
@@ -123,7 +126,11 @@ class ViewContextBuilder:
                         target_model, "title", None
                     )
                     if order_col is not None:
-                        q = sa_select(target_model).order_by(order_col).limit(100)
+                        q = (
+                            sa_select(target_model)
+                            .order_by(order_col)
+                            .limit(100)
+                        )
                     else:
                         pk = sa_inspect(target_model).primary_key[0]
                         q = sa_select(target_model).order_by(pk).limit(100)
@@ -246,23 +253,35 @@ class ViewContextBuilder:
 
             # Support range filters: filter_field__gte, filter_field__lte, etc.
             for filter_field in registered.admin.list_filter:
-                gte_val = request.query_params.get(f"filter_{filter_field}__gte", "")
-                lte_val = request.query_params.get(f"filter_{filter_field}__lte", "")
-                from_val = request.query_params.get(f"filter_{filter_field}__from", "")
-                to_val = request.query_params.get(f"filter_{filter_field}__to", "")
+                gte_val = request.query_params.get(
+                    f"filter_{filter_field}__gte", ""
+                )
+                lte_val = request.query_params.get(
+                    f"filter_{filter_field}__lte", ""
+                )
+                from_val = request.query_params.get(
+                    f"filter_{filter_field}__from", ""
+                )
+                to_val = request.query_params.get(
+                    f"filter_{filter_field}__to", ""
+                )
 
                 if (gte_val or lte_val) and hasattr(model, filter_field):
                     col = getattr(model, filter_field)
                     if gte_val:
                         try:
                             col_type = type(col.property.columns[0].type)
-                            filter_clauses.append(col >= col_type().coerce(gte_val))
+                            filter_clauses.append(
+                                col >= col_type().coerce(gte_val)
+                            )
                         except Exception:
                             pass
                     if lte_val:
                         try:
                             col_type = type(col.property.columns[0].type)
-                            filter_clauses.append(col <= col_type().coerce(lte_val))
+                            filter_clauses.append(
+                                col <= col_type().coerce(lte_val)
+                            )
                         except Exception:
                             pass
 
@@ -272,6 +291,7 @@ class ViewContextBuilder:
                     if field_type == "date" and from_val:
                         try:
                             from datetime import date as _date
+
                             d = _date.fromisoformat(from_val)
                             filter_clauses.append(col >= d)
                         except (ValueError, TypeError):
@@ -279,6 +299,7 @@ class ViewContextBuilder:
                     if field_type == "date" and to_val:
                         try:
                             from datetime import date as _date
+
                             d = _date.fromisoformat(to_val)
                             filter_clauses.append(col <= d)
                         except (ValueError, TypeError):
@@ -286,6 +307,7 @@ class ViewContextBuilder:
                     if field_type == "datetime" and from_val:
                         try:
                             from datetime import datetime as _dt
+
                             dt = _dt.fromisoformat(from_val)
                             filter_clauses.append(col >= dt)
                         except (ValueError, TypeError):
@@ -293,6 +315,7 @@ class ViewContextBuilder:
                     if field_type == "datetime" and to_val:
                         try:
                             from datetime import datetime as _dt
+
                             dt = _dt.fromisoformat(to_val)
                             filter_clauses.append(col <= dt)
                         except (ValueError, TypeError):
@@ -326,9 +349,15 @@ class ViewContextBuilder:
         order = registered.admin.ordering or []
         if order:
             col_name = order[0].lstrip("-")
-            col = getattr(model, col_name, None) if hasattr(model, col_name) else None
+            col = (
+                getattr(model, col_name, None)
+                if hasattr(model, col_name)
+                else None
+            )
             if col is not None:
-                base = base.order_by(desc(col) if order[0].startswith("-") else asc(col))
+                base = base.order_by(
+                    desc(col) if order[0].startswith("-") else asc(col)
+                )
 
         per_page = registered.admin.per_page
         total_pages = max(1, math.ceil(total / per_page))
@@ -339,13 +368,16 @@ class ViewContextBuilder:
         items = list(result.unique().scalars().all())
 
         from sqlalchemy import inspect as sa_inspect
+
         mapper = sa_inspect(model)
         rel_names = {r.key for r in mapper.relationships}
 
         display_columns = []
         for col_name in list_display:
             label = col_name.replace("_", " ").title()
-            display_columns.append(DisplayColumn(col_name, label, col_name in rel_names))
+            display_columns.append(
+                DisplayColumn(col_name, label, col_name in rel_names)
+            )
 
         filter_fields: dict[str, dict[str, Any]] = {}
         if registered.admin.list_filter:
@@ -366,17 +398,27 @@ class ViewContextBuilder:
             "per_page": per_page,
             "filter_fields": filter_fields,
             "active_filters": active_filters,
-            "permissions": permission_checker.permission_set(registered.table_name)
+            "permissions": permission_checker.permission_set(
+                registered.table_name
+            )
             if permission_checker
-            else PermissionSet(can_view=True, can_create=True, can_edit=True, can_delete=True),
+            else PermissionSet(
+                can_view=True, can_create=True, can_edit=True, can_delete=True
+            ),
             "list_actions": registered.admin.get_list_actions(),
             "row_actions": registered.admin.get_row_actions(),
             "list_tabs": getattr(registered.admin, "list_tabs", []),
             "list_sections": getattr(registered.admin, "list_sections", []),
             "ordering_field": getattr(registered.admin, "ordering_field", None),
-            "hide_ordering_field": getattr(registered.admin, "hide_ordering_field", False),
-            "list_filter_options": getattr(registered.admin, "list_filter_options", {}),
-            "list_filter_horizontal": getattr(registered.admin, "list_filter_horizontal", False),
+            "hide_ordering_field": getattr(
+                registered.admin, "hide_ordering_field", False
+            ),
+            "list_filter_options": getattr(
+                registered.admin, "list_filter_options", {}
+            ),
+            "list_filter_horizontal": getattr(
+                registered.admin, "list_filter_horizontal", False
+            ),
         }
         inject_sidebar_context(request, template_context)
         return template_context
@@ -396,7 +438,9 @@ class ViewContextBuilder:
 
         Returns a dict suitable for passing to TemplateResponse.
         """
-        from fastapi_admin.form.pipeline import build_form_context as _build_form_ctx
+        from fastapi_console.form.pipeline import (
+            build_form_context as _build_form_ctx,
+        )
 
         ctx = _build_form_ctx(
             registered,
@@ -415,9 +459,13 @@ class ViewContextBuilder:
             "fieldsets": ctx.fieldsets,
             "errors": ctx.errors,
             "is_create": is_create,
-            "permissions": permission_checker.permission_set(registered.table_name)
+            "permissions": permission_checker.permission_set(
+                registered.table_name
+            )
             if permission_checker
-            else PermissionSet(can_view=True, can_create=True, can_edit=True, can_delete=True),
+            else PermissionSet(
+                can_view=True, can_create=True, can_edit=True, can_delete=True
+            ),
             "detail_actions": registered.admin.get_detail_actions(),
             "submit_line_actions": registered.admin.get_submit_line_actions(),
             "conditional_fields": getattr(
@@ -449,9 +497,13 @@ class ViewContextBuilder:
         template_context = {
             "model": registered,
             "registered": registered,
-            "permissions": permission_checker.permission_set(registered.table_name)
+            "permissions": permission_checker.permission_set(
+                registered.table_name
+            )
             if permission_checker
-            else PermissionSet(can_view=True, can_create=True, can_edit=True, can_delete=True),
+            else PermissionSet(
+                can_view=True, can_create=True, can_edit=True, can_delete=True
+            ),
         }
         inject_sidebar_context(request, template_context)
         return template_context

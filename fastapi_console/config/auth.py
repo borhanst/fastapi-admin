@@ -2,7 +2,7 @@
 
 from typing import TYPE_CHECKING, Any
 
-from fastapi_admin.exceptions import ConfigError
+from fastapi_console.exceptions import ConfigError
 
 if TYPE_CHECKING:
     pass

@@ -7,7 +7,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse
 
-from fastapi_admin.auth.dependencies import get_current_admin_user
+from fastapi_console.auth.dependencies import get_current_admin_user
 
 router = APIRouter()
 
@@ -26,7 +26,9 @@ async def theme_settings(
     }
     admin_instance = request.app.state.admin
     if hasattr(admin_instance, "build_sidebar_context"):
-        context.update(admin_instance.build_sidebar_context(request, user=current_user))
+        context.update(
+            admin_instance.build_sidebar_context(request, user=current_user)
+        )
     template = templates.get_template("pages/settings/theme.html")
     html = template.render(**context)
     return HTMLResponse(content=html)

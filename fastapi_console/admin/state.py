@@ -9,11 +9,11 @@ if TYPE_CHECKING:
     from jinja2 import Environment
     from sqlalchemy.ext.asyncio import AsyncSession
 
-    from fastapi_admin.admin.core import Admin
-    from fastapi_admin.auth.backend import AuthBackend
-    from fastapi_admin.auth.session import SignedCookieSessionBackend
-    from fastapi_admin.registry import AdminRegistry
-    from fastapi_admin.storage.base import StorageBackend
+    from fastapi_console.admin.core import Admin
+    from fastapi_console.auth.backend import AuthBackend
+    from fastapi_console.auth.session import SignedCookieSessionBackend
+    from fastapi_console.registry import AdminRegistry
+    from fastapi_console.storage.base import StorageBackend
 
 
 @dataclass

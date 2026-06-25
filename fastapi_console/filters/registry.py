@@ -4,7 +4,13 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi_admin.filters.base import BooleanFilter, EnumFilter, Filter, RelationFilter, TextFilter
+from fastapi_console.filters.base import (
+    BooleanFilter,
+    EnumFilter,
+    Filter,
+    RelationFilter,
+    TextFilter,
+)
 
 
 class FilterRegistry:
@@ -14,12 +20,16 @@ class FilterRegistry:
         self._filters: dict[str, dict[str, Filter]] = {}
 
     def register(self, model_name: str, filter_obj: Filter) -> None:
-        self._filters.setdefault(model_name, {})[filter_obj.field_name] = filter_obj
+        self._filters.setdefault(model_name, {})[filter_obj.field_name] = (
+            filter_obj
+        )
 
     def get_filters(self, model_name: str) -> dict[str, Filter]:
         return self._filters.get(model_name, {}).copy()
 
-    def auto_generate(self, model: Any, columns: list[Any]) -> dict[str, Filter]:
+    def auto_generate(
+        self, model: Any, columns: list[Any]
+    ) -> dict[str, Filter]:
         from sqlalchemy import inspect as sa_inspect
 
         mapper = sa_inspect(model)
@@ -46,7 +56,9 @@ class FilterRegistry:
                 if type_name == "Boolean":
                     filters[field_name] = BooleanFilter(field_name)
                 elif hasattr(col.type, "enums") and col.type.enums:
-                    filters[field_name] = EnumFilter(field_name, choices=list(col.type.enums))
+                    filters[field_name] = EnumFilter(
+                        field_name, choices=list(col.type.enums)
+                    )
                 elif col.foreign_keys:
                     filters[field_name] = RelationFilter(field_name)
                 else:

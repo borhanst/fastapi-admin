@@ -4,4 +4,4 @@ from sqlalchemy.orm import DeclarativeBase
 
 
 class Base(DeclarativeBase):
-    """Base class for all fastapi_admin SQLAlchemy models."""
+    """Base class for all fastapi_console SQLAlchemy models."""

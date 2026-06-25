@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from fastapi_admin.audit.events import AuditEvent
+from fastapi_console.audit.events import AuditEvent
 
 
 class AuditLogger(ABC):

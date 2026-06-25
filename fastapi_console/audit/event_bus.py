@@ -5,8 +5,8 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
-from fastapi_admin.audit.diff import snapshot
-from fastapi_admin.audit.events import AuditEvent
+from fastapi_console.audit.diff import snapshot
+from fastapi_console.audit.events import AuditEvent
 
 
 class AuditEventBus:
@@ -24,7 +24,9 @@ class AuditEventBus:
             "DELETE": [],
         }
 
-    def subscribe(self, event_type: str, listener: Callable[[AuditEvent], None]) -> None:
+    def subscribe(
+        self, event_type: str, listener: Callable[[AuditEvent], None]
+    ) -> None:
         """Register a listener for a specific event type.
 
         Args:

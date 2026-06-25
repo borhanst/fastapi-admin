@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from fastapi_admin.config.theme import ThemeConfig
+    from fastapi_console.config.theme import ThemeConfig
 
 
 class UIConfig:

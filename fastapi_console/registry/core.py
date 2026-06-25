@@ -5,13 +5,13 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
-from fastapi_admin.inspection.registry import ModelInspector
-from fastapi_admin.registry.validation import ModelValidator
+from fastapi_console.inspection.registry import ModelInspector
+from fastapi_console.registry.validation import ModelValidator
 
 if TYPE_CHECKING:
-    from fastapi_admin.views import ModelAdmin
-    from fastapi_admin.widgets.base import Widget
-    from fastapi_admin.widgets.resolver import WidgetResolver
+    from fastapi_console.views import ModelAdmin
+    from fastapi_console.widgets.base import Widget
+    from fastapi_console.widgets.resolver import WidgetResolver
 
 
 @dataclass
@@ -48,20 +48,24 @@ class RegisteredModel:
             return [f for f in self.admin.list_display if f in valid]
         return [c.name for c in self.columns if not c.primary_key]
 
-    def get_widget(self, field_name: str, resolver: WidgetResolver | None = None) -> Widget:
-        from fastapi_admin.inspection import auto_label
-        from fastapi_admin.widgets.registry import widget_registry
-        from fastapi_admin.widgets.relation import (
+    def get_widget(
+        self, field_name: str, resolver: WidgetResolver | None = None
+    ) -> Widget:
+        from fastapi_console.inspection import auto_label
+        from fastapi_console.widgets.registry import widget_registry
+        from fastapi_console.widgets.relation import (
             MultiRelationWidget,
             RelationPickerWidget,
         )
-        from fastapi_admin.widgets.resolver import WidgetResolver
+        from fastapi_console.widgets.resolver import WidgetResolver
 
         if resolver is None:
             resolver = WidgetResolver(widget_registry)
 
         col = next((c for c in self.columns if c.name == field_name), None)
-        rel = next((r for r in self.relationships if r.name == field_name), None)
+        rel = next(
+            (r for r in self.relationships if r.name == field_name), None
+        )
         if col is not None:
             widget = resolver.resolve(col)
             if (
@@ -73,9 +77,7 @@ class RegisteredModel:
                 widget.related_table = fk.column.table.name
             return widget
         if rel is not None:
-            related_verbose = auto_label(
-                rel.target_model.__tablename__
-            )
+            related_verbose = auto_label(rel.target_model.__tablename__)
             if rel.direction == "MANYTOONE" or not rel.uselist:
                 return RelationPickerWidget(
                     related_table=rel.target_model.__tablename__,
@@ -150,7 +152,7 @@ class AdminRegistry:
         Raises:
             ValueError: If the model is not a valid SQLAlchemy model.
         """
-        from fastapi_admin.views import ModelAdmin
+        from fastapi_console.views import ModelAdmin
 
         # Validate using the injected validator
         self._validator.validate_model_registration(model, admin_class)
@@ -160,7 +162,9 @@ class AdminRegistry:
 
         admin = admin_class() if admin_class else ModelAdmin()
         table_name = model.__tablename__
-        verbose_name = admin.verbose_name or table_name.replace("_", " ").title()
+        verbose_name = (
+            admin.verbose_name or table_name.replace("_", " ").title()
+        )
         if admin.verbose_name_plural:
             verbose_name_plural = admin.verbose_name_plural
         elif (
@@ -220,7 +224,10 @@ class AdminRegistry:
                     cls = mapper.class_
                     if cls not in seen:
                         seen.add(cls)
-                        if hasattr(cls, "__tablename__") and cls.__tablename__ not in self._models:
+                        if (
+                            hasattr(cls, "__tablename__")
+                            and cls.__tablename__ not in self._models
+                        ):
                             discovered.append(self.register(cls))
         return discovered
 

@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi_admin.audit.events import AuditEvent
-from fastapi_admin.audit.logger import AuditLogger
-from fastapi_admin.audit.models import AuditLog
+from fastapi_console.audit.events import AuditEvent
+from fastapi_console.audit.logger import AuditLogger
+from fastapi_console.audit.models import AuditLog
 
 
 class SqlAlchemyAuditLogger(AuditLogger):

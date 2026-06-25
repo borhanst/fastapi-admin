@@ -500,28 +500,28 @@ class TestViewsPackage:
 
 class TestAdminRegistryDependencyInjection:
     def setup_method(self):
-        from fastapi_admin.registry import AdminRegistry
+        from fastapi_console.registry import AdminRegistry
 
         self.registry = AdminRegistry()
         self.registry.clear()
 
     def test_has_default_inspector(self):
-        from fastapi_admin.registry import AdminRegistry
-        from fastapi_admin.inspection.registry import ModelInspector
+        from fastapi_console.inspection.registry import ModelInspector
+        from fastapi_console.registry import AdminRegistry
 
         reg = AdminRegistry()
         assert isinstance(reg.inspector, ModelInspector)
 
     def test_has_default_validator(self):
-        from fastapi_admin.registry import AdminRegistry
-        from fastapi_admin.registry.validation import ModelValidator
+        from fastapi_console.registry import AdminRegistry
+        from fastapi_console.registry.validation import ModelValidator
 
         reg = AdminRegistry()
         assert isinstance(reg.validator, ModelValidator)
 
     def test_can_replace_inspector(self):
-        from fastapi_admin.registry import AdminRegistry
-        from fastapi_admin.inspection.registry import ModelInspector
+        from fastapi_console.inspection.registry import ModelInspector
+        from fastapi_console.registry import AdminRegistry
 
         reg = AdminRegistry()
         custom_inspector = ModelInspector()
@@ -529,8 +529,8 @@ class TestAdminRegistryDependencyInjection:
         assert reg.inspector is custom_inspector
 
     def test_can_replace_validator(self):
-        from fastapi_admin.registry import AdminRegistry
-        from fastapi_admin.registry.validation import ModelValidator
+        from fastapi_console.registry import AdminRegistry
+        from fastapi_console.registry.validation import ModelValidator
 
         reg = AdminRegistry()
         custom_validator = ModelValidator(reg)
@@ -538,7 +538,7 @@ class TestAdminRegistryDependencyInjection:
         assert reg.validator is custom_validator
 
     def test_register_uses_inspector(self):
-        from fastapi_admin.registry import AdminRegistry
+        from fastapi_console.registry import AdminRegistry
 
         reg = AdminRegistry()
         reg.clear()
@@ -547,7 +547,7 @@ class TestAdminRegistryDependencyInjection:
         assert len(registered.relationships) == 1
 
     def test_register_uses_validator(self):
-        from fastapi_admin.registry import AdminRegistry
+        from fastapi_console.registry import AdminRegistry
 
         reg = AdminRegistry()
         reg.clear()
@@ -558,7 +558,7 @@ class TestAdminRegistryDependencyInjection:
         assert len(reg.all()) == 1
 
     def test_validator_rejects_invalid_model(self):
-        from fastapi_admin.registry import AdminRegistry
+        from fastapi_console.registry import AdminRegistry
 
         reg = AdminRegistry()
         reg.clear()
@@ -566,7 +566,7 @@ class TestAdminRegistryDependencyInjection:
             reg.register(str)
 
     def test_inspector_extracts_pk_field(self):
-        from fastapi_admin.registry import AdminRegistry
+        from fastapi_console.registry import AdminRegistry
 
         reg = AdminRegistry()
         reg.clear()
@@ -574,7 +574,7 @@ class TestAdminRegistryDependencyInjection:
         assert registered.pk_field == "id"
 
     def test_inspector_extracts_relationships(self):
-        from fastapi_admin.registry import AdminRegistry
+        from fastapi_console.registry import AdminRegistry
 
         reg = AdminRegistry()
         reg.clear()

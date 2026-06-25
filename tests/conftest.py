@@ -56,11 +56,6 @@ def admin_user(engine):
 
 @pytest.fixture
 def admin_app(app, engine, admin_user):
-<<<<<<< HEAD
     from fastapi_console import Admin
-    admin = Admin(app=app, engine=engine, secret_key="test-secret", auto_discover=False)
-=======
-    from fastapi_admin import Admin
     admin = Admin(app=app, engine=engine, secret_key="test-secret-key-long-enough-for-security!", auto_discover=False)
->>>>>>> 6fbbaad1ffffd156930439440a97eefaf7f5c603
     return app

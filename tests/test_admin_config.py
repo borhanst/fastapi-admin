@@ -2,13 +2,13 @@
 
 import pytest
 
-from fastapi_admin.config.audit import AuditConfig
-from fastapi_admin.config.auth import AuthConfig
-from fastapi_admin.config.behavior import BehaviorConfig
-from fastapi_admin.config.nav import NavConfig
-from fastapi_admin.config.storage import StorageConfig
-from fastapi_admin.config.ui import UIConfig
-from fastapi_admin.exceptions import ConfigError
+from fastapi_console.config.audit import AuditConfig
+from fastapi_console.config.auth import AuthConfig
+from fastapi_console.config.behavior import BehaviorConfig
+from fastapi_console.config.nav import NavConfig
+from fastapi_console.config.storage import StorageConfig
+from fastapi_console.config.ui import UIConfig
+from fastapi_console.exceptions import ConfigError
 
 
 class TestAuthConfig:
@@ -26,6 +26,7 @@ class TestAuthConfig:
 
     def test_init_with_values(self):
         """Test AuthConfig initialization with custom values."""
+
         class MockAuthModel:
             pass
 
@@ -46,7 +47,10 @@ class TestAuthConfig:
         assert config.session_ttl == 3600
         assert config.session_cookie_name == "custom_session"
         assert config.session_secure is True
-        assert config.superuser_emails == ["admin@example.com", "super@example.com"]
+        assert config.superuser_emails == [
+            "admin@example.com",
+            "super@example.com",
+        ]
 
     def test_validate_auth_model_none(self):
         """Test validate_auth_model when auth_model is None."""
@@ -55,6 +59,7 @@ class TestAuthConfig:
 
     def test_validate_auth_model_valid(self):
         """Test validate_auth_model with valid auth_model."""
+
         class ValidAuthModel:
             id = None
             email = None
@@ -67,6 +72,7 @@ class TestAuthConfig:
 
     def test_validate_auth_model_invalid(self):
         """Test validate_auth_model with invalid auth_model."""
+
         class InvalidAuthModel:
             id = None
             email = None
@@ -210,6 +216,7 @@ class TestStorageConfig:
 
     def test_init_with_values(self):
         """Test StorageConfig initialization with custom values."""
+
         class MockStorage:
             pass
 
@@ -252,6 +259,7 @@ class TestNavConfig:
 
     def test_init_with_values(self):
         """Test NavConfig initialization with custom values."""
+
         class MockSidebarBuilder:
             pass
 

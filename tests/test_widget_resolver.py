@@ -1,12 +1,9 @@
-"""Tests for fastapi_admin.widgets.resolver — WidgetResolver class."""
+"""Tests for fastapi_console.widgets.resolver — WidgetResolver class."""
 
-import pytest
-
-from fastapi_admin.types import ColumnMeta
-from fastapi_admin.widgets.base import Widget
-from fastapi_admin.widgets.registry import WidgetRegistry
-from fastapi_admin.widgets.resolver import WidgetResolver
-
+from fastapi_console.types import ColumnMeta
+from fastapi_console.widgets.base import Widget
+from fastapi_console.widgets.registry import WidgetRegistry
+from fastapi_console.widgets.resolver import WidgetResolver
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -38,14 +35,15 @@ def _default_registry() -> WidgetRegistry:
         Text,
         Uuid,
     )
-    from fastapi_admin.widgets.inputs import (
+
+    from fastapi_console.widgets.inputs import (
         DatePickerWidget,
         DateTimePickerWidget,
         FileUploadWidget,
         NumberInputWidget,
         PasswordWidget,
-        TextInputWidget,
         TextareaWidget,
+        TextInputWidget,
         ToggleWidget,
     )
 
@@ -92,14 +90,15 @@ class TestResolverFallback:
     def test_empty_registry_returns_text_input(self):
         reg = _empty_registry()
         resolver = WidgetResolver(reg)
-        from fastapi_admin.widgets.inputs import TextInputWidget
+        from fastapi_console.widgets.inputs import TextInputWidget
 
         w = resolver.resolve(_col(col_type=type("Unknown", (), {})))
         assert isinstance(w, TextInputWidget)
 
     def test_unregistered_type_returns_text_input(self):
         from sqlalchemy import String
-        from fastapi_admin.widgets.inputs import TextInputWidget
+
+        from fastapi_console.widgets.inputs import TextInputWidget
 
         reg = _empty_registry()
         resolver = WidgetResolver(reg)
@@ -115,7 +114,8 @@ class TestResolverFallback:
 class TestResolverTypeMapping:
     def test_string_resolves_to_text_input(self):
         from sqlalchemy import String
-        from fastapi_admin.widgets.inputs import TextInputWidget
+
+        from fastapi_console.widgets.inputs import TextInputWidget
 
         resolver = WidgetResolver(_default_registry())
         w = resolver.resolve(_col(col_type=String()))
@@ -123,7 +123,11 @@ class TestResolverTypeMapping:
 
     def test_text_resolves_to_textarea(self):
         from sqlalchemy import Text
-        from fastapi_admin.widgets.inputs import TextareaWidget, TextInputWidget
+
+        from fastapi_console.widgets.inputs import (
+            TextareaWidget,
+            TextInputWidget,
+        )
 
         resolver = WidgetResolver(_default_registry())
         # Text() is a subclass of String, so isinstance(Text(), String) is True.
@@ -134,7 +138,8 @@ class TestResolverTypeMapping:
 
     def test_integer_resolves_to_number_input(self):
         from sqlalchemy import Integer
-        from fastapi_admin.widgets.inputs import NumberInputWidget
+
+        from fastapi_console.widgets.inputs import NumberInputWidget
 
         resolver = WidgetResolver(_default_registry())
         w = resolver.resolve(_col(col_type=Integer()))
@@ -142,7 +147,8 @@ class TestResolverTypeMapping:
 
     def test_float_resolves_to_number_input(self):
         from sqlalchemy import Float
-        from fastapi_admin.widgets.inputs import NumberInputWidget
+
+        from fastapi_console.widgets.inputs import NumberInputWidget
 
         resolver = WidgetResolver(_default_registry())
         w = resolver.resolve(_col(col_type=Float()))
@@ -150,7 +156,8 @@ class TestResolverTypeMapping:
 
     def test_boolean_resolves_to_toggle(self):
         from sqlalchemy import Boolean
-        from fastapi_admin.widgets.inputs import ToggleWidget
+
+        from fastapi_console.widgets.inputs import ToggleWidget
 
         resolver = WidgetResolver(_default_registry())
         w = resolver.resolve(_col(col_type=Boolean()))
@@ -158,7 +165,8 @@ class TestResolverTypeMapping:
 
     def test_date_resolves_to_date_picker(self):
         from sqlalchemy import Date
-        from fastapi_admin.widgets.inputs import DatePickerWidget
+
+        from fastapi_console.widgets.inputs import DatePickerWidget
 
         resolver = WidgetResolver(_default_registry())
         w = resolver.resolve(_col(col_type=Date()))
@@ -166,7 +174,8 @@ class TestResolverTypeMapping:
 
     def test_datetime_resolves_to_datetime_picker(self):
         from sqlalchemy import DateTime
-        from fastapi_admin.widgets.inputs import DateTimePickerWidget
+
+        from fastapi_console.widgets.inputs import DateTimePickerWidget
 
         resolver = WidgetResolver(_default_registry())
         w = resolver.resolve(_col(col_type=DateTime()))
@@ -174,7 +183,8 @@ class TestResolverTypeMapping:
 
     def test_large_binary_resolves_to_file_upload(self):
         from sqlalchemy import LargeBinary
-        from fastapi_admin.widgets.inputs import FileUploadWidget
+
+        from fastapi_console.widgets.inputs import FileUploadWidget
 
         resolver = WidgetResolver(_default_registry())
         w = resolver.resolve(_col(col_type=LargeBinary()))
@@ -182,7 +192,8 @@ class TestResolverTypeMapping:
 
     def test_string_with_length_sets_maxlength(self):
         from sqlalchemy import String
-        from fastapi_admin.widgets.inputs import TextInputWidget
+
+        from fastapi_console.widgets.inputs import TextInputWidget
 
         resolver = WidgetResolver(_default_registry())
         w = resolver.resolve(_col(col_type=String(255)))
@@ -191,7 +202,8 @@ class TestResolverTypeMapping:
 
     def test_string_with_none_length_no_maxlength(self):
         from sqlalchemy import String
-        from fastapi_admin.widgets.inputs import TextInputWidget
+
+        from fastapi_console.widgets.inputs import TextInputWidget
 
         resolver = WidgetResolver(_default_registry())
         w = resolver.resolve(_col(col_type=String(None)))
@@ -206,7 +218,7 @@ class TestResolverTypeMapping:
 
 class TestResolverNamePatterns:
     def test_password_in_name(self):
-        from fastapi_admin.widgets.inputs import PasswordWidget
+        from fastapi_console.widgets.inputs import PasswordWidget
 
         resolver = WidgetResolver(_default_registry())
         col = _col(name="user_password")
@@ -214,7 +226,7 @@ class TestResolverNamePatterns:
         assert isinstance(w, PasswordWidget)
 
     def test_secret_in_name(self):
-        from fastapi_admin.widgets.inputs import PasswordWidget
+        from fastapi_console.widgets.inputs import PasswordWidget
 
         resolver = WidgetResolver(_default_registry())
         col = _col(name="api_secret_key")
@@ -222,7 +234,7 @@ class TestResolverNamePatterns:
         assert isinstance(w, PasswordWidget)
 
     def test_token_in_name(self):
-        from fastapi_admin.widgets.inputs import PasswordWidget
+        from fastapi_console.widgets.inputs import PasswordWidget
 
         resolver = WidgetResolver(_default_registry())
         col = _col(name="auth_token")
@@ -230,7 +242,7 @@ class TestResolverNamePatterns:
         assert isinstance(w, PasswordWidget)
 
     def test_name_pattern_case_insensitive(self):
-        from fastapi_admin.widgets.inputs import PasswordWidget
+        from fastapi_console.widgets.inputs import PasswordWidget
 
         reg = WidgetRegistry()
         reg.register_name("email", PasswordWidget)
@@ -241,7 +253,11 @@ class TestResolverNamePatterns:
 
     def test_name_pattern_priority_over_type(self):
         from sqlalchemy import String
-        from fastapi_admin.widgets.inputs import PasswordWidget, TextInputWidget
+
+        from fastapi_console.widgets.inputs import (
+            PasswordWidget,
+            TextInputWidget,
+        )
 
         reg = WidgetRegistry()
         reg.register_name("password", PasswordWidget)
@@ -252,7 +268,7 @@ class TestResolverNamePatterns:
         assert isinstance(w, PasswordWidget)
 
     def test_first_matching_pattern_wins(self):
-        from fastapi_admin.widgets.inputs import PasswordWidget
+        from fastapi_console.widgets.inputs import PasswordWidget
 
         reg = WidgetRegistry()
         reg.register_name("pass", PasswordWidget)
@@ -270,7 +286,7 @@ class TestResolverNamePatterns:
 
 class TestResolverForeignKeys:
     def test_fk_resolves_to_relation_picker(self):
-        from fastapi_admin.widgets.relation import RelationPickerWidget
+        from fastapi_console.widgets.relation import RelationPickerWidget
 
         resolver = WidgetResolver(_default_registry())
         col = _col(name="category_id", foreign_keys=[1])
@@ -279,7 +295,8 @@ class TestResolverForeignKeys:
 
     def test_fk_takes_priority_over_type(self):
         from sqlalchemy import Integer
-        from fastapi_admin.widgets.relation import RelationPickerWidget
+
+        from fastapi_console.widgets.relation import RelationPickerWidget
 
         resolver = WidgetResolver(_default_registry())
         col = _col(name="user_id", col_type=Integer(), foreign_keys=[1])
@@ -287,8 +304,7 @@ class TestResolverForeignKeys:
         assert isinstance(w, RelationPickerWidget)
 
     def test_name_pattern_takes_priority_over_fk(self):
-        from fastapi_admin.widgets.inputs import PasswordWidget
-        from fastapi_admin.widgets.relation import RelationPickerWidget
+        from fastapi_console.widgets.inputs import PasswordWidget
 
         resolver = WidgetResolver(_default_registry())
         col = _col(name="password_token", foreign_keys=[1])
@@ -303,7 +319,7 @@ class TestResolverForeignKeys:
 
 class TestResolverEnumTypes:
     def test_enum_resolves_to_select(self):
-        from fastapi_admin.widgets.inputs import SelectWidget
+        from fastapi_console.widgets.inputs import SelectWidget
 
         class FakeEnum:
             enums = ["draft", "published", "archived"]
@@ -314,7 +330,7 @@ class TestResolverEnumTypes:
         assert isinstance(w, SelectWidget)
 
     def test_enum_choices_formatted(self):
-        from fastapi_admin.widgets.inputs import SelectWidget
+        from fastapi_console.widgets.inputs import SelectWidget
 
         class FakeEnum:
             enums = ["draft", "published", "archived"]
@@ -329,7 +345,7 @@ class TestResolverEnumTypes:
         assert ("archived", "Archived") in choices
 
     def test_enum_empty_enums_not_select(self):
-        from fastapi_admin.widgets.inputs import TextInputWidget
+        from fastapi_console.widgets.inputs import TextInputWidget
 
         class FakeEnum:
             enums = []
@@ -340,7 +356,7 @@ class TestResolverEnumTypes:
         assert isinstance(w, TextInputWidget)
 
     def test_no_enums_attribute_not_select(self):
-        from fastapi_admin.widgets.inputs import TextInputWidget
+        from fastapi_console.widgets.inputs import TextInputWidget
 
         resolver = WidgetResolver(_default_registry())
         col = _col(name="status", col_type=type("NoEnum", (), {}))
@@ -388,6 +404,7 @@ class TestResolverCustomRegistrations:
 class TestRegistryMethods:
     def test_unregister_type(self):
         from sqlalchemy import String
+
         reg = WidgetRegistry()
         reg.register_type(String, Widget)
         assert reg.has_type(String)
@@ -403,6 +420,7 @@ class TestRegistryMethods:
 
     def test_clear(self):
         from sqlalchemy import String
+
         reg = WidgetRegistry()
         reg.register_type(String, Widget)
         reg.register_name("test", Widget)
@@ -412,6 +430,7 @@ class TestRegistryMethods:
 
     def test_type_map_returns_copy(self):
         from sqlalchemy import String
+
         reg = WidgetRegistry()
         reg.register_type(String, Widget)
         tm = reg.type_map

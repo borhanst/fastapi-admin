@@ -26,8 +26,8 @@ class Product(Base):
 
 class TestModelValidatorValidateModelRegistration:
     def test_valid_model_passes(self):
-        from fastapi_admin.registry import AdminRegistry
-        from fastapi_admin.registry.validation import ModelValidator
+        from fastapi_console.registry import AdminRegistry
+        from fastapi_console.registry.validation import ModelValidator
 
         registry = AdminRegistry()
         registry.clear()
@@ -36,8 +36,8 @@ class TestModelValidatorValidateModelRegistration:
         validator.validate_model_registration(Product)
 
     def test_invalid_model_raises(self):
-        from fastapi_admin.registry import AdminRegistry
-        from fastapi_admin.registry.validation import ModelValidator
+        from fastapi_console.registry import AdminRegistry
+        from fastapi_console.registry.validation import ModelValidator
 
         registry = AdminRegistry()
         registry.clear()
@@ -46,10 +46,11 @@ class TestModelValidatorValidateModelRegistration:
             validator.validate_model_registration(str)
 
     def test_duplicate_table_name_raises(self):
-        from fastapi_admin.registry import AdminRegistry
-        from fastapi_admin.registry.validation import ModelValidator
-        from fastapi_admin.registry.core import RegisteredModel
         from unittest.mock import MagicMock
+
+        from fastapi_console.registry import AdminRegistry
+        from fastapi_console.registry.core import RegisteredModel
+        from fastapi_console.registry.validation import ModelValidator
 
         registry = AdminRegistry()
         registry.clear()
@@ -77,8 +78,8 @@ class TestModelValidatorValidateModelRegistration:
             validator.validate_model_registration(Product)
 
     def test_same_model_reregistration_passes(self):
-        from fastapi_admin.registry import AdminRegistry
-        from fastapi_admin.registry.validation import ModelValidator
+        from fastapi_console.registry import AdminRegistry
+        from fastapi_console.registry.validation import ModelValidator
 
         registry = AdminRegistry()
         registry.clear()
@@ -91,8 +92,8 @@ class TestModelValidatorValidateModelRegistration:
 
 class TestModelValidatorCheckTableNameConflicts:
     def test_returns_false_for_unknown_table(self):
-        from fastapi_admin.registry import AdminRegistry
-        from fastapi_admin.registry.validation import ModelValidator
+        from fastapi_console.registry import AdminRegistry
+        from fastapi_console.registry.validation import ModelValidator
 
         registry = AdminRegistry()
         registry.clear()
@@ -100,21 +101,26 @@ class TestModelValidatorCheckTableNameConflicts:
         assert validator.check_table_name_conflicts("nonexistent") is False
 
     def test_returns_true_for_registered_table(self):
-        from fastapi_admin.registry import AdminRegistry
-        from fastapi_admin.registry.validation import ModelValidator
+        from fastapi_console.registry import AdminRegistry
+        from fastapi_console.registry.validation import ModelValidator
 
         registry = AdminRegistry()
         registry.clear()
         validator = ModelValidator(registry)
         registry.register(Product)
-        assert validator.check_table_name_conflicts("validator_products") is True
+        assert (
+            validator.check_table_name_conflicts("validator_products") is True
+        )
 
     def test_returns_false_for_different_table(self):
-        from fastapi_admin.registry import AdminRegistry
-        from fastapi_admin.registry.validation import ModelValidator
+        from fastapi_console.registry import AdminRegistry
+        from fastapi_console.registry.validation import ModelValidator
 
         registry = AdminRegistry()
         registry.clear()
         validator = ModelValidator(registry)
         registry.register(Product)
-        assert validator.check_table_name_conflicts("validator_categories") is False
+        assert (
+            validator.check_table_name_conflicts("validator_categories")
+            is False
+        )

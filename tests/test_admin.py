@@ -5,14 +5,9 @@ from fastapi import FastAPI
 from sqlalchemy import Boolean, Column, Integer, String
 from sqlalchemy.orm import DeclarativeBase
 
-<<<<<<< HEAD
 from fastapi_console.admin import Admin
+from fastapi_console.auth import models as _auth_models  # noqa: F401 — register AdminRole etc.
 from fastapi_console.exceptions import ConfigError
-=======
-from fastapi_admin.admin import Admin
-from fastapi_admin.auth import models as _auth_models  # noqa: F401 — register AdminRole etc.
-from fastapi_admin.exceptions import ConfigError
->>>>>>> 6fbbaad1ffffd156930439440a97eefaf7f5c603
 
 # ---------------------------------------------------------------------------
 # Test models

@@ -5,8 +5,8 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
-from fastapi_admin.actions.base import Action, ModelAction
-from fastapi_admin.actions.registry import ActionRegistry
+from fastapi_console.actions.base import Action, ModelAction
+from fastapi_console.actions.registry import ActionRegistry
 
 __all__ = ["Action", "ModelAction", "ActionRegistry", "action"]
 
@@ -35,6 +35,7 @@ def action(
             async def export_products(self, objects, request):
                 ...
     """
+
     def decorator(fn: Callable) -> Callable:
         action_name = name or fn.__name__
         action_label = label or action_name.replace("_", " ").title()

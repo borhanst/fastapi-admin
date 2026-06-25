@@ -5,14 +5,12 @@ from __future__ import annotations
 import time
 from datetime import UTC, datetime
 
-import pytest
-
 
 class TestSessionInvalidation:
     """Test session is rejected after password change."""
 
     def test_session_iat_included(self):
-        from fastapi_admin.auth.session import SignedCookieSessionBackend
+        from fastapi_console.auth.session import SignedCookieSessionBackend
 
         backend = SignedCookieSessionBackend(
             secret_key="test-secret-key-long-enough-for-security!",
@@ -43,13 +41,13 @@ class TestSecureCookieSettings:
     """Test cookie security settings."""
 
     def test_session_samesite_default(self):
-        from fastapi_admin.config.auth import AuthConfig
+        from fastapi_console.config.auth import AuthConfig
 
         config = AuthConfig()
         assert config.session_samesite == "strict"
 
     def test_session_samesite_configurable(self):
-        from fastapi_admin.config.auth import AuthConfig
+        from fastapi_console.config.auth import AuthConfig
 
         config = AuthConfig(session_samesite="lax")
         assert config.session_samesite == "lax"
@@ -59,7 +57,7 @@ class TestSessionFixationPrevention:
     """Test that new session tokens are generated on login."""
 
     def test_session_token_unique(self):
-        from fastapi_admin.auth.session import SignedCookieSessionBackend
+        from fastapi_console.auth.session import SignedCookieSessionBackend
 
         backend = SignedCookieSessionBackend(
             secret_key="test-secret-key-long-enough-for-security!",

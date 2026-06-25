@@ -26,14 +26,8 @@ from sqlalchemy import (
     Uuid,
 )
 
-<<<<<<< HEAD:fastapi_console/widgets/registry.py
-from fastapi_console.types import ColumnMeta
 from fastapi_console.widgets.base import Widget
 from fastapi_console.widgets.inputs import (
-=======
-from fastapi_admin.widgets.base import Widget
-from fastapi_admin.widgets.inputs import (
->>>>>>> 6fbbaad1ffffd156930439440a97eefaf7f5c603:fastapi_admin/widgets/registry.py
     DatePickerWidget,
     DateTimePickerWidget,
     FileUploadWidget,
@@ -84,41 +78,18 @@ class WidgetRegistry:
             (p, w) for p, w in self._name_patterns if p != pattern.lower()
         ]
 
-<<<<<<< HEAD:fastapi_console/widgets/registry.py
-        if col.foreign_keys:
-            from fastapi_console.widgets.relation import RelationPickerWidget
-=======
     def clear(self) -> None:
         """Remove all registered mappings."""
         self._type_map.clear()
         self._name_patterns.clear()
->>>>>>> 6fbbaad1ffffd156930439440a97eefaf7f5c603:fastapi_admin/widgets/registry.py
 
     def has_type(self, sa_type: type) -> bool:
         """Check if a type is registered."""
         return sa_type in self._type_map
 
-<<<<<<< HEAD:fastapi_console/widgets/registry.py
-        col_type = col.type
-        if hasattr(col_type, "enums") and col_type.enums:
-            choices = [(v, v.replace("_", " ").title()) for v in col_type.enums]
-            from fastapi_console.widgets.inputs import SelectWidget
-
-            return SelectWidget(choices=choices)
-
-        for sa_type, widget_cls in self._type_map.items():
-            if isinstance(col_type, sa_type):
-                has_length = hasattr(col_type, "length") and col_type.length
-                if widget_cls == TextInputWidget and has_length:
-                    return TextInputWidget(maxlength=col_type.length)
-                return widget_cls()
-
-        return TextInputWidget()
-=======
     def has_name(self, pattern: str) -> bool:
         """Check if a name pattern is registered."""
         return any(p == pattern.lower() for p, _ in self._name_patterns)
->>>>>>> 6fbbaad1ffffd156930439440a97eefaf7f5c603:fastapi_admin/widgets/registry.py
 
 
 widget_registry = WidgetRegistry()

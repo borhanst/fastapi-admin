@@ -1,4 +1,4 @@
-"""Custom exceptions for fastapi_admin."""
+"""Custom exceptions for fastapi_console."""
 
 
 class ConfigError(RuntimeError):

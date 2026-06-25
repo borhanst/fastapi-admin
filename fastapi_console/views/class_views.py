@@ -13,11 +13,11 @@ from typing import Any
 from fastapi import HTTPException, Request
 from fastapi.responses import RedirectResponse, Response
 
-from fastapi_admin.db import get_db_session
-from fastapi_admin.flash import add_flash
-from fastapi_admin.registry import RegisteredModel
-from fastapi_admin.views.context import DisplayColumn
-from fastapi_admin.views.renderers import (
+from fastapi_console.db import get_db_session
+from fastapi_console.flash import add_flash
+from fastapi_console.registry import RegisteredModel
+from fastapi_console.views.context import DisplayColumn
+from fastapi_console.views.renderers import (
     DefaultQueryProvider,
     FormHTMLRenderer,
     HTMLFormParser,
@@ -137,8 +137,8 @@ class ListView(BaseView):
         self, request: Request, q: str, page: int, checker: Any
     ) -> dict[str, Any]:
         """Build template context — override to add custom context."""
-        from fastapi_admin.types import PermissionSet
-        from fastapi_admin.views.sidebar import inject_sidebar_context
+        from fastapi_console.types import PermissionSet
+        from fastapi_console.views.sidebar import inject_sidebar_context
 
         items, total, page, per_page = await self.query_provider.get_list(
             request, q, page
@@ -246,11 +246,11 @@ class CreateView(BaseView):
         checker: Any = None,
     ) -> dict[str, Any]:
         """Build form template context."""
-        from fastapi_admin.form.pipeline import (
+        from fastapi_console.form.pipeline import (
             build_form_context as _build_form_ctx,
         )
-        from fastapi_admin.types import PermissionSet
-        from fastapi_admin.views.sidebar import inject_sidebar_context
+        from fastapi_console.types import PermissionSet
+        from fastapi_console.views.sidebar import inject_sidebar_context
 
         ctx = _build_form_ctx(
             self.registered,
@@ -359,11 +359,13 @@ class EditView(BaseView):
     form_parser_class = HTMLFormParser
     api_renderer_class = ItemAPIRenderer
 
-    async def _resolve_rel_labels(self, obj: Any, request: Request) -> dict[str, str]:
+    async def _resolve_rel_labels(
+        self, obj: Any, request: Request
+    ) -> dict[str, str]:
         """Resolve display labels for relationship fields from FK values."""
         from sqlalchemy import inspect as sa_inspect
 
-        from fastapi_admin.inspection import model_display_name
+        from fastapi_console.inspection import model_display_name
 
         labels: dict[str, str] = {}
         if obj is None:
@@ -400,11 +402,11 @@ class EditView(BaseView):
         rel_labels: dict[str, str] | None = None,
     ) -> dict[str, Any]:
         """Build form template context."""
-        from fastapi_admin.form.pipeline import (
+        from fastapi_console.form.pipeline import (
             build_form_context as _build_form_ctx,
         )
-        from fastapi_admin.types import PermissionSet
-        from fastapi_admin.views.sidebar import inject_sidebar_context
+        from fastapi_console.types import PermissionSet
+        from fastapi_console.views.sidebar import inject_sidebar_context
 
         ctx = _build_form_ctx(
             self.registered,
@@ -526,11 +528,11 @@ class EditView(BaseView):
         checker: Any = None,
     ) -> dict[str, Any]:
         """Build read-only detail view context with all fields."""
-        from fastapi_admin.form.pipeline import (
+        from fastapi_console.form.pipeline import (
             build_form_context as _build_form_ctx,
         )
-        from fastapi_admin.types import PermissionSet
-        from fastapi_admin.views.sidebar import inject_sidebar_context
+        from fastapi_console.types import PermissionSet
+        from fastapi_console.views.sidebar import inject_sidebar_context
 
         rel_labels = await self._resolve_rel_labels(obj, request)
         ctx = _build_form_ctx(
@@ -557,9 +559,7 @@ class EditView(BaseView):
         inject_sidebar_context(request, template_context)
         return template_context
 
-    async def html_response(
-        self, request: Request, id: Any = None
-    ) -> Response:
+    async def html_response(self, request: Request, id: Any = None) -> Response:
         obj = await self.query_provider.get_object(request, id)
         if not obj:
             raise HTTPException(status_code=404, detail="Not found")
@@ -568,7 +568,11 @@ class EditView(BaseView):
         if checker:
             await checker.load_permissions(self.registered.table_name)
 
-        perms = checker.permission_set(self.registered.table_name) if checker else None
+        perms = (
+            checker.permission_set(self.registered.table_name)
+            if checker
+            else None
+        )
 
         if request.method == "GET":
             if perms and not perms.can_edit and perms.can_view:
@@ -578,7 +582,10 @@ class EditView(BaseView):
                 )
             rel_labels = await self._resolve_rel_labels(obj, request)
             ctx = self._build_form_context(
-                request, obj=obj, is_create=False, checker=checker,
+                request,
+                obj=obj,
+                is_create=False,
+                checker=checker,
                 rel_labels=rel_labels,
             )
             return await self.html_renderer.render(request, ctx)
@@ -635,9 +642,7 @@ class EditView(BaseView):
 class DeleteView(BaseView):
     """Orchestrates delete: fetch -> delete -> respond."""
 
-    async def html_response(
-        self, request: Request, id: Any = None
-    ) -> Response:
+    async def html_response(self, request: Request, id: Any = None) -> Response:
         obj = await self.query_provider.get_object(request, id)
         if not obj:
             raise HTTPException(status_code=404, detail="Not found")
@@ -807,14 +812,10 @@ class BulkView(BaseView):
 class SearchView(BaseView):
     """Orchestrates search/autocomplete for relation pickers."""
 
-    async def html_response(
-        self, request: Request, q: str = ""
-    ) -> Any:
+    async def html_response(self, request: Request, q: str = "") -> Any:
         return await self._search(request, q)
 
-    async def api_response(
-        self, request: Request, q: str = ""
-    ) -> Any:
+    async def api_response(self, request: Request, q: str = "") -> Any:
         return await self._search(request, q)
 
     async def _search(self, request: Request, q: str) -> Any:
@@ -849,7 +850,8 @@ class SearchView(BaseView):
         results = []
         for row in rows:
             pk = getattr(row, self.registered.pk_field)
-            from fastapi_admin.inspection import model_display_name
+            from fastapi_console.inspection import model_display_name
+
             label = model_display_name(row)
             results.append({"id": str(pk), "label": label})
 

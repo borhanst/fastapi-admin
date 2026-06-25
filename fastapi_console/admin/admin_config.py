@@ -2,7 +2,7 @@
 
 from typing import TYPE_CHECKING
 
-from fastapi_admin.config import (
+from fastapi_console.config import (
     AuditConfig,
     AuthConfig,
     BehaviorConfig,

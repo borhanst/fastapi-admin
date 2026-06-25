@@ -5,7 +5,7 @@ Customize the admin panel to fit your needs.
 ## Admin Initialization
 
 ```python
-from fastapi_admin import Admin
+from fastapi_console import Admin
 
 admin = Admin(
     app=app,

@@ -31,7 +31,7 @@ Every arrow is a protocol boundary — a place where you can insert your own imp
 ### Basic Plugin Structure
 
 ```python
-from fastapi_admin.plugins import AdminPlugin
+from fastapi_console.plugins import AdminPlugin
 
 class MyPlugin(AdminPlugin):
     name = "my-plugin"
@@ -314,8 +314,8 @@ class InspectorPlugin(AdminPlugin):
 ### Rich Text Editor Plugin
 
 ```python
-from fastapi_admin.plugins import AdminPlugin
-from fastapi_admin.widgets import Widget
+from fastapi_console.plugins import AdminPlugin
+from fastapi_console.widgets import Widget
 
 class RichTextWidget(Widget):
     macro_name = "richtext"
@@ -356,7 +356,7 @@ admin = Admin(
 ### Tenant Isolation Plugin
 
 ```python
-from fastapi_admin.plugins import AdminPlugin
+from fastapi_console.plugins import AdminPlugin
 from fastapi import Request
 
 class TenantPlugin(AdminPlugin):
@@ -417,7 +417,7 @@ To create a distributable plugin package:
 2. Add entry point in `pyproject.toml`:
 
 ```toml
-[project.entry-points."fastapi_admin.plugins"]
+[project.entry-points."fastapi_console.plugins"]
 my_plugin = "my_plugin:MyPlugin"
 ```
 

@@ -1,7 +1,16 @@
 """Tests for ModelInspector class."""
 
 import pytest
-from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, Text, DateTime, func
+from sqlalchemy import (
+    Boolean,
+    Column,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    func,
+)
 from sqlalchemy.orm import DeclarativeBase, relationship
 
 
@@ -25,7 +34,9 @@ class Post(Base):
     id = Column(Integer, primary_key=True)
     title = Column(String(200), nullable=False)
     content = Column(Text)
-    author_id = Column(Integer, ForeignKey("inspector_users.id"), nullable=False)
+    author_id = Column(
+        Integer, ForeignKey("inspector_users.id"), nullable=False
+    )
 
     author = relationship("User", back_populates="posts")
 
@@ -56,7 +67,7 @@ class ModelWithServerDefault(Base):
 
 class TestModelInspectorInspectModel:
     def test_returns_columns_and_relationships(self):
-        from fastapi_admin.inspection.registry import ModelInspector
+        from fastapi_console.inspection.registry import ModelInspector
 
         inspector = ModelInspector()
         columns, relationships = inspector.inspect_model(User)
@@ -64,7 +75,7 @@ class TestModelInspectorInspectModel:
         assert len(relationships) == 1
 
     def test_column_metadata(self):
-        from fastapi_admin.inspection.registry import ModelInspector
+        from fastapi_console.inspection.registry import ModelInspector
 
         inspector = ModelInspector()
         columns, _ = inspector.inspect_model(User)
@@ -74,7 +85,7 @@ class TestModelInspectorInspectModel:
         assert not name_col.unique
 
     def test_primary_key_detection(self):
-        from fastapi_admin.inspection.registry import ModelInspector
+        from fastapi_console.inspection.registry import ModelInspector
 
         inspector = ModelInspector()
         columns, _ = inspector.inspect_model(User)
@@ -82,7 +93,7 @@ class TestModelInspectorInspectModel:
         assert pk_col.primary_key is True
 
     def test_foreign_key_detection(self):
-        from fastapi_admin.inspection.registry import ModelInspector
+        from fastapi_console.inspection.registry import ModelInspector
 
         inspector = ModelInspector()
         columns, _ = inspector.inspect_model(Post)
@@ -91,7 +102,7 @@ class TestModelInspectorInspectModel:
         assert len(author_id_col.foreign_keys) == 1
 
     def test_relationships(self):
-        from fastapi_admin.inspection.registry import ModelInspector
+        from fastapi_console.inspection.registry import ModelInspector
 
         inspector = ModelInspector()
         _, relationships = inspector.inspect_model(Post)
@@ -102,7 +113,7 @@ class TestModelInspectorInspectModel:
         assert author_rel.target_model is User
 
     def test_server_default_captured(self):
-        from fastapi_admin.inspection.registry import ModelInspector
+        from fastapi_console.inspection.registry import ModelInspector
 
         inspector = ModelInspector()
         columns, _ = inspector.inspect_model(User)
@@ -112,14 +123,14 @@ class TestModelInspectorInspectModel:
 
 class TestModelInspectorValidateModel:
     def test_valid_model_passes(self):
-        from fastapi_admin.inspection.registry import ModelInspector
+        from fastapi_console.inspection.registry import ModelInspector
 
         inspector = ModelInspector()
         # Should not raise
         inspector.validate_model(User)
 
     def test_invalid_model_raises(self):
-        from fastapi_admin.inspection.registry import ModelInspector
+        from fastapi_console.inspection.registry import ModelInspector
 
         inspector = ModelInspector()
         with pytest.raises(ValueError, match="not a SQLAlchemy model"):
@@ -128,7 +139,7 @@ class TestModelInspectorValidateModel:
 
 class TestModelInspectorExtractMetadata:
     def test_extracts_metadata(self):
-        from fastapi_admin.inspection.registry import ModelInspector
+        from fastapi_console.inspection.registry import ModelInspector
 
         inspector = ModelInspector()
         columns, relationships = inspector.inspect_model(User)
@@ -141,19 +152,19 @@ class TestModelInspectorExtractMetadata:
 
 class TestModelInspectorIsAbstract:
     def test_abstract_model(self):
-        from fastapi_admin.inspection.registry import ModelInspector
+        from fastapi_console.inspection.registry import ModelInspector
 
         inspector = ModelInspector()
         assert inspector.is_abstract(AbstractModel) is True
 
     def test_concrete_model(self):
-        from fastapi_admin.inspection.registry import ModelInspector
+        from fastapi_console.inspection.registry import ModelInspector
 
         inspector = ModelInspector()
         assert inspector.is_abstract(User) is False
 
     def test_no_abstract_attribute(self):
-        from fastapi_admin.inspection.registry import ModelInspector
+        from fastapi_console.inspection.registry import ModelInspector
 
         inspector = ModelInspector()
 
@@ -165,20 +176,20 @@ class TestModelInspectorIsAbstract:
 
 class TestModelInspectorGetPkField:
     def test_single_primary_key(self):
-        from fastapi_admin.inspection.registry import ModelInspector
+        from fastapi_console.inspection.registry import ModelInspector
 
         inspector = ModelInspector()
         assert inspector.get_pk_field(User) == "id"
 
     def test_composite_primary_key(self):
-        from fastapi_admin.inspection.registry import ModelInspector
+        from fastapi_console.inspection.registry import ModelInspector
 
         inspector = ModelInspector()
         result = inspector.get_pk_field(CompositeKeyModel)
         assert result == ("tenant_id", "user_id")
 
     def test_different_single_pk(self):
-        from fastapi_admin.inspection.registry import ModelInspector
+        from fastapi_console.inspection.registry import ModelInspector
 
         inspector = ModelInspector()
         assert inspector.get_pk_field(Post) == "id"
@@ -186,37 +197,37 @@ class TestModelInspectorGetPkField:
 
 class TestModelInspectorAutoLabel:
     def test_strips_id_suffix(self):
-        from fastapi_admin.inspection.registry import ModelInspector
+        from fastapi_console.inspection.registry import ModelInspector
 
         inspector = ModelInspector()
         assert inspector.auto_label("category_id") == "Category"
 
     def test_underscore_to_space(self):
-        from fastapi_admin.inspection.registry import ModelInspector
+        from fastapi_console.inspection.registry import ModelInspector
 
         inspector = ModelInspector()
         assert inspector.auto_label("is_active") == "Is Active"
 
     def test_camel_case_split(self):
-        from fastapi_admin.inspection.registry import ModelInspector
+        from fastapi_console.inspection.registry import ModelInspector
 
         inspector = ModelInspector()
         assert inspector.auto_label("skuCode") == "Sku Code"
 
     def test_simple_name(self):
-        from fastapi_admin.inspection.registry import ModelInspector
+        from fastapi_console.inspection.registry import ModelInspector
 
         inspector = ModelInspector()
         assert inspector.auto_label("name") == "Name"
 
     def test_created_at(self):
-        from fastapi_admin.inspection.registry import ModelInspector
+        from fastapi_console.inspection.registry import ModelInspector
 
         inspector = ModelInspector()
         assert inspector.auto_label("created_at") == "Created At"
 
     def test_email_field(self):
-        from fastapi_admin.inspection.registry import ModelInspector
+        from fastapi_console.inspection.registry import ModelInspector
 
         inspector = ModelInspector()
         assert inspector.auto_label("user_email") == "User Email"
@@ -224,7 +235,7 @@ class TestModelInspectorAutoLabel:
 
 class TestModelInspectorIsRequired:
     def test_required_column(self):
-        from fastapi_admin.inspection.registry import ModelInspector
+        from fastapi_console.inspection.registry import ModelInspector
 
         inspector = ModelInspector()
         columns, _ = inspector.inspect_model(User)
@@ -232,7 +243,7 @@ class TestModelInspectorIsRequired:
         assert inspector.is_required(name_col) is True
 
     def test_nullable_column(self):
-        from fastapi_admin.inspection.registry import ModelInspector
+        from fastapi_console.inspection.registry import ModelInspector
 
         inspector = ModelInspector()
         columns, _ = inspector.inspect_model(User)
@@ -240,7 +251,7 @@ class TestModelInspectorIsRequired:
         assert inspector.is_required(is_active_col) is False
 
     def test_column_with_default(self):
-        from fastapi_admin.inspection.registry import ModelInspector
+        from fastapi_console.inspection.registry import ModelInspector
 
         inspector = ModelInspector()
         columns, _ = inspector.inspect_model(User)
@@ -248,7 +259,7 @@ class TestModelInspectorIsRequired:
         assert inspector.is_required(is_active_col) is False
 
     def test_primary_key_not_required(self):
-        from fastapi_admin.inspection.registry import ModelInspector
+        from fastapi_console.inspection.registry import ModelInspector
 
         inspector = ModelInspector()
         columns, _ = inspector.inspect_model(User)
@@ -256,7 +267,7 @@ class TestModelInspectorIsRequired:
         assert inspector.is_required(id_col) is False
 
     def test_column_with_server_default(self):
-        from fastapi_admin.inspection.registry import ModelInspector
+        from fastapi_console.inspection.registry import ModelInspector
 
         inspector = ModelInspector()
         columns, _ = inspector.inspect_model(ModelWithServerDefault)
@@ -264,7 +275,7 @@ class TestModelInspectorIsRequired:
         assert inspector.is_required(slug_col) is False
 
     def test_text_column_nullable(self):
-        from fastapi_admin.inspection.registry import ModelInspector
+        from fastapi_console.inspection.registry import ModelInspector
 
         inspector = ModelInspector()
         columns, _ = inspector.inspect_model(Post)

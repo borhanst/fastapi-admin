@@ -1,7 +1,15 @@
-"""Tests for fastapi_admin.inspection module."""
+"""Tests for fastapi_console.inspection module."""
 
-import pytest
-from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, Text, DateTime, func
+from sqlalchemy import (
+    Boolean,
+    Column,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    func,
+)
 from sqlalchemy.orm import DeclarativeBase, relationship
 
 

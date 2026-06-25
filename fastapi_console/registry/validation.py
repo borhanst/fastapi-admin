@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from fastapi_admin.registry.core import AdminRegistry
+    from fastapi_console.registry.core import AdminRegistry
 
 
 class ModelValidator:

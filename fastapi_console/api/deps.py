@@ -6,7 +6,7 @@ from typing import Any
 
 from fastapi import HTTPException, Request
 
-from fastapi_admin.api.auth import _get_secret_key, decode_access_token
+from fastapi_console.api.auth import _get_secret_key, decode_access_token
 
 
 async def get_api_current_user(request: Request) -> dict[str, Any]:
@@ -71,7 +71,9 @@ def require_api_superuser():
             user = await get_api_current_user(request)
 
         if not user.get("is_superuser"):
-            raise HTTPException(status_code=403, detail="Superuser access required.")
+            raise HTTPException(
+                status_code=403, detail="Superuser access required."
+            )
         return user
 
     return _check

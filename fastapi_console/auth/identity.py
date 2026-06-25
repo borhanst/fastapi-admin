@@ -3,11 +3,11 @@
 The admin framework historically had *three* parallel implementations of
 "decode a credential, then SELECT the active user it belongs to":
 
-1. :func:`fastapi_admin.auth.dependencies.get_current_admin_user` (cookie)
-2. :func:`fastapi_admin.views.factory._resolve_permission_checker` (cookie,
+1. :func:`fastapi_console.auth.dependencies.get_current_admin_user` (cookie)
+2. :func:`fastapi_console.views.factory._resolve_permission_checker` (cookie,
    with a process-global cache on ``app.state`` that leaked identity across
    requests)
-3. :func:`fastapi_admin.api.crud._get_current_user` (bearer JWT, hardcoded to
+3. :func:`fastapi_console.api.crud._get_current_user` (bearer JWT, hardcoded to
    the built-in ``AdminUser`` model and so bypassing the ``AuthBackend`` seam)
 
 This module is the deep seam they all delegate to. The two credential
@@ -29,7 +29,7 @@ from fastapi import Request
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
 
-    from fastapi_admin.auth.protocol import AdminUserProtocol
+    from fastapi_console.auth.protocol import AdminUserProtocol
 
 
 def _get_session_backend(request: Request) -> Any:
@@ -44,7 +44,7 @@ def _get_auth_backend(request: Request) -> Any:
 
 def _get_db_session(request: Request) -> AsyncSession | None:
     """Return the per-request DB session, falling back to app.state."""
-    from fastapi_admin.db import get_db_session
+    from fastapi_console.db import get_db_session
 
     try:
         return get_db_session(request)
@@ -52,7 +52,9 @@ def _get_db_session(request: Request) -> AsyncSession | None:
         return None
 
 
-async def resolve_user(request: Request, user_id: int | str | None) -> AdminUserProtocol | None:
+async def resolve_user(
+    request: Request, user_id: int | str | None
+) -> AdminUserProtocol | None:
     """Resolve *user_id* to an active user and cache it on the request.
 
     Idempotent for a given request: if ``request.state.admin_user`` is already
@@ -91,11 +93,15 @@ def _decode_cookie_payload(request: Request) -> dict[str, Any] | None:
     backend = _get_session_backend(request)
     if backend is None:
         return None
-    token = request.cookies.get(getattr(backend, "cookie_name", "admin_session"))
+    token = request.cookies.get(
+        getattr(backend, "cookie_name", "admin_session")
+    )
     return backend.decode(token) if token else None
 
 
-async def get_current_user_from_cookie(request: Request) -> AdminUserProtocol | None:
+async def get_current_user_from_cookie(
+    request: Request,
+) -> AdminUserProtocol | None:
     """Resolve the current user from the signed ``admin_session`` cookie.
 
     Returns ``None`` when there is no valid session. Does not raise — callers
@@ -107,7 +113,9 @@ async def get_current_user_from_cookie(request: Request) -> AdminUserProtocol | 
     return await resolve_user(request, payload.get("user_id"))
 
 
-async def get_current_user_from_bearer(request: Request) -> AdminUserProtocol | None:
+async def get_current_user_from_bearer(
+    request: Request,
+) -> AdminUserProtocol | None:
     """Resolve the current user from an ``Authorization: Bearer <jwt>`` header.
 
     Returns ``None`` when the header is absent or the token is invalid/expired.
@@ -115,13 +123,13 @@ async def get_current_user_from_bearer(request: Request) -> AdminUserProtocol | 
     honours the ``AuthBackend.get_user`` seam just like the cookie path.
     """
     # Imported lazily to avoid a circular import at module load time.
-    from fastapi_admin.api.auth import _get_secret_key, decode_access_token
+    from fastapi_console.api.auth import _get_secret_key, decode_access_token
 
     auth_header = request.headers.get("Authorization", "")
     if not auth_header.startswith("Bearer "):
         return None
 
-    token = auth_header[len("Bearer "):]
+    token = auth_header[len("Bearer ") :]
     secret_key = _get_secret_key(request)
     payload = decode_access_token(token, secret_key)
     if payload is None:

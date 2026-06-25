@@ -3,11 +3,9 @@
 from __future__ import annotations
 
 import hashlib
-import time
 from datetime import UTC, datetime, timedelta
 
 import jwt as pyjwt
-import pytest
 
 
 class TestJWTPayload:
@@ -28,7 +26,7 @@ class TestJWTPayload:
         return FakeUser()
 
     def test_payload_structure(self):
-        from fastapi_admin.api.auth import create_access_token
+        from fastapi_console.api.auth import create_access_token
 
         user = self._make_user()
         secret = "test-secret-key-long-enough-for-security!"
@@ -47,7 +45,7 @@ class TestJWTPayload:
         assert "iat" in payload
 
     def test_superuser_in_payload(self):
-        from fastapi_admin.api.auth import create_access_token
+        from fastapi_console.api.auth import create_access_token
 
         user = self._make_user(is_superuser=True)
         secret = "test-secret-key-long-enough-for-security!"
@@ -58,7 +56,7 @@ class TestJWTPayload:
         assert payload["is_superuser"] is True
 
     def test_access_token_expiry(self):
-        from fastapi_admin.api.auth import create_access_token
+        from fastapi_console.api.auth import create_access_token
 
         user = self._make_user()
         secret = "test-secret-key-long-enough-for-security!"
@@ -75,7 +73,7 @@ class TestRefreshTokenFlow:
     """Test refresh token lifecycle."""
 
     def test_hash_token(self):
-        from fastapi_admin.api.auth import _hash_token
+        from fastapi_console.api.auth import _hash_token
 
         token = "test-refresh-token"
         hashed = _hash_token(token)
@@ -87,7 +85,7 @@ class TestDecodeAccessToken:
     """Test JWT decode and validation."""
 
     def test_valid_token_decodes(self):
-        from fastapi_admin.api.auth import decode_access_token
+        from fastapi_console.api.auth import decode_access_token
 
         secret = "test-secret-key-long-enough-for-security!"
         payload = {
@@ -105,14 +103,14 @@ class TestDecodeAccessToken:
         assert result["sub"] == "1"
 
     def test_invalid_token_returns_none(self):
-        from fastapi_admin.api.auth import decode_access_token
+        from fastapi_console.api.auth import decode_access_token
 
         secret = "test-secret-key-long-enough-for-security!"
         result = decode_access_token("invalid-token", secret)
         assert result is None
 
     def test_wrong_secret_returns_none(self):
-        from fastapi_admin.api.auth import decode_access_token
+        from fastapi_console.api.auth import decode_access_token
 
         secret = "test-secret-key-long-enough-for-security!"
         payload = {

@@ -1,4 +1,4 @@
-"""Tests for fastapi_admin.widgets — base, inputs, relation, registry."""
+"""Tests for fastapi_console.widgets — base, inputs, relation, registry."""
 
 import json
 from datetime import date, datetime, time
@@ -381,14 +381,9 @@ class TestMultiRelationWidget:
 
 class TestWidgetRegistry:
     def test_register_and_get(self):
-<<<<<<< HEAD
         from fastapi_console.widgets.registry import WidgetRegistry
+        from fastapi_console.widgets.resolver import WidgetResolver
         from fastapi_console.widgets.inputs import TextInputWidget
-=======
-        from fastapi_admin.widgets.registry import WidgetRegistry
-        from fastapi_admin.widgets.resolver import WidgetResolver
-        from fastapi_admin.widgets.inputs import TextInputWidget
->>>>>>> 6fbbaad1ffffd156930439440a97eefaf7f5c603
         reg = WidgetRegistry()
         reg.register_type(str, TextInputWidget)
         resolver = WidgetResolver(reg)
@@ -396,28 +391,18 @@ class TestWidgetRegistry:
         assert isinstance(w, TextInputWidget)
 
     def test_fallback_to_text_input(self):
-<<<<<<< HEAD
         from fastapi_console.widgets.registry import WidgetRegistry
+        from fastapi_console.widgets.resolver import WidgetResolver
         from fastapi_console.widgets.inputs import TextInputWidget
-=======
-        from fastapi_admin.widgets.registry import WidgetRegistry
-        from fastapi_admin.widgets.resolver import WidgetResolver
-        from fastapi_admin.widgets.inputs import TextInputWidget
->>>>>>> 6fbbaad1ffffd156930439440a97eefaf7f5c603
         reg = WidgetRegistry()
         resolver = WidgetResolver(reg)
         w = resolver.resolve(_col(col_type=type("Unknown", (), {})))
         assert isinstance(w, TextInputWidget)
 
     def test_fk_resolves_to_relation_picker(self):
-<<<<<<< HEAD
         from fastapi_console.widgets.registry import WidgetRegistry
+        from fastapi_console.widgets.resolver import WidgetResolver
         from fastapi_console.widgets.relation import RelationPickerWidget
-=======
-        from fastapi_admin.widgets.registry import WidgetRegistry
-        from fastapi_admin.widgets.resolver import WidgetResolver
-        from fastapi_admin.widgets.relation import RelationPickerWidget
->>>>>>> 6fbbaad1ffffd156930439440a97eefaf7f5c603
         reg = WidgetRegistry()
         resolver = WidgetResolver(reg)
         col = _col(name="category_id", foreign_keys=[1])
@@ -425,14 +410,9 @@ class TestWidgetRegistry:
         assert isinstance(w, RelationPickerWidget)
 
     def test_name_pattern_password(self):
-<<<<<<< HEAD
         from fastapi_console.widgets.registry import WidgetRegistry
+        from fastapi_console.widgets.resolver import WidgetResolver
         from fastapi_console.widgets.inputs import PasswordWidget
-=======
-        from fastapi_admin.widgets.registry import WidgetRegistry
-        from fastapi_admin.widgets.resolver import WidgetResolver
-        from fastapi_admin.widgets.inputs import PasswordWidget
->>>>>>> 6fbbaad1ffffd156930439440a97eefaf7f5c603
         reg = WidgetRegistry()
         reg.register_name("password", PasswordWidget)
         resolver = WidgetResolver(reg)
@@ -441,14 +421,9 @@ class TestWidgetRegistry:
         assert isinstance(w, PasswordWidget)
 
     def test_name_pattern_takes_priority_over_type(self):
-<<<<<<< HEAD
         from fastapi_console.widgets.registry import WidgetRegistry
+        from fastapi_console.widgets.resolver import WidgetResolver
         from fastapi_console.widgets.inputs import PasswordWidget, TextInputWidget
-=======
-        from fastapi_admin.widgets.registry import WidgetRegistry
-        from fastapi_admin.widgets.resolver import WidgetResolver
-        from fastapi_admin.widgets.inputs import PasswordWidget, TextInputWidget
->>>>>>> 6fbbaad1ffffd156930439440a97eefaf7f5c603
         reg = WidgetRegistry()
         reg.register_name("password", PasswordWidget)
         reg.register_type(str, TextInputWidget)

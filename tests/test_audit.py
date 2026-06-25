@@ -1,27 +1,34 @@
 """Tests for the Audit Event System (item 4 — Extract Audit Event System)."""
 
 import datetime
-from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
 from sqlalchemy import Column, Integer, String, create_engine
 from sqlalchemy.orm import Session
 
-from fastapi_admin.audit.context import AuditContext, clear_audit_context, get_audit_context, set_audit_context
-from fastapi_admin.audit.diff import compute_diff, serialize_value, snapshot
-from fastapi_admin.audit.event_bus import AuditEventBus
-from fastapi_admin.audit.events import AuditEvent
-from fastapi_admin.audit.logger import AuditLogger
-from fastapi_admin.audit.models import AuditLog
-from fastapi_admin.audit.sqlalchemy_logger import SqlAlchemyAuditLogger
-from fastapi_admin.auth.models import AdminUser, AdminRole  # noqa: F401 — ensure tables exist
-from fastapi_admin.models.base import Base
-
+from fastapi_console.audit.context import (
+    AuditContext,
+    clear_audit_context,
+    get_audit_context,
+    set_audit_context,
+)
+from fastapi_console.audit.diff import compute_diff, serialize_value, snapshot
+from fastapi_console.audit.event_bus import AuditEventBus
+from fastapi_console.audit.events import AuditEvent
+from fastapi_console.audit.logger import AuditLogger
+from fastapi_console.audit.models import AuditLog
+from fastapi_console.audit.sqlalchemy_logger import SqlAlchemyAuditLogger
+from fastapi_console.auth.models import (  # noqa: F401 — ensure tables exist
+    AdminRole,
+    AdminUser,
+)
+from fastapi_console.models.base import Base
 
 # ---------------------------------------------------------------------------
 # Test model for audit listener tests
 # ---------------------------------------------------------------------------
+
 
 class FakeProduct(Base):
     __tablename__ = "fake_products"
@@ -54,7 +61,7 @@ class TestAuditEvent:
         assert event.timestamp.tzinfo is not None
 
     def test_create_event_with_all_fields(self):
-        ts = datetime.datetime(2025, 1, 15, 12, 0, 0, tzinfo=datetime.timezone.utc)
+        ts = datetime.datetime(2025, 1, 15, 12, 0, 0, tzinfo=datetime.UTC)
         event = AuditEvent(
             event_type="UPDATE",
             model_name="User",
@@ -127,7 +134,9 @@ class TestAuditEventBus:
         received = []
         bus.subscribe("CREATE", lambda e: received.append(e))
 
-        event = AuditEvent(event_type="CREATE", model_name="M", table_name="t", object_id="1")
+        event = AuditEvent(
+            event_type="CREATE", model_name="M", table_name="t", object_id="1"
+        )
         bus.publish(event)
         assert len(received) == 1
         assert received[0] is event
@@ -139,7 +148,9 @@ class TestAuditEventBus:
         bus.subscribe("DELETE", lambda e: results_a.append("a"))
         bus.subscribe("DELETE", lambda e: results_b.append("b"))
 
-        event = AuditEvent(event_type="DELETE", model_name="M", table_name="t", object_id="1")
+        event = AuditEvent(
+            event_type="DELETE", model_name="M", table_name="t", object_id="1"
+        )
         bus.publish(event)
         assert results_a == ["a"]
         assert results_b == ["b"]
@@ -151,14 +162,18 @@ class TestAuditEventBus:
         bus.subscribe("CREATE", lambda e: create_received.append(e))
         bus.subscribe("UPDATE", lambda e: update_received.append(e))
 
-        event = AuditEvent(event_type="CREATE", model_name="M", table_name="t", object_id="1")
+        event = AuditEvent(
+            event_type="CREATE", model_name="M", table_name="t", object_id="1"
+        )
         bus.publish(event)
         assert len(create_received) == 1
         assert len(update_received) == 0
 
     def test_unknown_event_type_does_not_raise(self):
         bus = AuditEventBus()
-        event = AuditEvent(event_type="UNKNOWN", model_name="M", table_name="t", object_id="1")
+        event = AuditEvent(
+            event_type="UNKNOWN", model_name="M", table_name="t", object_id="1"
+        )
         bus.publish(event)  # should not raise
 
     def test_emit_for_object_publishes_event(self):
@@ -167,7 +182,12 @@ class TestAuditEventBus:
         bus.subscribe("CREATE", lambda e: received.append(e))
 
         obj = FakeProduct(id=1, name="Widget", price=999)
-        context = {"user_id": 1, "user_email": "a@b.com", "ip_address": "10.0.0.1", "user_agent": "test"}
+        context = {
+            "user_id": 1,
+            "user_email": "a@b.com",
+            "ip_address": "10.0.0.1",
+            "user_agent": "test",
+        }
         bus.emit_for_object(obj, "CREATE", context)
 
         assert len(received) == 1
@@ -254,15 +274,20 @@ class TestAuditLoggerInterface:
         class MemLogger(AuditLogger):
             def __init__(self):
                 self.events = []
+
             def log_create(self, event):
                 self.events.append(("CREATE", event))
+
             def log_update(self, event):
                 self.events.append(("UPDATE", event))
+
             def log_delete(self, event):
                 self.events.append(("DELETE", event))
 
         logger = MemLogger()
-        ev = AuditEvent(event_type="CREATE", model_name="M", table_name="t", object_id="1")
+        ev = AuditEvent(
+            event_type="CREATE", model_name="M", table_name="t", object_id="1"
+        )
         logger.log_create(ev)
         assert len(logger.events) == 1
         assert logger.events[0][0] == "CREATE"
@@ -372,10 +397,12 @@ class TestDiffUtilities:
 
     def test_serialize_value_decimal(self):
         from decimal import Decimal
+
         assert serialize_value(Decimal("3.14")) == "3.14"
 
     def test_serialize_value_uuid(self):
         from uuid import UUID
+
         u = UUID("12345678-1234-5678-1234-567812345678")
         assert serialize_value(u) == "12345678-1234-5678-1234-567812345678"
 
@@ -384,8 +411,10 @@ class TestDiffUtilities:
 
     def test_serialize_value_enum(self):
         import enum
+
         class Color(enum.Enum):
             RED = "red"
+
         assert serialize_value(Color.RED) == "red"
 
     def test_serialize_value_passthrough(self):
@@ -442,11 +471,13 @@ class TestAuditListenerIntegration:
 
     @pytest.fixture
     def session_and_bus(self, engine):
-        from fastapi_admin.audit.listener import attach_audit_listener
+        from fastapi_console.audit.listener import attach_audit_listener
 
         # Fake registry that recognizes fake_products
         registry = MagicMock()
-        registry.get.side_effect = lambda tn: MagicMock() if tn == "fake_products" else None
+        registry.get.side_effect = lambda tn: (
+            MagicMock() if tn == "fake_products" else None
+        )
 
         bus = attach_audit_listener(None, registry)
         # Wire up a logger that writes to a session
@@ -464,7 +495,9 @@ class TestAuditListenerIntegration:
         bus.subscribe("CREATE", lambda e: received.append(e))
 
         obj = FakeProduct(id=1, name="Widget", price=999)
-        bus.emit_for_object(obj, "CREATE", {"user_id": 1, "user_email": "a@b.com"})
+        bus.emit_for_object(
+            obj, "CREATE", {"user_id": 1, "user_email": "a@b.com"}
+        )
         session.flush()
 
         assert len(received) == 1
@@ -477,7 +510,10 @@ class TestAuditListenerIntegration:
         bus.subscribe("UPDATE", lambda e: received.append(e))
 
         obj = FakeProduct(id=1, name="Updated", price=1999)
-        changes = {"name": {"old": "Widget", "new": "Updated"}, "price": {"old": 999, "new": 1999}}
+        changes = {
+            "name": {"old": "Widget", "new": "Updated"},
+            "price": {"old": 999, "new": 1999},
+        }
         bus.emit_for_object(obj, "UPDATE", {}, changes=changes)
         session.flush()
 

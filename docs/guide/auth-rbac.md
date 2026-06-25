@@ -65,7 +65,7 @@ admin = Admin(
 ### Add Extra Columns
 
 ```python
-from fastapi_admin.auth.models import AdminUser as _AdminUser
+from fastapi_console.auth.models import AdminUser as _AdminUser
 
 class AdminUser(_AdminUser):
     __tablename__ = "admin_users"  # Same table
@@ -78,7 +78,7 @@ class AdminUser(_AdminUser):
 ### Replace with Your Own Model
 
 ```python
-from fastapi_admin.auth import AuthBackend
+from fastapi_console.auth import AuthBackend
 
 class MyUserBackend(AuthBackend):
     
@@ -134,7 +134,7 @@ CREATE TABLE admin_permissions (
 ### Permission Checker
 
 ```python
-from fastapi_admin.auth.permissions import PermissionChecker
+from fastapi_console.auth.permissions import PermissionChecker
 
 checker = PermissionChecker(session)
 
@@ -174,7 +174,7 @@ def has_permission(self, user, table_name, action):
 Use dependencies to protect routes:
 
 ```python
-from fastapi_admin.auth.dependencies import require_permission
+from fastapi_console.auth.dependencies import require_permission
 
 @router.get("/products/")
 async def list_products(
@@ -269,7 +269,7 @@ allowed_fields = checker.get_allowed_field_names(user, "products", "view")
 Implement your own authentication:
 
 ```python
-from fastapi_admin.auth import AuthBackend
+from fastapi_console.auth import AuthBackend
 from fastapi import HTTPException
 
 class MyAuthBackend(AuthBackend):

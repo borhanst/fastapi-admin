@@ -5,16 +5,14 @@ from __future__ import annotations
 import time
 from datetime import UTC, datetime
 
-import pytest
-
 
 class TestPasswordChangeFlow:
     """Test password change workflow."""
 
     def test_password_changed_at_set(self):
         """After password change, password_changed_at should be set."""
-        from fastapi_admin.auth.models import AdminUser
-        from datetime import timezone
+
+        from fastapi_console.auth.models import AdminUser
 
         user = AdminUser(
             email="test@test.com",
@@ -26,7 +24,7 @@ class TestPasswordChangeFlow:
 
     def test_password_change_requires_current(self):
         """Password change requires current password verification."""
-        from fastapi_admin.auth.backend import pwd_context
+        from fastapi_console.auth.backend import pwd_context
 
         hashed = pwd_context.hash("currentpassword")
         assert pwd_context.verify("currentpassword", hashed)
@@ -41,8 +39,7 @@ class TestSessionInvalidationAfterPasswordChange:
         session_iat = time.time() - 3600
         password_changed = datetime.now(UTC)
 
-        from datetime import timezone
-        session_time = datetime.fromtimestamp(session_iat, tz=timezone.utc)
+        session_time = datetime.fromtimestamp(session_iat, tz=UTC)
         assert password_changed > session_time
 
     def test_session_newer_than_password_change_accepted(self):
@@ -50,8 +47,7 @@ class TestSessionInvalidationAfterPasswordChange:
         password_changed = datetime(2020, 1, 1, tzinfo=UTC)
         session_iat = time.time()
 
-        from datetime import timezone
-        session_time = datetime.fromtimestamp(session_iat, tz=timezone.utc)
+        session_time = datetime.fromtimestamp(session_iat, tz=UTC)
         assert password_changed < session_time
 
 
@@ -64,7 +60,7 @@ class TestProfileUpdate:
 
     def test_full_name_update(self):
         """Full name can be updated."""
-        from fastapi_admin.auth.models import AdminUser
+        from fastapi_console.auth.models import AdminUser
 
         user = AdminUser(
             email="test@test.com",

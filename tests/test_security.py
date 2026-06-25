@@ -8,8 +8,8 @@ import pytest
 from fastapi import FastAPI, Request
 from fastapi.testclient import TestClient
 
-from fastapi_admin.auth.password import validate_password_strength
-from fastapi_admin.auth.ratelimit import RateLimiter, check_rate_limit
+from fastapi_console.auth.password import validate_password_strength
+from fastapi_console.auth.ratelimit import RateLimiter
 
 
 class TestPasswordStrength:
@@ -90,7 +90,10 @@ class TestCSRFProtection:
     """Test CSRF token validation."""
 
     def test_csrf_generate_and_verify(self):
-        from fastapi_admin.auth.csrf import generate_csrf_token, _verify_csrf_token
+        from fastapi_console.auth.csrf import (
+            _verify_csrf_token,
+            generate_csrf_token,
+        )
 
         secret = "test-secret-key-for-csrf-testing!"
         token = generate_csrf_token(secret)
@@ -98,11 +101,11 @@ class TestCSRFProtection:
         assert not _verify_csrf_token("wrong-secret", token)
 
     def test_csrf_rejects_expired_token(self):
-        import hmac
         import hashlib
+        import hmac
         import os
 
-        from fastapi_admin.auth.csrf import CSRF_TOKEN_MAX_AGE
+        from fastapi_console.auth.csrf import CSRF_TOKEN_MAX_AGE
 
         secret = "test-secret-key-for-csrf-testing!"
         old_time = str(int(time.time()) - CSRF_TOKEN_MAX_AGE - 100)
@@ -113,7 +116,8 @@ class TestCSRFProtection:
         ).hexdigest()[:32]
         expired_token = f"{payload}.{signature}"
 
-        from fastapi_admin.auth.csrf import _verify_csrf_token
+        from fastapi_console.auth.csrf import _verify_csrf_token
+
         assert not _verify_csrf_token(secret, expired_token)
 
 
@@ -121,35 +125,41 @@ class TestJWTSecretValidation:
     """Test JWT secret key validation."""
 
     def test_rejects_empty_secret(self):
-        from fastapi_admin.admin.core import Admin
-        from fastapi_admin.exceptions import ConfigError
-        from fastapi import FastAPI
         from sqlalchemy import create_engine
+
+        from fastapi_console.admin.core import Admin
+        from fastapi_console.exceptions import ConfigError
 
         engine = create_engine("sqlite:///:memory:")
         app = FastAPI()
-        admin = Admin(app=app, engine=engine, secret_key="", auto_discover=False)
+        admin = Admin(
+            app=app, engine=engine, secret_key="", auto_discover=False
+        )
         with pytest.raises(ConfigError, match="secret_key is required"):
             import asyncio
+
             asyncio.get_event_loop().run_until_complete(admin.setup(app))
 
     def test_rejects_short_secret(self):
-        from fastapi_admin.admin.core import Admin
-        from fastapi_admin.exceptions import ConfigError
-        from fastapi import FastAPI
         from sqlalchemy import create_engine
+
+        from fastapi_console.admin.core import Admin
+        from fastapi_console.exceptions import ConfigError
 
         engine = create_engine("sqlite:///:memory:")
         app = FastAPI()
-        admin = Admin(app=app, engine=engine, secret_key="short", auto_discover=False)
+        admin = Admin(
+            app=app, engine=engine, secret_key="short", auto_discover=False
+        )
         with pytest.raises(ConfigError, match="too short"):
             import asyncio
+
             asyncio.get_event_loop().run_until_complete(admin.setup(app))
 
     def test_accepts_valid_secret(self):
-        from fastapi_admin.admin.core import Admin
-        from fastapi import FastAPI
         from sqlalchemy import create_engine
+
+        from fastapi_console.admin.core import Admin
 
         engine = create_engine("sqlite:///:memory:")
         app = FastAPI()
@@ -167,8 +177,6 @@ class TestValidateFieldAuth:
 
     def test_validate_field_no_auth_redirects(self):
         """validate-field should require authentication (view permission)."""
-        from fastapi import FastAPI
-        from fastapi.testclient import TestClient
 
         app = FastAPI()
 

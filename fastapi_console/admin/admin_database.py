@@ -21,11 +21,11 @@ class AdminDatabase:
         """Create all admin database tables (async-safe)."""
         from sqlalchemy.ext.asyncio import AsyncEngine
 
-        from fastapi_admin.audit import models as _audit_models  # noqa: F401
+        from fastapi_console.audit import models as _audit_models  # noqa: F401
 
         # Import models to register them with metadata
-        from fastapi_admin.auth import models as _auth_models  # noqa: F401
-        from fastapi_admin.models.base import Base as AdminBase
+        from fastapi_console.auth import models as _auth_models  # noqa: F401
+        from fastapi_console.models.base import Base as AdminBase
 
         if isinstance(self.engine, AsyncEngine):
             # Async engine - use run_sync
@@ -49,7 +49,7 @@ class AdminDatabase:
         from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
         from sqlalchemy.orm import Session, sessionmaker
 
-        from fastapi_admin.auth.models import AdminPermission, AdminRole
+        from fastapi_console.auth.models import AdminPermission, AdminRole
 
         is_async = isinstance(self.engine, AsyncEngine)
 
@@ -128,7 +128,7 @@ class AdminDatabase:
         self, secret_key: str, session_ttl: int, cookie_name: str, secure: bool
     ) -> Any:
         """Create and store the signed-cookie session backend."""
-        from fastapi_admin.auth.session import SignedCookieSessionBackend
+        from fastapi_console.auth.session import SignedCookieSessionBackend
 
         return SignedCookieSessionBackend(
             secret_key=secret_key,

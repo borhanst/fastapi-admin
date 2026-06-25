@@ -93,7 +93,7 @@ class Admin:
     """Main admin interface. Register models and mount to your FastAPI app.
 
     Full configuration kwargs from ``AUTH_RBAC_SYSTEM.md`` §17 and
-    ``fastapi_admin_core_spec.md`` §3.12.
+    ``fastapi_console_core_spec.md`` §3.12.
     """
 
     def __init__(
@@ -293,10 +293,14 @@ class Admin:
         else:
             registered = self.registry.register(model)
         if self._jinja_env:
-            self._jinja_env.env.globals["registered_models"] = self.registry.all()
+            self._jinja_env.env.globals["registered_models"] = (
+                self.registry.all()
+            )
             if self._nav_groups_built:
                 self._nav_groups_built = self._build_sidebar()
-                self._jinja_env.env.globals["nav_groups"] = self._nav_groups_built
+                self._jinja_env.env.globals["nav_groups"] = (
+                    self._nav_groups_built
+                )
         if admin_class is not None:
             return registered
         return _RegistrationProxy(self, registered)
@@ -474,7 +478,9 @@ class Admin:
         app.state.admin_registry = self.registry
 
         # Async session for views (reused per-request via dependency)
-        app.state.admin_db_session = AsyncSession(self.engine, expire_on_commit=False)
+        app.state.admin_db_session = AsyncSession(
+            self.engine, expire_on_commit=False
+        )
 
         app.state.admin_config = {
             "title": self.title,
@@ -511,6 +517,7 @@ class Admin:
 
         # Mount uploads directory if using LocalStorageBackend
         from fastapi_console.storage.local import LocalStorageBackend
+
         if isinstance(self.storage, LocalStorageBackend):
             self.storage.ensure_dir()
             app.mount(
@@ -558,6 +565,7 @@ class Admin:
 
         # Dashboard route
         from fastapi_console.views.dashboard import dashboard_view_factory
+
         dashboard_view = dashboard_view_factory(self)
         app.add_api_route(
             self.admin_path,
@@ -596,7 +604,9 @@ class Admin:
         from fastapi_console.nav import DefaultSidebarBuilder
 
         builder = self.sidebar_builder or DefaultSidebarBuilder()
-        return builder.build(self.registry.all(), self.nav_groups, admin_path=self.admin_path)
+        return builder.build(
+            self.registry.all(), self.nav_groups, admin_path=self.admin_path
+        )
 
     def build_sidebar_context(self, request: Any, user: Any = None) -> dict:
         """Build per-request sidebar context (RBAC filter + permissions map)."""
@@ -608,7 +618,9 @@ class Admin:
         from fastapi_console.auth.permissions import PermissionChecker
 
         session: Session = request.app.state.admin_db_session
-        checker = PermissionChecker(session=session, user=user) if user else None
+        checker = (
+            PermissionChecker(session=session, user=user) if user else None
+        )
 
         permissions_map: dict[str, Any] = {}
         nav_groups = self._nav_groups_built
@@ -629,7 +641,9 @@ class Admin:
         """Thin wrapper — returns sidebar kwargs for TemplateResponse contexts."""
         return self.build_sidebar_context(request)
 
-    def apply_sidebar_context(self, request: Any, user: Any, context: dict) -> dict:
+    def apply_sidebar_context(
+        self, request: Any, user: Any, context: dict
+    ) -> dict:
         """Inject nav_groups + permissions_map into a template context dict."""
         context.update(self.build_sidebar_context(request, user=user))
         return context

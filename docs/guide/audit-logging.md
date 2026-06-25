@@ -139,7 +139,7 @@ Default: keep forever (no purge).
 Run manually or schedule as a cron job:
 
 ```python
-from fastapi_admin.audit import purge_old_logs
+from fastapi_console.audit import purge_old_logs
 
 # Delete logs older than retention period
 purge_old_logs(session, retention_days=365)
@@ -150,7 +150,7 @@ purge_old_logs(session, retention_days=365)
 Override the default audit writer:
 
 ```python
-from fastapi_admin.audit import AuditWriter
+from fastapi_console.audit import AuditWriter
 
 class MyAuditWriter(AuditWriter):
     
@@ -172,7 +172,7 @@ admin = Admin(
 Send audit logs to external services:
 
 ```python
-from fastapi_admin.audit import AuditSink
+from fastapi_console.audit import AuditSink
 
 class ElasticSearchSink(AuditSink):
     
@@ -199,7 +199,7 @@ admin = Admin(
 The current user is available via a context variable:
 
 ```python
-from fastapi_admin.audit.context import get_audit_user
+from fastapi_console.audit.context import get_audit_user
 
 # In any code path
 user = get_audit_user()
@@ -214,7 +214,7 @@ This is set by middleware on every admin request.
 Objects are serialized to JSON-safe dicts:
 
 ```python
-from fastapi_admin.audit.diff import snapshot, serialize_value
+from fastapi_console.audit.diff import snapshot, serialize_value
 
 # snapshot() converts a SQLAlchemy object to a dict
 data = snapshot(product_instance)

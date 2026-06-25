@@ -2,7 +2,7 @@
 
 ## Auth Backend
 
-::: fastapi_admin.auth.backend.AuthBackend
+::: fastapi_console.auth.backend.AuthBackend
     options:
       show_source: true
       show_root_heading: true
@@ -11,7 +11,7 @@
 
 ## Permission Checker
 
-::: fastapi_admin.auth.permissions.PermissionChecker
+::: fastapi_console.auth.permissions.PermissionChecker
     options:
       show_source: true
       show_root_heading: true
@@ -22,7 +22,7 @@
 
 ### AdminUser
 
-::: fastapi_admin.auth.models.AdminUser
+::: fastapi_console.auth.models.AdminUser
     options:
       show_source: true
       show_root_heading: true
@@ -31,7 +31,7 @@
 
 ### AdminRole
 
-::: fastapi_admin.auth.models.AdminRole
+::: fastapi_console.auth.models.AdminRole
     options:
       show_source: true
       show_root_heading: true
@@ -40,7 +40,7 @@
 
 ### AdminPermission
 
-::: fastapi_admin.auth.models.AdminPermission
+::: fastapi_console.auth.models.AdminPermission
     options:
       show_source: true
       show_root_heading: true
@@ -49,7 +49,7 @@
 
 ### AdminFieldPermission
 
-::: fastapi_admin.auth.models.AdminFieldPermission
+::: fastapi_console.auth.models.AdminFieldPermission
     options:
       show_source: true
       show_root_heading: true
@@ -58,7 +58,7 @@
 
 ## Dependencies
 
-::: fastapi_admin.auth.dependencies
+::: fastapi_console.auth.dependencies
     options:
       show_source: true
       show_root_heading: true
@@ -67,7 +67,7 @@
 
 ## Session
 
-::: fastapi_admin.auth.session
+::: fastapi_console.auth.session
     options:
       show_source: true
       show_root_heading: true

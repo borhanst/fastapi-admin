@@ -4,24 +4,11 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 
-<<<<<<< HEAD:fastapi_console/router.py
+from fastapi_console.auth.csrf import require_csrf_token
 from fastapi_console.auth.dependencies import require_permission
+from fastapi_console.db import get_db_session
 from fastapi_console.registry import RegisteredModel
-from fastapi_console.views import (
-    bulk_factory,
-    create_form_factory,
-    create_submit_factory,
-    delete_factory,
-    edit_form_factory,
-    edit_submit_factory,
-    list_view_factory,
-    search_factory,
-=======
-from fastapi_admin.auth.csrf import require_csrf_token
-from fastapi_admin.auth.dependencies import require_permission
-from fastapi_admin.db import get_db_session
-from fastapi_admin.registry import RegisteredModel
-from fastapi_admin.views.class_views import (
+from fastapi_console.views.class_views import (
     BulkView,
     CreateView,
     DeleteView,
@@ -29,7 +16,6 @@ from fastapi_admin.views.class_views import (
     ListView,
     SearchView,
     _resolve_view_class,
->>>>>>> 6fbbaad1ffffd156930439440a97eefaf7f5c603:fastapi_admin/router.py
 )
 
 
@@ -280,7 +266,7 @@ def build_model_router(registered: RegisteredModel) -> APIRouter:
         _csrf: bool = Depends(require_csrf_token),
     ):
         """Inline field update — used by toggle switches in list view."""
-        from fastapi_admin.auth.csrf import _get_secret_key, generate_csrf_token
+        from fastapi_console.auth.csrf import _get_secret_key, generate_csrf_token
 
         content_type = request.headers.get("content-type", "")
         if "application/json" in content_type:

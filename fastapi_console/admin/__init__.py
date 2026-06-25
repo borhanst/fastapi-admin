@@ -1,11 +1,11 @@
 """Admin component classes for FastAPI Console."""
 
-from fastapi_admin.admin.admin_config import AdminConfig
-from fastapi_admin.admin.admin_database import AdminDatabase
-from fastapi_admin.admin.admin_router import AdminRouter
-from fastapi_admin.admin.admin_template import AdminTemplate
-from fastapi_admin.admin.core import Admin
-from fastapi_admin.admin.state import AdminState
+from fastapi_console.admin.admin_config import AdminConfig
+from fastapi_console.admin.admin_database import AdminDatabase
+from fastapi_console.admin.admin_router import AdminRouter
+from fastapi_console.admin.admin_template import AdminTemplate
+from fastapi_console.admin.core import Admin
+from fastapi_console.admin.state import AdminState
 
 __all__ = [
     "Admin",

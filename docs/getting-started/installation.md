@@ -40,7 +40,7 @@ fastapi-console automatically installs:
 ## Verify Installation
 
 ```python
-from fastapi_admin import Admin
+from fastapi_console import Admin
 print("fastapi-console installed successfully")
 ```
 

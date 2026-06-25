@@ -10,7 +10,7 @@ from fastapi import FastAPI
 from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, Session
 
-from fastapi_admin import Admin
+from fastapi_console import Admin
 
 # Database setup
 engine = create_engine("sqlite:///example.db")
@@ -99,7 +99,7 @@ Now you have:
 ## Step 5: Customize with ModelAdmin
 
 ```python
-from fastapi_admin import ModelAdmin
+from fastapi_console import ModelAdmin
 
 @admin.register(Product)
 class ProductAdmin(ModelAdmin):

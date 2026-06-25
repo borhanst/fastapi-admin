@@ -10,14 +10,14 @@ from typing import Any
 import jwt
 from fastapi import APIRouter, HTTPException, Request
 
-from fastapi_admin.api.schemas import (
+from fastapi_console.api.schemas import (
     RefreshRequest,
     RefreshResponse,
     TokenRequest,
     TokenResponse,
 )
-from fastapi_admin.auth.ratelimit import RateLimiter, check_rate_limit
-from fastapi_admin.db import get_db_session
+from fastapi_console.auth.ratelimit import RateLimiter, check_rate_limit
+from fastapi_console.db import get_db_session
 
 router = APIRouter(prefix="/auth", tags=["api-auth"])
 
@@ -56,7 +56,9 @@ def _get_refresh_ttl() -> int:
     return 7 * 24 * 3600
 
 
-async def _build_user_permissions(user: Any, db_session: Any) -> dict[str, list[str]]:
+async def _build_user_permissions(
+    user: Any, db_session: Any
+) -> dict[str, list[str]]:
     """Build permissions dict from user's role."""
     permissions: dict[str, list[str]] = {}
     if getattr(user, "is_superuser", False):
@@ -68,7 +70,7 @@ async def _build_user_permissions(user: Any, db_session: Any) -> dict[str, list[
 
     from sqlalchemy import select
 
-    from fastapi_admin.auth.models import AdminPermission
+    from fastapi_console.auth.models import AdminPermission
 
     result = await db_session.execute(
         select(AdminPermission).where(AdminPermission.role_id == role_id)
@@ -156,13 +158,19 @@ async def obtain_token(
 
     auth_backend = getattr(request.app.state, "admin_auth_backend", None)
     if auth_backend is None:
-        raise HTTPException(status_code=500, detail="Auth backend not configured.")
+        raise HTTPException(
+            status_code=500, detail="Auth backend not configured."
+        )
 
     db_session = get_db_session(request)
     if db_session is None:
-        raise HTTPException(status_code=500, detail="Database session not available.")
+        raise HTTPException(
+            status_code=500, detail="Database session not available."
+        )
 
-    user = await auth_backend.authenticate(body.email, body.password, db_session)
+    user = await auth_backend.authenticate(
+        body.email, body.password, db_session
+    )
     if user is None:
         _api_rate_limiter.record_attempt(body.email)
         raise HTTPException(status_code=401, detail="Invalid credentials.")
@@ -177,7 +185,7 @@ async def obtain_token(
     )
 
     # Create refresh token
-    from fastapi_admin.auth.models import AdminRefreshToken
+    from fastapi_console.auth.models import AdminRefreshToken
 
     refresh_jti = str(uuid.uuid4())
     refresh_hash = _hash_token(refresh_jti)
@@ -206,11 +214,13 @@ async def refresh_token(
     """POST /api/auth/refresh — exchange refresh token for new access token."""
     db_session = get_db_session(request)
     if db_session is None:
-        raise HTTPException(status_code=500, detail="Database session not available.")
+        raise HTTPException(
+            status_code=500, detail="Database session not available."
+        )
 
     from sqlalchemy import select
 
-    from fastapi_admin.auth.models import AdminRefreshToken, AdminUser
+    from fastapi_console.auth.models import AdminRefreshToken, AdminUser
 
     refresh_hash = _hash_token(body.refresh_token)
     result = await db_session.execute(
@@ -236,7 +246,9 @@ async def refresh_token(
     )
     user = user_result.scalar_one_or_none()
     if user is None:
-        raise HTTPException(status_code=401, detail="User not found or inactive.")
+        raise HTTPException(
+            status_code=401, detail="User not found or inactive."
+        )
 
     # Rotate refresh token
     refresh_record.revoked_at = datetime.now(UTC)
@@ -276,7 +288,7 @@ async def api_logout(
         if db_session:
             from sqlalchemy import select
 
-            from fastapi_admin.auth.models import AdminRefreshToken
+            from fastapi_console.auth.models import AdminRefreshToken
 
             refresh_hash = _hash_token(body.refresh_token)
             result = await db_session.execute(
@@ -300,7 +312,9 @@ async def get_current_user_info(
     """GET /api/auth/me — return current user info from JWT (no DB hit)."""
     auth_header = request.headers.get("Authorization", "")
     if not auth_header.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Missing or invalid Authorization header.")
+        raise HTTPException(
+            status_code=401, detail="Missing or invalid Authorization header."
+        )
 
     token = auth_header[7:]
     secret_key = _get_secret_key(request)

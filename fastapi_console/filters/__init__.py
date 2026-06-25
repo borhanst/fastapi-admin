@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
-from fastapi_admin.filters.base import (
+from fastapi_console.filters.base import (
     BooleanFilter,
     EnumFilter,
     Filter,
     RelationFilter,
     TextFilter,
 )
-from fastapi_admin.filters.registry import FilterRegistry
+from fastapi_console.filters.registry import FilterRegistry
 
 __all__ = [
     "Filter",

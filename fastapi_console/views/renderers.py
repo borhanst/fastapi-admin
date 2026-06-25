@@ -13,10 +13,10 @@ from fastapi import Request
 from fastapi.responses import Response
 from starlette.datastructures import UploadFile
 
-from fastapi_admin.db import get_db_session
-from fastapi_admin.registry import RegisteredModel
-from fastapi_admin.validation import FormValidator
-from fastapi_admin.widgets.inputs import FileUploadWidget, ImageUploadWidget
+from fastapi_console.db import get_db_session
+from fastapi_console.registry import RegisteredModel
+from fastapi_console.validation import FormValidator
+from fastapi_console.widgets.inputs import FileUploadWidget, ImageUploadWidget
 
 _FILE_WIDGET_TYPES = (FileUploadWidget, ImageUploadWidget)
 
@@ -28,8 +28,8 @@ def _get_storage(request: Request):
 
 async def _resolve_permission_checker(request: Request) -> Any:
     """Resolve a PermissionChecker for the current request."""
-    from fastapi_admin.auth.identity import get_current_user_from_cookie
-    from fastapi_admin.auth.permissions import PermissionChecker
+    from fastapi_console.auth.identity import get_current_user_from_cookie
+    from fastapi_console.auth.permissions import PermissionChecker
 
     user = await get_current_user_from_cookie(request)
     if user is None:
@@ -84,7 +84,7 @@ class ListAPIRenderer:
         self.registered = registered
 
     async def render(self, request: Request, data: Any) -> Response:
-        from fastapi_admin.api.schemas import PaginatedResponse
+        from fastapi_console.api.schemas import PaginatedResponse
 
         return PaginatedResponse(**data)
 

@@ -247,7 +247,7 @@ function themeBuilder() {
     },
 
     exportConfig() {
-      return `from fastapi_admin import Admin\nfrom fastapi_admin.config import ThemeConfig\n\nadmin = Admin(\n    theme=ThemeConfig(\n        preset="${this.preset}",\n        primary_color="${this.customizations.primary_color}",\n        surface_base="${this.customizations.surface_base}",\n        surface_raised="${this.customizations.surface_raised}",\n        text_primary="${this.customizations.text_primary}",\n        border_color="${this.customizations.border_color}",\n        radius_sm="${this.customizations.radius_sm}",\n        radius_md="${this.customizations.radius_md}",\n        radius_lg="${this.customizations.radius_lg}",\n        show_grain_texture=${this.customizations.show_grain},\n        show_accent_line=${this.customizations.show_accent_line},\n    ),\n)`;
+      return `from fastapi_console import Admin\nfrom fastapi_console.config import ThemeConfig\n\nadmin = Admin(\n    theme=ThemeConfig(\n        preset="${this.preset}",\n        primary_color="${this.customizations.primary_color}",\n        surface_base="${this.customizations.surface_base}",\n        surface_raised="${this.customizations.surface_raised}",\n        text_primary="${this.customizations.text_primary}",\n        border_color="${this.customizations.border_color}",\n        radius_sm="${this.customizations.radius_sm}",\n        radius_md="${this.customizations.radius_md}",\n        radius_lg="${this.customizations.radius_lg}",\n        show_grain_texture=${this.customizations.show_grain},\n        show_accent_line=${this.customizations.show_accent_line},\n    ),\n)`;
     },
   };
 }
