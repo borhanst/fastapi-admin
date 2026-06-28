@@ -21,7 +21,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import DeclarativeBase, relationship, sessionmaker
 from sqlalchemy.sql import func
 
-from fastapi_console import Admin, ModelAdmin
+from fastapi_console import Admin, ModelAdmin, column
 from fastapi_console.actions import action
 from fastapi_console.audit.models import (
     AuditLog,  # noqa: F401 — ensure table is created
@@ -203,9 +203,9 @@ class ProductAdmin(ModelAdmin):
         "id",
         "name",
         "category",
-        "price",
+        "formatted_price",
         "stock",
-        "is_active",
+        "status",
         "created_at",
     ]
     list_filter = ["is_active", "category", "created_at", "updated_at"]
@@ -256,6 +256,14 @@ class ProductAdmin(ModelAdmin):
     warn_unsaved_form = True
     compressed_fields = True
     change_form_show_cancel_button = True
+
+    @column(header="Price", format="$ {:,.2f}", order="price", icon="attach_money")
+    def formatted_price(self, obj):
+        return obj.price
+
+    @column(header="Status", boolean=True, icon="check_circle")
+    def status(self, obj):
+        return obj.is_active
 
     # Custom widgets
     formfield_overrides = {

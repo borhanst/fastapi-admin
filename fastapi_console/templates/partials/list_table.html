@@ -41,19 +41,23 @@
           {% set _detail_url = admin_path | default('/admin') ~ '/' ~ registered.table_name ~ '/' ~ obj.id %}
           {% set _first_col = true %}
           {% for col in display_columns %}
-            <td class="col-cell">
-              {% set val = attr(obj, col.name) %}
+            <td class="col-cell{% if col.css_class %} {{ col.css_class }}{% endif %}">
+              {% set val = col.value(obj) %}
               {% if _first_col %}
                 {% set _first_col = false %}
                 <a href="{{ _detail_url }}" class="text-[var(--color-primary-600)] hover:text-[var(--color-primary-700)] transition-colors">
                 {% if val is none %}
                   -
+                {% elif col.boolean and val is sameas true %}
+                  <span class="toggle-switch toggle-switch--on" style="cursor: default;"><span class="toggle-switch__thumb"></span></span>
+                {% elif col.boolean and val is sameas false %}
+                  <span class="toggle-switch" style="cursor: default;"><span class="toggle-switch__thumb"></span></span>
                 {% elif val is sameas true %}
-                  Active
+                  <span class="toggle-switch toggle-switch--on" style="cursor: default;"><span class="toggle-switch__thumb"></span></span>
                 {% elif val is sameas false %}
-                  Inactive
+                  <span class="toggle-switch" style="cursor: default;"><span class="toggle-switch__thumb"></span></span>
                 {% elif val is string or val is number %}
-                  {{ val }}
+                  {% if col.icon %}<span class="material-symbols-outlined" style="font-size: 16px; vertical-align: middle; margin-right: 4px;">{{ col.icon }}</span>{% endif %}{{ val }}
                 {% elif val is iterable and val is not string %}
                   {{ model_display_name(val) }}
                 {% else %}
@@ -63,18 +67,16 @@
               {% else %}
                 {% if val is none %}
                   <span class="text-muted">-</span>
+                {% elif col.boolean and val is sameas true %}
+                  <span class="toggle-switch toggle-switch--on" style="cursor: default;"><span class="toggle-switch__thumb"></span></span>
+                {% elif col.boolean and val is sameas false %}
+                  <span class="toggle-switch" style="cursor: default;"><span class="toggle-switch__thumb"></span></span>
                 {% elif val is sameas true %}
-                  <span class="status-badge status-badge--success">
-                    {{ icon("check-circle", size="14px") }}
-                    Active
-                  </span>
+                  <span class="toggle-switch toggle-switch--on" style="cursor: default;"><span class="toggle-switch__thumb"></span></span>
                 {% elif val is sameas false %}
-                  <span class="status-badge status-badge--muted">
-                    {{ icon("x-circle", size="14px") }}
-                    Inactive
-                  </span>
+                  <span class="toggle-switch" style="cursor: default;"><span class="toggle-switch__thumb"></span></span>
                 {% elif val is string or val is number %}
-                  {{ val }}
+                  {% if col.icon %}<span class="material-symbols-outlined" style="font-size: 16px; vertical-align: middle; margin-right: 4px;">{{ col.icon }}</span>{% endif %}{{ val }}
                 {% elif val is iterable and val is not string %}
                   {{ model_display_name(val) }}
                 {% else %}

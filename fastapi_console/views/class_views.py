@@ -132,11 +132,30 @@ class ListView(BaseView):
             c.name for c in self.registered.columns if c.name != "id"
         ]
 
+        # Collect @column decorated methods (check _column_options attribute)
+        decorated_columns: dict[str, Any] = {}
+        for attr_name in list_display:
+            method = getattr(self.admin, attr_name, None)
+            if method and hasattr(method, "_column_options"):
+                decorated_columns[attr_name] = method._column_options
+
         display_columns = []
         for col_name in list_display:
             label = col_name.replace("_", " ").title()
+            display_fn = None
+            options = None
+
+            # Check @column decorator first
+            if col_name in decorated_columns:
+                options = decorated_columns[col_name]
+                display_fn = getattr(self.admin, col_name)
+                label = options.header or label
+            # Check display_functions dict fallback
+            elif self.admin.display_functions and col_name in self.admin.display_functions:
+                display_fn = self.admin.display_functions[col_name]
+
             display_columns.append(
-                DisplayColumn(col_name, label, col_name in rel_names)
+                DisplayColumn(col_name, label, col_name in rel_names, display_fn, options)
             )
         return display_columns
 

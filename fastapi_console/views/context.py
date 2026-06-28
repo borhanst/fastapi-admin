@@ -18,12 +18,35 @@ from fastapi_console.views.sidebar import inject_sidebar_context
 class DisplayColumn:
     """Helper to render a column in the list view."""
 
-    def __init__(self, name: str, label: str, is_relation: bool = False):
+    def __init__(
+        self,
+        name: str,
+        label: str,
+        is_relation: bool = False,
+        display_fn: Any = None,
+        options: Any = None,
+    ):
         self.name = name
         self.label = label
         self.is_relation = is_relation
+        self.display_fn = display_fn
+        self.options = options
+        self.boolean = options.boolean if options else False
+        self.css_class = options.css_class if options else ""
+        self.width = options.width if options else None
+        self.icon = options.icon if options else ""
 
     def value(self, obj: Any) -> Any:
+        if self.display_fn:
+            result = self.display_fn(obj)
+            if result is None:
+                return self.options.empty_value if self.options else "-"
+            if self.options and self.options.format and result is not None:
+                try:
+                    return self.options.format.format(result)
+                except (ValueError, IndexError):
+                    return str(result)
+            return result
         return getattr(obj, self.name, "")
 
 
@@ -377,11 +400,30 @@ class ViewContextBuilder:
         mapper = sa_inspect(model)
         rel_names = {r.key for r in mapper.relationships}
 
+        # Collect @column decorated methods (check _column_options attribute)
+        decorated_columns: dict[str, Any] = {}
+        for col_name in list_display:
+            method = getattr(registered.admin, col_name, None)
+            if method and hasattr(method, "_column_options"):
+                decorated_columns[col_name] = method._column_options
+
         display_columns = []
         for col_name in list_display:
             label = col_name.replace("_", " ").title()
+            display_fn = None
+            options = None
+
+            # Check @column decorator first
+            if col_name in decorated_columns:
+                options = decorated_columns[col_name]
+                display_fn = getattr(registered.admin, col_name)
+                label = options.header or label
+            # Check display_functions dict fallback
+            elif registered.admin.display_functions and col_name in registered.admin.display_functions:
+                display_fn = registered.admin.display_functions[col_name]
+
             display_columns.append(
-                DisplayColumn(col_name, label, col_name in rel_names)
+                DisplayColumn(col_name, label, col_name in rel_names, display_fn, options)
             )
 
         filter_fields: dict[str, dict[str, Any]] = {}

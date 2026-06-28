@@ -1,6 +1,7 @@
 """FastAPI Console — Drop-in admin panel for FastAPI + SQLAlchemy apps."""
 
 from fastapi_console.admin import Admin
+from fastapi_console.admin.decorators import column
 from fastapi_console.exceptions import ConfigError
 from fastapi_console.nav import (
     BuiltNavGroup,
@@ -41,6 +42,7 @@ __all__ = [
     "ConfigError",
     "RegisteredModel",
     "ModelAdmin",
+    "column",
     "BuiltNavGroup",
     "BuiltNavItem",
     "DefaultSidebarBuilder",

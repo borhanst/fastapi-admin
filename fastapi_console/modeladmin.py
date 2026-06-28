@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from fastapi_console.admin.decorators import ColumnOptions, column
 from fastapi_console.types import ExtraField, FieldMeta
 
 if TYPE_CHECKING:
@@ -62,6 +63,12 @@ class ModelAdmin:
     tags: list[str] | None = None
     nav_order: int = 999
     nav_children: list[NavItemConfig] | None = None
+
+    # Custom display functions (dict-based fallback)
+    display_functions: dict[str, Any] | None = None
+
+    # Decorator for custom column display
+    column = staticmethod(column)
 
     # Badge hook — return str e.g. "12" or None
     def get_nav_badge(self, request: Any = None) -> str | None:

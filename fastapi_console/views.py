@@ -7,6 +7,8 @@ from typing import TYPE_CHECKING, Any
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
 
+from fastapi_console.admin.decorators import ColumnOptions, column
+
 if TYPE_CHECKING:
     from fastapi_console.registry import RegisteredModel
 
@@ -30,6 +32,12 @@ class ModelAdmin:
     verbose_name: str | None = None
     verbose_name_plural: str | None = None
     icon: str | None = None
+
+    # Custom display functions (dict-based fallback)
+    display_functions: dict[str, Any] | None = None
+
+    # Decorator for custom column display
+    column = staticmethod(column)
 
     def __str__(self, obj: Any) -> str:
         """How to display an object in dropdowns/links."""
