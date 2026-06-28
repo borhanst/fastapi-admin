@@ -317,6 +317,7 @@ class CreateView(BaseView):
         try:
             session = get_db_session(request)
             resolved = self._resolve_rel_keys(parsed)
+            resolved = self.admin.prepare_create_data(resolved, request)
             obj = self.registered.model(**resolved)
             self.admin.on_create(obj, request)
             session.add(obj)
@@ -503,6 +504,7 @@ class EditView(BaseView):
     ) -> RedirectResponse:
         """Update object in database."""
         try:
+            parsed = self.admin.prepare_update_data(parsed, request)
             self._apply_parsed(obj, parsed)
             self.admin.on_update(obj, parsed, request)
             session = get_db_session(request)

@@ -36,6 +36,9 @@ class AdminRole(Base):
         "AdminFieldPermission", back_populates="role", cascade="all, delete-orphan"
     )
 
+    def __str__(self) -> str:
+        return str(self.name)
+
     def __repr__(self) -> str:
         return f"<AdminRole {self.name!r}>"
 
@@ -62,6 +65,9 @@ class AdminUser(Base):
         "AdminUserTOTP", back_populates="user", uselist=False, cascade="all, delete-orphan"
     )
 
+    def __str__(self) -> str:
+        return str(self.email)
+
     def __repr__(self) -> str:
         return f"<AdminUser {self.email!r}>"
 
@@ -85,6 +91,9 @@ class AdminPermission(Base):
     can_delete = Column(Boolean, default=False)
 
     role = relationship("AdminRole", back_populates="permissions")
+
+    def __str__(self) -> str:
+        return f"{self.table_name} (role {self.role_id})"
 
     def __repr__(self) -> str:
         return f"<AdminPermission role={self.role_id} table={self.table_name!r}>"
@@ -114,6 +123,9 @@ class AdminFieldPermission(Base):
 
     role = relationship("AdminRole", back_populates="field_permissions")
 
+    def __str__(self) -> str:
+        return f"{self.table_name}.{self.field_name} (role {self.role_id})"
+
     def __repr__(self) -> str:
         return (
             f"<AdminFieldPermission role={self.role_id} "
@@ -141,6 +153,9 @@ class AdminRefreshToken(Base):
         UniqueConstraint("user_id", "token_hash", name="uq_admin_refresh_token"),
     )
 
+    def __str__(self) -> str:
+        return f"Token {self.token_hash[:8]}..."
+
     def __repr__(self) -> str:
         return f"<AdminRefreshToken user={self.user_id}>"
 
@@ -166,6 +181,9 @@ class AdminUserTOTP(Base):
 
     user = relationship("AdminUser", back_populates="totp")
 
+    def __str__(self) -> str:
+        return f"TOTP for user {self.user_id}"
+
     def __repr__(self) -> str:
         return f"<AdminUserTOTP user={self.user_id}>"
 
@@ -183,6 +201,9 @@ class AdminLoginAttempt(Base):
     __table_args__ = (
         UniqueConstraint("id", name="uq_admin_login_attempt_id"),
     )
+
+    def __str__(self) -> str:
+        return f"{self.email} - {'success' if self.success else 'failed'}"
 
     def __repr__(self) -> str:
         return f"<AdminLoginAttempt email={self.email!r} success={self.success}>"

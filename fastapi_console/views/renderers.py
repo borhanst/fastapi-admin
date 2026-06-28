@@ -355,7 +355,12 @@ class DefaultQueryProvider:
                         q = select(target_model).order_by(pk).limit(100)
                     result = await session.execute(q)
                     for obj in result.scalars():
-                        choices.append((str(obj.id), str(obj)))
+                        label = str(
+                            getattr(obj, "name", None)
+                            or getattr(obj, "title", None)
+                            or f"#{getattr(obj, 'id', '?')}"
+                        )
+                        choices.append((str(obj.id), label))
                 except Exception:
                     pass
             return {"field_type": field_type, "choices": choices}

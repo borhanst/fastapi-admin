@@ -52,6 +52,9 @@ def build_form_context(
 
         widget_macro = widget.macro_name
         widget_ctx = widget.render_context(field_meta, value)
+        widget_ctx["is_create"] = is_create
+        if obj is not None:
+            widget_ctx["obj_id"] = getattr(obj, "id", "")
         if rel is not None and rel_labels:
             widget_ctx["label_text"] = rel_labels.get(rel.name, "")
         field_errors = errors.get(field_meta.name, [])

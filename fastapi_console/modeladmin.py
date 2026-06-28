@@ -91,6 +91,16 @@ class ModelAdmin:
 
     # ── Lifecycle hooks (stubs) ─────────────────────────────────────
 
+    def prepare_create_data(self, data: dict[str, Any], request: Any = None) -> dict[str, Any]:
+        """Strip extra fields and return only model-column data for INSERT."""
+        extra_names = {f.name for f in self.extra_fields}
+        return {k: v for k, v in data.items() if k not in extra_names}
+
+    def prepare_update_data(self, data: dict[str, Any], request: Any = None) -> dict[str, Any]:
+        """Strip extra fields and return only model-column data for UPDATE."""
+        extra_names = {f.name for f in self.extra_fields}
+        return {k: v for k, v in data.items() if k not in extra_names}
+
     def on_create(self, obj: Any, request: Any = None) -> None:
         """Called before INSERT. Mutate *obj* as needed."""
 
@@ -210,7 +220,7 @@ class ModelAdmin:
                     name=extra.name,
                     label=extra.label or auto_label(extra.name),
                     required=extra.required,
-                    readonly=True,
+                    readonly=False,
                     extra={"extra_field": True, "widget": extra.widget},
                 )
             )

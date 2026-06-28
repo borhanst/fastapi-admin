@@ -280,15 +280,27 @@ hx-vals='{"field_name": "{{ field_ctx.meta.name }}"}'
 
 {% macro _password_input(field_ctx, model_name) %}
 {% set name = field_ctx.meta.name %}
+{% set is_create = field_ctx.widget_context.is_create | default(true) %}
+{% set obj_id = field_ctx.widget_context.obj_id | default('') %}
 {% set has_error = field_ctx.errors | length > 0 %}
 {{ _field_wrapper_open(field_ctx) }}
   {{ _label(field_ctx) }}
+  {% if is_create %}
   <input type="password" id="{{ name }}" name="{{ name }}" value=""
          {% if field_ctx.meta.required %}required{% endif %}
          {% if field_ctx.meta.readonly %}readonly{% endif %}
          {% if field_ctx.meta.placeholder %}placeholder="{{ field_ctx.meta.placeholder }}"{% endif %}
-         {{ _htmx_validate(field_ctx, model_name) }}
          class="form-input">
+  {% else %}
+  <div style="padding: 10px 12px; border: 1px solid var(--surface-border); border-radius: var(--radius-md); background: var(--surface-inset); display: flex; align-items: center; justify-content: space-between;">
+    <span style="color: var(--text-secondary); font-size: var(--text-sm);">Password is set</span>
+    <a href="{{ admin_path | default('/admin') }}/profile/password"
+       class="btn btn-secondary btn-sm" style="margin: 0;">
+      Change Password
+    </a>
+  </div>
+  <input type="hidden" name="{{ name }}" value="">
+  {% endif %}
   {{ _errors(field_ctx) }}
   {{ _help_text(field_ctx) }}
 {{ _field_wrapper_close() }}
