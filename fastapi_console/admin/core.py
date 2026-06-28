@@ -488,12 +488,12 @@ class Admin:
         # 7. Initialise Jinja2
         self._init_jinja(app)
 
-        # 8. Auto-discover models
+        # 8. Auto-register built-in admin models (before auto_discover)
+        self._register_builtin_models()
+
+        # 8.1 Auto-discover user models
         if self.config.behavior.auto_discover:
             self.registry.auto_discover()
-
-        # 8.1 Auto-register built-in admin models
-        self._register_builtin_models()
 
         # 9. Validate require_tags
         if self.config.nav.require_tags:
@@ -571,6 +571,23 @@ class Admin:
     def all_registered(self) -> list[RegisteredModel]:
         """Get all registered models."""
         return self.registry.all()
+
+    def unregister(self, model: type) -> None:
+        """Unregister a model so it can be re-registered with a custom admin class.
+
+        Useful for overriding built-in admin models::
+
+            from fastapi_console.auth.models import AdminUser
+            from fastapi_console.admin.builtin_models import AdminUserAdmin
+
+            class MyAdminUserAdmin(AdminUserAdmin):
+                list_display = ["id", "email", "full_name"]
+
+            admin.unregister(AdminUser)
+            admin.register(AdminUser, MyAdminUserAdmin)
+        """
+        table_name = model.__tablename__
+        self.registry._models.pop(table_name, None)
 
     # ------------------------------------------------------------------
     # Internal wiring
@@ -838,19 +855,23 @@ class Admin:
         """Auto-register built-in admin models with default admin classes."""
         from fastapi_console.admin.builtin_models import (
             AdminFieldPermissionAdmin,
+            AdminLoginAttemptAdmin,
             AdminPermissionAdmin,
             AdminRefreshTokenAdmin,
             AdminRoleAdmin,
             AdminUserAdmin,
+            AdminUserTOTPAdmin,
             AuditLogAdmin,
         )
         from fastapi_console.audit.models import AuditLog
         from fastapi_console.auth.models import (
             AdminFieldPermission,
+            AdminLoginAttempt,
             AdminPermission,
             AdminRefreshToken,
             AdminRole,
             AdminUser,
+            AdminUserTOTP,
         )
 
         builtin_models = [
@@ -859,6 +880,8 @@ class Admin:
             (AdminRefreshToken, AdminRefreshTokenAdmin),
             (AdminPermission, AdminPermissionAdmin),
             (AdminFieldPermission, AdminFieldPermissionAdmin),
+            (AdminUserTOTP, AdminUserTOTPAdmin),
+            (AdminLoginAttempt, AdminLoginAttemptAdmin),
             (AuditLog, AuditLogAdmin),
         ]
 

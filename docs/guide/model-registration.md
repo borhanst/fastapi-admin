@@ -171,6 +171,98 @@ class ProductAdmin(ModelAdmin):
         )
 ```
 
+## Customizing Built-in Admin Models
+
+FastAPI Console ships with default admin classes for built-in models (users, roles, audit logs, etc.). You can customize these by inheriting from the default classes.
+
+### Available Built-in Admin Classes
+
+| Class | Model | Icon | Description |
+|-------|-------|------|-------------|
+| `AdminUserAdmin` | `AdminUser` | `group` | Admin user management |
+| `AdminRoleAdmin` | `AdminRole` | `shield-check` | Role management |
+| `AdminRefreshTokenAdmin` | `AdminRefreshToken` | `key` | Refresh tokens |
+| `AdminPermissionAdmin` | `AdminPermission` | `lock` | Table permissions |
+| `AdminFieldPermissionAdmin` | `AdminFieldPermission` | `lock` | Field-level permissions |
+| `AuditLogAdmin` | `AuditLog` | `clock` | Audit trail |
+| `AdminUserTOTPAdmin` | `AdminUserTOTP` | `lock` | 2FA tokens |
+| `AdminLoginAttemptAdmin` | `AdminLoginAttempt` | `clock` | Login attempts |
+
+### Method 1 — Register Before Setup
+
+Define your custom class and register it before calling `admin.setup()`:
+
+```python
+from fastapi import FastAPI
+from sqlalchemy.ext.asyncio import create_async_engine
+from fastapi_console import Admin
+from fastapi_console.auth.models import AdminUser
+from fastapi_console.admin.builtin_models import AdminUserAdmin
+
+# Inherit from the default class
+class MyAdminUserAdmin(AdminUserAdmin):
+    list_display = ["id", "email", "full_name", "is_active"]
+    search_fields = ["email", "full_name"]
+    list_filter = ["is_active", "is_superuser"]
+
+app = FastAPI()
+engine = create_async_engine("sqlite+aiosqlite:///./db.sqlite")
+admin = Admin(app=app, engine=engine, secret_key="...")
+
+# Register your custom class (before setup)
+admin.register(AdminUser, MyAdminUserAdmin)
+
+# Setup will skip the default registration
+@app.on_event("startup")
+async def startup():
+    await admin.setup(app)
+```
+
+### Method 2 — Unregister and Re-register
+
+If you need to change the admin class after setup, use `unregister()`:
+
+```python
+from fastapi_console.auth.models import AdminUser, AdminRole
+from fastapi_console.admin.builtin_models import AdminUserAdmin, AdminRoleAdmin
+
+class MyAdminUserAdmin(AdminUserAdmin):
+    list_display = ["id", "email", "full_name"]
+    verbose_name = "Team Member"
+    verbose_name_plural = "Team Members"
+
+class MyAdminRoleAdmin(AdminRoleAdmin):
+    list_display = ["id", "name", "description"]
+    search_fields = ["name"]
+
+# Unregister then re-register
+admin.unregister(AdminUser)
+admin.register(AdminUser, MyAdminUserAdmin)
+
+admin.unregister(AdminRole)
+admin.register(AdminRole, MyAdminRoleAdmin)
+```
+
+### Inheriting Defaults
+
+When you subclass a built-in admin class, you inherit all defaults:
+
+- `tag` — Sidebar group (default: `"admin"`)
+- `icon` — Sidebar icon (inherited from parent)
+- `verbose_name` / `verbose_name_plural` — Display names
+- `list_display` — Columns shown in list view
+- `search_fields` — Searchable fields
+- `exclude` — Hidden fields
+
+Override only what you need:
+
+```python
+class MyAdminUserAdmin(AdminUserAdmin):
+    # Only override what you want to change
+    list_display = ["id", "email", "is_active"]
+    # Everything else (tag, icon, verbose_name, etc.) stays the same
+```
+
 ## Relationship Handling
 
 ### ForeignKey (Many-to-One)
