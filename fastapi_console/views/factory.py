@@ -131,7 +131,8 @@ async def _resolve_permission_checker(request: Request) -> Any:
     if async_session is None:
         return None
 
-    return PermissionChecker(session=async_session, user=user)
+    snapshot = getattr(request.state, "admin_user_snapshot", None)
+    return PermissionChecker(session=async_session, user=user, user_snapshot=snapshot)
 
 
 async def _handle_file_field(
@@ -256,7 +257,19 @@ class ViewFactory:
 
             raw = form_data.get(field_meta.name)
             value = widget.parse(raw)
-            field_errors = widget.validate(value, field_meta)
+            required_on_create = (field_meta.extra or {}).get("required_on_create")
+            if obj is None and required_on_create is not None:
+                from fastapi_console.types import FieldMeta
+                effective_field = FieldMeta(
+                    name=field_meta.name,
+                    label=field_meta.label,
+                    required=required_on_create,
+                    readonly=field_meta.readonly,
+                    extra=field_meta.extra,
+                )
+            else:
+                effective_field = field_meta
+            field_errors = widget.validate(value, effective_field)
             if field_errors:
                 errors[field_meta.name] = field_errors
             else:

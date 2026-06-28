@@ -57,9 +57,16 @@ class AdminTemplate:
         from fastapi_console.db import get_db_session
 
         session: Session = get_db_session(request)
+        snapshot = getattr(request.state, "admin_user_snapshot", None)
         checker = (
-            PermissionChecker(session=session, user=user) if user else None
+            PermissionChecker(session=session, user=user, user_snapshot=snapshot) if user else None
         )
+
+        is_superuser = (
+            bool(snapshot.get("is_superuser", False))
+            if snapshot
+            else bool(getattr(user, "is_superuser", False))
+        ) if user else False
 
         permissions_map: dict[str, Any] = {}
         nav_groups = self._nav_groups_built
@@ -70,7 +77,7 @@ class AdminTemplate:
                 for item in group.items:
                     table = item.permission_table
                     if table and table not in permissions_map:
-                        if user and getattr(user, "is_superuser", False):
+                        if is_superuser:
                             permissions_map[table] = PermissionSet(
                                 can_view=True,
                                 can_create=True,

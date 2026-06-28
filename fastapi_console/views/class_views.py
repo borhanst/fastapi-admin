@@ -371,6 +371,9 @@ class CreateView(BaseView):
         if errors:
             session = get_db_session(request)
             await session.rollback()
+            user = getattr(request.state, "admin_user", None)
+            if user is not None:
+                await session.refresh(user)
             ctx = self._build_form_context(
                 request,
                 values=parsed,
@@ -616,6 +619,10 @@ class EditView(BaseView):
         if errors:
             session = get_db_session(request)
             await session.rollback()
+            await session.refresh(obj)
+            user = getattr(request.state, "admin_user", None)
+            if user is not None:
+                await session.refresh(user)
             rel_labels = await self._resolve_rel_labels(obj, request)
             ctx = self._build_form_context(
                 request,

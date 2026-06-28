@@ -12,24 +12,27 @@ from fastapi_console.audit.models import AuditLog
 class SqlAlchemyAuditLogger(AuditLogger):
     """Writes AuditEvents to the admin_audit_log table.
 
-    This is the concrete adapter that bridges the event system
-    to the database. It receives AuditEvent objects and writes
-    them as AuditLog rows.
+    Buffers AuditLog entries during synchronous SQLAlchemy event callbacks
+    (e.g. ``after_flush``) and flushes them to the database asynchronously
+    after the main transaction commits.  This avoids triggering implicit
+    autoflush inside a sync event handler, which would raise
+    ``MissingGreenlet`` with async sessions.
     """
 
-    def __init__(self, session: Any) -> None:
+    def __init__(self, session: Any = None) -> None:
         self._session = session
+        self._pending: list[AuditLog] = []
 
     def log_create(self, event: AuditEvent) -> None:
-        self._write(event)
+        self._buffer(event)
 
     def log_update(self, event: AuditEvent) -> None:
-        self._write(event)
+        self._buffer(event)
 
     def log_delete(self, event: AuditEvent) -> None:
-        self._write(event)
+        self._buffer(event)
 
-    def _write(self, event: AuditEvent) -> None:
+    def _buffer(self, event: AuditEvent) -> None:
         entry = AuditLog(
             user_id=event.user_id,
             user_email=event.user_email,
@@ -43,4 +46,13 @@ class SqlAlchemyAuditLogger(AuditLogger):
             ip_address=event.ip_address,
             user_agent=event.user_agent,
         )
-        self._session.add(entry)
+        self._pending.append(entry)
+
+    async def flush_pending(self, session: Any) -> None:
+        """Write all buffered entries to *session* and clear the buffer."""
+        if not self._pending:
+            return
+        for entry in self._pending:
+            session.add(entry)
+        self._pending.clear()
+        await session.flush()

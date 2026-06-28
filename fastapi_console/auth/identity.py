@@ -68,6 +68,13 @@ async def resolve_user(
     """
     cached = getattr(request.state, "admin_user", None)
     if cached is not None:
+        if not hasattr(request.state, "admin_user_snapshot"):
+            request.state.admin_user_snapshot = {
+                "id": getattr(cached, "id", None),
+                "email": getattr(cached, "email", None),
+                "is_superuser": bool(getattr(cached, "is_superuser", False)),
+                "role_id": getattr(cached, "role_id", None),
+            }
         return cached
 
     if user_id is None:
@@ -85,6 +92,26 @@ async def resolve_user(
     # Per-request memoisation. This is request-scoped state, never app-scoped:
     # two concurrent requests on the same Admin instance resolve independently.
     request.state.admin_user = user
+
+    # Snapshot scalar fields into a plain dict so sync code can read them
+    # without touching the ORM object (which may be expired after a rollback).
+    request.state.admin_user_snapshot = {
+        "id": getattr(user, "id", None),
+        "email": getattr(user, "email", None),
+        "is_superuser": bool(getattr(user, "is_superuser", False)),
+        "role_id": getattr(user, "role_id", None),
+    }
+
+    # Inject user identity into the audit context so audit listeners can
+    # record who performed the action.  The middleware already set IP and
+    # user-agent; this merges the user fields in.
+    from fastapi_console.audit.context import set_audit_context
+
+    set_audit_context({
+        "user_id": request.state.admin_user_snapshot["id"],
+        "user_email": request.state.admin_user_snapshot["email"],
+    })
+
     return user
 
 

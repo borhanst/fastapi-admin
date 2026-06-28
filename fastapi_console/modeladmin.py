@@ -228,7 +228,7 @@ class ModelAdmin:
                     label=extra.label or auto_label(extra.name),
                     required=extra.required,
                     readonly=False,
-                    extra={"extra_field": True, "widget": extra.widget},
+                    extra={"extra_field": True, "widget": extra.widget, "required_on_create": extra.required_on_create},
                 )
             )
 

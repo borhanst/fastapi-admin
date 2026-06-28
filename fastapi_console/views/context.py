@@ -47,7 +47,15 @@ class DisplayColumn:
                 except (ValueError, IndexError):
                     return str(result)
             return result
-        return getattr(obj, self.name, "")
+
+        val = getattr(obj, self.name, "")
+
+        if self.is_relation and val is not None:
+            from fastapi_console.inspection import model_display_name
+
+            return model_display_name(val)
+
+        return val
 
 
 class ViewContextBuilder:

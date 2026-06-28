@@ -618,8 +618,9 @@ class Admin:
         from fastapi_console.auth.permissions import PermissionChecker
 
         session: Session = request.app.state.admin_db_session
+        snapshot = getattr(request.state, "admin_user_snapshot", None)
         checker = (
-            PermissionChecker(session=session, user=user) if user else None
+            PermissionChecker(session=session, user=user, user_snapshot=snapshot) if user else None
         )
 
         permissions_map: dict[str, Any] = {}

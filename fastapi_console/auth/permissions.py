@@ -20,9 +20,22 @@ class PermissionChecker:
     Caches permission results in-memory for the lifetime of the request.
     """
 
-    def __init__(self, session: AsyncSession, user: AdminUserProtocol) -> None:
+    def __init__(
+        self,
+        session: AsyncSession,
+        user: AdminUserProtocol,
+        *,
+        user_snapshot: dict[str, object] | None = None,
+    ) -> None:
         self.session = session
         self.user = user
+        snap = user_snapshot or {}
+        self._is_superuser: bool = (
+            bool(snap["is_superuser"]) if "is_superuser" in snap else bool(user.is_superuser)
+        )
+        self._role_id: int | None = (
+            snap["role_id"] if "role_id" in snap else user.role_id
+        )
         self._cache: dict[tuple[str, str], bool] = {}
         self._field_cache: dict[tuple[str, str], set[str] | None] = {}
 
@@ -33,14 +46,14 @@ class PermissionChecker:
 
         Superusers always return True.  Results are cached per-request.
         """
-        if self.user.is_superuser:
+        if self._is_superuser:
             return True
 
         cache_key = (table_name, action)
         if cache_key in self._cache:
             return self._cache[cache_key]
 
-        if self.user.role_id is None:
+        if self._role_id is None:
             self._cache[cache_key] = False
             return False
 
@@ -48,7 +61,7 @@ class PermissionChecker:
 
         result = await self.session.execute(
             select(AdminPermission).where(
-                AdminPermission.role_id == self.user.role_id,
+                AdminPermission.role_id == self._role_id,
                 AdminPermission.table_name == table_name,
             )
         )
@@ -68,14 +81,14 @@ class PermissionChecker:
         - Empty ``set()`` → restriction rows exist but none grant access → no fields.
         - Non-empty ``set()`` → only those field names are permitted.
         """
-        if self.user.is_superuser:
+        if self._is_superuser:
             return None
 
         cache_key = (table_name, mode)
         if cache_key in self._field_cache:
             return self._field_cache[cache_key]
 
-        if self.user.role_id is None:
+        if self._role_id is None:
             self._field_cache[cache_key] = set()
             return set()
 
@@ -83,7 +96,7 @@ class PermissionChecker:
 
         result = await self.session.execute(
             select(AdminFieldPermission).where(
-                AdminFieldPermission.role_id == self.user.role_id,
+                AdminFieldPermission.role_id == self._role_id,
                 AdminFieldPermission.table_name == table_name,
             )
         )
@@ -104,7 +117,7 @@ class PermissionChecker:
         Note: This is a sync convenience wrapper. For async contexts,
         use the individual async methods directly.
         """
-        if self.user.is_superuser:
+        if self._is_superuser:
             return PermissionSet(
                 can_view=True,
                 can_create=True,

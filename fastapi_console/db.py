@@ -65,6 +65,14 @@ class SessionMiddleware(BaseHTTPMiddleware):
 
             if 200 <= response.status_code < 400:
                 await session.commit()
+                # Write buffered audit log entries that were collected during
+                # the sync after_flush event (to avoid MissingGreenlet).
+                try:
+                    from fastapi_console.audit.listener import flush_audit_entries
+                    await flush_audit_entries(session)
+                    await session.commit()
+                except Exception:
+                    pass
             else:
                 await session.rollback()
 

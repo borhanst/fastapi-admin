@@ -116,6 +116,7 @@ class ExtraField:
     widget: Any = None
     default: Any = None
     required: bool = False
+    required_on_create: bool | None = None
 
 
 @dataclass

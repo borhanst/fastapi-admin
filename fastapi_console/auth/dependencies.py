@@ -98,6 +98,7 @@ async def get_current_admin_user(
 
 
 async def get_permission_checker(
+    request: Request,
     user: AdminUserProtocol = Depends(get_current_admin_user),
     session: AsyncSession = Depends(_get_db_session),
 ) -> Any:
@@ -108,7 +109,8 @@ async def get_permission_checker(
     """
     from fastapi_console.auth.permissions import PermissionChecker
 
-    return PermissionChecker(session=session, user=user)
+    snapshot = getattr(request.state, "admin_user_snapshot", None)
+    return PermissionChecker(session=session, user=user, user_snapshot=snapshot)
 
 
 def require_permission(table_name: str, action: str):  # type: ignore[no-untyped-def]

@@ -444,6 +444,16 @@ class Admin:
             except RuntimeError:
                 pass
 
+        # Add audit context middleware
+        if not getattr(self, "_audit_middleware_added", False):
+            from fastapi_console.audit.middleware import audit_context_middleware
+
+            try:
+                app.add_middleware(audit_context_middleware)
+                self._audit_middleware_added = True
+            except RuntimeError:
+                pass
+
         # 0. Validate secret_key strength
         if not self.router.secret_key:
             raise ConfigError(
@@ -494,6 +504,19 @@ class Admin:
         # 8.1 Auto-discover user models
         if self.config.behavior.auto_discover:
             self.registry.auto_discover()
+
+        # 8.2 Attach audit event listeners (after registry is populated)
+        from fastapi_console.audit.listener import attach_audit_listener
+
+        engine = self.database.engine
+        if engine is not None:
+            from sqlalchemy.ext.asyncio import AsyncEngine
+
+            if isinstance(engine, AsyncEngine):
+                from fastapi_console.db import create_session_factory
+
+                session_factory = create_session_factory(engine)
+                attach_audit_listener(session_factory, self.registry)
 
         # 9. Validate require_tags
         if self.config.nav.require_tags:

@@ -52,16 +52,28 @@ class AuditEventBus:
         event_type: str,
         context: dict[str, Any],
         changes: dict[str, Any] | None = None,
+        snapshot_data: dict[str, Any] | None = None,
     ) -> None:
         """Build an AuditEvent from a SQLAlchemy object and publish it.
 
+        All data is extracted from *snapshot_data* to avoid touching the
+        ORM object — critical inside ``after_flush`` where attributes are
+        expired on async sessions.
+
         Args:
-            obj: The SQLAlchemy model instance
+            obj: The SQLAlchemy model instance (used only for class/table
+                metadata which are class-level, not instance attributes)
             event_type: "CREATE", "UPDATE", or "DELETE"
-            context: Audit context dict with user_id, user_email, ip_address, user_agent
-            changes: Pre-computed diff (used for UPDATE; ignored for CREATE/DELETE)
+            context: Audit context dict
+            changes: Pre-computed diff (used for UPDATE)
+            snapshot_data: Pre-computed snapshot dict
         """
-        obj_snapshot = snapshot(obj)
+        obj_snapshot = snapshot_data if snapshot_data is not None else snapshot(obj)
+
+        # Extract id and repr from the snapshot to avoid accessing
+        # potentially-expired instance attributes.
+        object_id = str(obj_snapshot.get("id", ""))
+        object_repr = str(obj_snapshot.get("id", obj.__class__.__name__))[:255]
 
         if event_type == "UPDATE" and changes is not None:
             event_changes = changes
@@ -72,8 +84,8 @@ class AuditEventBus:
             event_type=event_type,
             model_name=obj.__class__.__name__,
             table_name=obj.__tablename__,
-            object_id=str(getattr(obj, "id")),
-            object_repr=str(obj)[:255],
+            object_id=object_id,
+            object_repr=object_repr,
             changes=event_changes,
             full_snapshot=obj_snapshot,
             user_id=context.get("user_id"),
