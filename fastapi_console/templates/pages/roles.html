@@ -60,9 +60,7 @@
           {% else %}
           <tr>
             <td colspan="4" class="px-6 py-12 text-center">
-              <svg class="w-12 h-12 mx-auto text-[var(--color-gray-400)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <use href="/static/icons/heroicons.svg#users"/>
-              </svg>
+              {{ icon("users", size="48px") }}
               <p class="mt-4 text-sm text-[var(--color-gray-500)]">No roles defined</p>
               <a href="{{ admin_path | default('/admin') }}/roles/create"
                  class="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[var(--color-primary-600)] text-white text-sm font-medium hover:bg-[var(--color-primary-500)] transition-colors">

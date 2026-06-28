@@ -17,9 +17,7 @@
       <div class="flex flex-col sm:flex-row sm:items-center gap-4">
         <div class="flex-1">
           <div class="relative">
-            <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--color-gray-400)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <use href="/static/icons/heroicons.svg#magnifying-glass"/>
-            </svg>
+            {{ icon("magnifying-glass", class="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-gray-400)]", size="20px") }}
             <input type="text" name="search" value="{{ search | default('') }}"
                    placeholder="Search audit log..."
                    class="form-input w-full pl-10 pr-4 py-2 rounded-lg border border-[var(--color-gray-300)] bg-white text-[var(--color-gray-900)] focus:ring-2 focus:ring-[var(--color-primary-500)] focus:border-[var(--color-primary-500)] transition-colors">
@@ -91,9 +89,7 @@
       {% endfor %}
       {% else %}
       <div class="px-6 py-12 text-center">
-        <svg class="w-12 h-12 mx-auto text-[var(--color-gray-400)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <use href="/static/icons/heroicons.svg#clock"/>
-        </svg>
+        {{ icon("clock", class="mx-auto text-[var(--color-gray-400)]", size="48px") }}
         <p class="mt-4 text-sm text-[var(--color-gray-500)]">No audit log entries found</p>
       </div>
       {% endif %}

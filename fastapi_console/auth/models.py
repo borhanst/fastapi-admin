@@ -13,6 +13,8 @@ from sqlalchemy import (
     UniqueConstraint,
 )
 from sqlalchemy.orm import relationship
+
+from fastapi_console.modeladmin import ModelAdmin
 from sqlalchemy.sql import func
 
 from fastapi_console.models.base import Base
@@ -141,6 +143,10 @@ class AdminRefreshToken(Base):
 
     def __repr__(self) -> str:
         return f"<AdminRefreshToken user={self.user_id}>"
+
+
+class AdminRefreshTokenAdmin(ModelAdmin):
+    exclude = ["user"]
 
 
 class AdminUserTOTP(Base):

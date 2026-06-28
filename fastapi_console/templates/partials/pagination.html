@@ -7,15 +7,11 @@
   <div class="pagination-links">
     {% if page > 1 %}
     <a href="?page={{ page - 1 }}" class="pagination-link" title="Previous page">
-      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16">
-        <use href="/static/icons/heroicons.svg#chevron-left"/>
-      </svg>
+      {{ icon("chevron-left") }}
     </a>
     {% else %}
     <span class="pagination-link pagination-link--disabled">
-      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16">
-        <use href="/static/icons/heroicons.svg#chevron-left"/>
-      </svg>
+      {{ icon("chevron-left") }}
     </span>
     {% endif %}
 
@@ -45,15 +41,11 @@
 
     {% if page < total_pages %}
     <a href="?page={{ page + 1 }}" class="pagination-link" title="Next page">
-      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16">
-        <use href="/static/icons/heroicons.svg#chevron-right"/>
-      </svg>
+      {{ icon("chevron-right") }}
     </a>
     {% else %}
     <span class="pagination-link pagination-link--disabled">
-      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16">
-        <use href="/static/icons/heroicons.svg#chevron-right"/>
-      </svg>
+      {{ icon("chevron-right") }}
     </span>
     {% endif %}
   </div>

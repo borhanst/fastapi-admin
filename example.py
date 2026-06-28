@@ -133,9 +133,7 @@ class Order(Base):
 
     # Relationships
     user = relationship("User", back_populates="orders")
-    items = relationship(
-        "OrderItem", back_populates="order", cascade="all, delete-orphan"
-    )
+    items = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan")
 
     def __str__(self) -> str:
         return f"Order #{self.id}"
@@ -243,9 +241,7 @@ class ProductAdmin(ModelAdmin):
     list_tabs = [
         TabConfig(title="All Products", url="/admin/products/"),
         TabConfig(title="Active", url="/admin/products/?filter_is_active=1"),
-        TabConfig(
-            title="Out of Stock", url="/admin/products/?filter_stock__lte=0"
-        ),
+        TabConfig(title="Out of Stock", url="/admin/products/?filter_stock__lte=0"),
     ]
 
     # Sortable
@@ -283,7 +279,6 @@ class ProductAdmin(ModelAdmin):
     async def deactivate_selected(self, objects, request):
         for obj in objects:
             obj.is_active = False
-            
 
     @action(
         description="Toggle active status",
@@ -379,9 +374,7 @@ class OrderAdmin(ModelAdmin):
     list_tabs = [
         TabConfig(title="All Orders", url="/admin/orders/"),
         TabConfig(title="Pending", url="/admin/orders/?filter_status=pending"),
-        TabConfig(
-            title="Completed", url="/admin/orders/?filter_status=completed"
-        ),
+        TabConfig(title="Completed", url="/admin/orders/?filter_status=completed"),
     ]
 
     # Expandable sections
@@ -491,9 +484,7 @@ DATABASE_URL = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./test_debug.db")
 SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key-change-in-production")
 
 engine = create_async_engine(DATABASE_URL, echo=False)
-async_session_maker = sessionmaker(
-    engine, class_=AsyncSession, expire_on_commit=False
-)
+async_session_maker = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
 
 async def seed_demo_data(session: AsyncSession) -> None:
@@ -502,9 +493,7 @@ async def seed_demo_data(session: AsyncSession) -> None:
     if result.scalars().first() is not None:
         return
 
-    electronics = Category(
-        name="Electronics", description="Gadgets and devices"
-    )
+    electronics = Category(name="Electronics", description="Gadgets and devices")
     clothing = Category(name="Clothing", description="Apparel and accessories")
     session.add_all([electronics, clothing])
     await session.flush()
@@ -550,9 +539,7 @@ async def seed_demo_data(session: AsyncSession) -> None:
     session.add_all(products)
     await session.flush()
 
-    user1 = User(
-        email="alice@example.com", full_name="Alice Johnson", is_active=True
-    )
+    user1 = User(email="alice@example.com", full_name="Alice Johnson", is_active=True)
     user2 = User(email="bob@example.com", full_name="Bob Smith", is_active=True)
     session.add_all([user1, user2])
     await session.flush()
@@ -569,15 +556,9 @@ async def seed_demo_data(session: AsyncSession) -> None:
 
     session.add_all(
         [
-            OrderItem(
-                order=order1, product=products[0], quantity=1, price=999.99
-            ),
-            OrderItem(
-                order=order1, product=products[1], quantity=1, price=199.99
-            ),
-            OrderItem(
-                order=order2, product=products[2], quantity=1, price=29.99
-            ),
+            OrderItem(order=order1, product=products[0], quantity=1, price=999.99),
+            OrderItem(order=order1, product=products[1], quantity=1, price=199.99),
+            OrderItem(order=order2, product=products[2], quantity=1, price=29.99),
         ]
     )
     await session.commit()

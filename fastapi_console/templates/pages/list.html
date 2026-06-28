@@ -8,9 +8,7 @@
   {# Breadcrumb #}
   <nav class="breadcrumb">
     <a href="{{ admin_path | default('/admin') }}/" class="breadcrumb-segment">
-      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <use href="/static/icons/heroicons.svg#home"/>
-      </svg>
+      {{ icon("home", size="16px") }}
       Dashboard
     </a>
     <span class="breadcrumb-separator">/</span>
@@ -34,9 +32,7 @@
   {# Filter Bar #}
   <div class="filter-bar" x-data="filterBar()">
     <div class="filter-bar-search">
-      <svg class="filter-bar-search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <use href="/static/icons/heroicons.svg#magnifying-glass"/>
-      </svg>
+      {{ icon("magnifying-glass", class="filter-bar-search-icon", size="20px") }}
       <input type="text" name="q" value="{{ search_query | default('') }}"
              placeholder="Search {{ registered.verbose_name_plural | lower }}..."
              hx-get="{{ admin_path | default('/admin') }}/{{ registered.table_name }}/"
@@ -50,9 +46,7 @@
       <button type="button" class="filter-bar-clear"
               x-show="hasSearch" x-transition
               @click="$refs.searchInput.value = ''; hasSearch = false; $refs.searchInput.dispatchEvent(new KeyboardEvent('keyup', {bubbles: true}))">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <use href="/static/icons/heroicons.svg#x-mark"/>
-        </svg>
+        {{ icon("x-mark", size="16px") }}
       </button>
     </div>
 
@@ -130,9 +124,7 @@
           <template x-if="activeFilters['{{ field_name }}']">
             <span class="filter-chip-count" x-text="activeFilters['{{ field_name }}']"></span>
           </template>
-          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <use href="/static/icons/heroicons.svg#chevron-right"/>
-          </svg>
+          {{ icon("chevron-right", size="16px") }}
         </button>
         <div class="filter-dropdown" x-show="open" @click.outside="open = false" x-transition>
           <div class="filter-dropdown-header">
@@ -170,9 +162,7 @@
 
       <button type="button" class="filter-bar-action" title="Toggle column visibility"
               @click="showColumnPicker = !showColumnPicker">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <use href="/static/icons/heroicons.svg#eye"/>
-        </svg>
+        {{ icon("eye", size="20px") }}
       </button>
     </div>
   </div>
@@ -242,6 +232,23 @@ function filterBar() {
   };
 }
 
+function _sendBulkAction(actionValue, selectedIds) {
+  var params = new URLSearchParams();
+  params.append('action', actionValue);
+  params.append('csrf_token', document.querySelector('meta[name="csrf-token"]').content);
+  selectedIds.forEach(function(id) {
+    params.append('ids[]', id);
+  });
+
+  var xhr = new XMLHttpRequest();
+  xhr.open('POST', '{{ admin_path | default("/admin") }}/{{ registered.table_name }}/bulk', true);
+  xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+  xhr.setRequestHeader('HX-Request', 'true');
+  xhr.onload = function() { window.location.reload(); };
+  xhr.onerror = function() { window.location.reload(); };
+  xhr.send(params.toString());
+}
+
 function executeBulkAction() {
   var actionSelect = document.getElementById('bulk-action-select');
   var selected = document.querySelectorAll('input[name="ids[]"]:checked');
@@ -254,30 +261,17 @@ function executeBulkAction() {
     alert('Please select an action.');
     return;
   }
+
+  var selectedIds = Array.from(selected).map(function(cb) { return cb.value; });
+
   if (actionSelect.value === 'delete_selected') {
-    if (!confirm('Are you sure you want to delete the selected items?')) {
-      return;
-    }
+    confirmAction('Delete selected', 'Are you sure you want to delete the selected items?', function() {
+      _sendBulkAction(actionSelect.value, selectedIds);
+    });
+    return;
   }
 
-  var params = new URLSearchParams();
-  params.append('action', actionSelect.value);
-  params.append('csrf_token', document.querySelector('meta[name="csrf-token"]').content);
-  selected.forEach(function(cb) {
-    params.append('ids[]', cb.value);
-  });
-
-  var xhr = new XMLHttpRequest();
-  xhr.open('POST', '{{ admin_path | default("/admin") }}/{{ registered.table_name }}/bulk', true);
-  xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
-  xhr.setRequestHeader('HX-Request', 'true');
-  xhr.onload = function() {
-    window.location.reload();
-  };
-  xhr.onerror = function() {
-    window.location.reload();
-  };
-  xhr.send(params.toString());
+  _sendBulkAction(actionSelect.value, selectedIds);
 }
 </script>
 {% endblock %}

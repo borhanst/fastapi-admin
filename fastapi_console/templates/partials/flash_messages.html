@@ -17,30 +17,20 @@
     <div class="flex items-start gap-3">
       <div class="shrink-0">
         {% if msg.level == 'success' %}
-        <svg class="w-5 h-5 text-[var(--color-success)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <use href="/static/icons/heroicons.svg#check"/>
-        </svg>
+        {{ icon("check", size="20px", class="text-[var(--color-success)]") }}
         {% elif msg.level == 'error' %}
-        <svg class="w-5 h-5 text-[var(--color-danger)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <use href="/static/icons/heroicons.svg#x-mark"/>
-        </svg>
+        {{ icon("x-mark", size="20px", class="text-[var(--color-danger)]") }}
         {% elif msg.level == 'warning' %}
-        <svg class="w-5 h-5 text-[var(--color-warning)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <use href="/static/icons/heroicons.svg#exclamation-triangle"/>
-        </svg>
+        {{ icon("exclamation-triangle", size="20px", class="text-[var(--color-warning)]") }}
         {% else %}
-        <svg class="w-5 h-5 text-[var(--color-info)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <use href="/static/icons/heroicons.svg#information-circle"/>
-        </svg>
+        {{ icon("information-circle", size="20px", class="text-[var(--color-info)]") }}
         {% endif %}
       </div>
       <div class="flex-1">
         <p class="text-sm text-[var(--color-gray-900)]">{{ msg.text }}</p>
       </div>
       <button @click="show = false" class="shrink-0 text-[var(--color-gray-400)] hover:text-[var(--color-gray-600)]">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <use href="/static/icons/heroicons.svg#x-mark"/>
-        </svg>
+        {{ icon("x-mark") }}
       </button>
     </div>
   </div>

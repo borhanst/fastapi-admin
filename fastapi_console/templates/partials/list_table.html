@@ -19,13 +19,9 @@
                class="col-header-link{% if ordering == col.name or ordering == '-' ~ col.name %} active{% endif %}">
               {{ col.label }}
               {% if ordering == col.name %}
-              <svg class="sort-icon sort-icon--asc" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <use href="/static/icons/heroicons.svg#chevron-up"/>
-              </svg>
+              {{ icon("chevron-up", size="16px", css_class="sort-icon sort-icon--asc") }}
               {% elif ordering == '-' ~ col.name %}
-              <svg class="sort-icon sort-icon--desc" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <use href="/static/icons/heroicons.svg#chevron-down"/>
-              </svg>
+              {{ icon("chevron-down", size="16px", css_class="sort-icon sort-icon--desc") }}
               {% endif %}
             </a>
           </th>
@@ -69,16 +65,12 @@
                   <span class="text-muted">-</span>
                 {% elif val is sameas true %}
                   <span class="status-badge status-badge--success">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="14" height="14">
-                      <use href="/static/icons/heroicons.svg#check-circle"/>
-                    </svg>
+                    {{ icon("check-circle", size="14px") }}
                     Active
                   </span>
                 {% elif val is sameas false %}
                   <span class="status-badge status-badge--muted">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="14" height="14">
-                      <use href="/static/icons/heroicons.svg#x-circle"/>
-                    </svg>
+                    {{ icon("x-circle", size="14px") }}
                     Inactive
                   </span>
                 {% elif val is string or val is number %}
@@ -115,9 +107,7 @@
                   });
                 }
               " title="Actions">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16">
-                  <use href="/static/icons/heroicons.svg#ellipsis-vertical"/>
-                </svg>
+                {{ icon("ellipsis-vertical", size="16px") }}
               </button>
               <div class="actions-menu" x-show="open" x-cloak
                    :style="menuStyle"
@@ -127,9 +117,7 @@
                 <a href="{{ admin_path | default('/admin') }}/{{ registered.table_name }}/{{ obj.id }}"
                    class="actions-menu-item"
                    @click="open = false">
-                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16">
-                    <use href="/static/icons/heroicons.svg#pencil"/>
-                  </svg>
+                  {{ icon("pencil", size="16px") }}
                   Edit
                 </a>
                 {% endif %}
@@ -142,9 +130,7 @@
                         hx-on::after-request="window.location.reload();"
                         @click="open = false">
                   {% if action.icon %}
-                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16">
-                    <use href="/static/icons/heroicons.svg#{{ action.icon }}"/>
-                  </svg>
+                  {{ icon(action.icon, size="16px") }}
                   {% endif %}
                   {{ action.label | default(action.name) }}
                 </button>
@@ -152,15 +138,8 @@
                 {% endif %}
                 {% if permissions.can_delete %}
                 <button type="button" class="actions-menu-item actions-menu-item--danger"
-                        hx-delete="{{ admin_path | default('/admin') }}/{{ registered.table_name }}/{{ obj.id }}"
-                        hx-headers='{"X-CSRF-Token": "{{ get_csrf_token(request) }}"}'
-                        hx-swap="none"
-                        hx-on::after-request="window.location.reload();"
-                        hx-confirm="Are you sure you want to delete this {{ registered.verbose_name | lower }}?"
-                        @click="open = false">
-                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16">
-                    <use href="/static/icons/heroicons.svg#trash"/>
-                  </svg>
+                        @click="open = false; confirmAction('Delete', 'Are you sure you want to delete this {{ registered.verbose_name | lower }}?', () => { htmx.ajax('DELETE', '{{ admin_path | default('/admin') }}/{{ registered.table_name }}/{{ obj.id }}', { headers: {'X-CSRF-Token': '{{ get_csrf_token(request) }}'}, swap: 'none' }).then(() => window.location.reload()); })">
+                  {{ icon("trash", size="16px") }}
                   Delete
                 </button>
                 {% endif %}
@@ -173,9 +152,7 @@
         <tr>
           <td colspan="{{ display_columns | length + 2 }}" class="empty-cell">
             <div class="empty-state">
-              <svg class="empty-state-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <use href="/static/icons/heroicons.svg#document-text"/>
-              </svg>
+              {{ icon("document-text", size="48px", css_class="empty-state-icon") }}
               <p class="empty-state-text">No {{ registered.verbose_name_plural | lower }} found</p>
               {% if permissions.can_create %}
               <a href="{{ admin_path | default('/admin') }}/{{ registered.table_name }}/create"

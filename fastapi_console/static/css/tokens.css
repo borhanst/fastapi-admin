@@ -53,8 +53,8 @@
   --mono-accent-muted: #047857;
 
   /* ── Typography ────────────────────────────────────────────────────────── */
-  --font-display:      'Inter', system-ui, -apple-system, sans-serif;
-  --font-body:         'Inter', system-ui, -apple-system, sans-serif;
+  --font-display:      'Poppins', system-ui, -apple-system, sans-serif;
+  --font-body:         'Poppins', system-ui, -apple-system, sans-serif;
   --font-mono:         'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
 
   /* Type scale */

@@ -24,8 +24,8 @@
   --primary-700: #065F46;
   --primary-800: #064E3B;
   --primary-900: #022C22;
-  --font-display: 'Instrument Serif', Georgia, 'Times New Roman', serif;
-  --font-body: 'DM Sans', system-ui, -apple-system, sans-serif;
+  --font-display: 'Poppins', Georgia, 'Times New Roman', serif;
+  --font-body: 'Poppins', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
   --radius-sm: 3px;
   --radius-md: 5px;
@@ -59,8 +59,8 @@
   --primary-700: #4338CA;
   --primary-800: #3730A3;
   --primary-900: #312E81;
-  --font-display: 'Inter', system-ui, sans-serif;
-  --font-body: 'Inter', system-ui, sans-serif;
+  --font-display: 'Poppins', system-ui, sans-serif;
+  --font-body: 'Poppins', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, monospace;
   --radius-sm: 6px;
   --radius-md: 8px;
@@ -94,8 +94,8 @@
   --primary-700: #C4B5FD;
   --primary-800: #DDD6FE;
   --primary-900: #EDE9FE;
-  --font-display: 'Inter', system-ui, sans-serif;
-  --font-body: 'Inter', system-ui, sans-serif;
+  --font-display: 'Poppins', system-ui, sans-serif;
+  --font-body: 'Poppins', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, monospace;
   --radius-sm: 4px;
   --radius-md: 6px;
@@ -129,8 +129,8 @@
   --primary-700: #065F46;
   --primary-800: #064E3B;
   --primary-900: #022C22;
-  --font-display: 'Instrument Serif', Georgia, serif;
-  --font-body: 'DM Sans', system-ui, sans-serif;
+  --font-display: 'Poppins', Georgia, serif;
+  --font-body: 'Poppins', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
   --radius-sm: 3px;
   --radius-md: 5px;
@@ -160,8 +160,8 @@
   --primary-700: #15803D;
   --primary-800: #166534;
   --primary-900: #14532D;
-  --font-display: 'Instrument Serif', Georgia, serif;
-  --font-body: 'DM Sans', system-ui, sans-serif;
+  --font-display: 'Poppins', Georgia, serif;
+  --font-body: 'Poppins', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
   --radius-sm: 4px;
   --radius-md: 6px;
@@ -191,8 +191,8 @@
   --primary-700: #171717;
   --primary-800: #0A0A0A;
   --primary-900: #000000;
-  --font-display: 'Inter', system-ui, sans-serif;
-  --font-body: 'Inter', system-ui, sans-serif;
+  --font-display: 'Poppins', system-ui, sans-serif;
+  --font-body: 'Poppins', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, monospace;
   --radius-sm: 0px;
   --radius-md: 0px;

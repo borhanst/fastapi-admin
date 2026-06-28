@@ -10,9 +10,7 @@
     </div>
     <div class="page-header__actions">
         <a href="{{ request.app.state.admin_config.admin_path }}/roles/create" class="btn btn-primary">
-            <svg width="15" height="15" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-            </svg>
+            {{ icon("plus", size="15px") }}
             New Role
         </a>
     </div>
@@ -40,11 +38,12 @@
                            class="table-action">Edit</a>
                         <span class="table-actions__separator"></span>
                         <form method="post" action="{{ request.app.state.admin_config.admin_path }}/roles/{{ data.role.id }}/delete"
-                               class="inline" onsubmit="return confirm('Are you sure you want to delete this role?');">
+                               class="inline">
                             <input type="hidden" name="csrf_token" value="{{ get_csrf_token(request) }}">
-                            <button type="submit"
+                            <button type="button"
                                     class="table-action table-action--danger"
-                                    {% if data.user_count > 0 %}disabled{% endif %}>
+                                    {% if data.user_count > 0 %}disabled{% endif %}
+                                    onclick="confirmAction('Delete Role', 'Are you sure you want to delete this role?', () => this.closest('form').submit())">
                                 Delete
                             </button>
                         </form>
@@ -57,9 +56,7 @@
             <tr>
                 <td colspan="4">
                     <div class="empty-state">
-                        <svg class="empty-state__icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
-                        </svg>
+                        {{ icon("shield-check", css_class="empty-state__icon", size="48px") }}
                         <h3 class="empty-state__title">No roles found</h3>
                         <p class="empty-state__text">Create your first role to get started.</p>
                     </div>

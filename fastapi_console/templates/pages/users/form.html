@@ -16,9 +16,7 @@
   <div class="page-header">
     <div class="page-header-left">
       <a href="{{ admin_path | default('/admin') }}/users/" class="page-header-back">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <use href="/static/icons/heroicons.svg#chevron-left"/>
-        </svg>
+        {{ icon("chevron-left", size="16px") }}
         Users
       </a>
       <h1 class="page-header-title">
@@ -30,9 +28,7 @@
   {% if error %}
   <div class="p-4 rounded-lg bg-red-50 border border-red-200">
     <div class="flex items-center gap-2 text-red-700 text-sm">
-      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <use href="/static/icons/heroicons.svg#exclamation-triangle"/>
-      </svg>
+      {{ icon("exclamation-triangle", size="20px") }}
       {{ error }}
     </div>
   </div>

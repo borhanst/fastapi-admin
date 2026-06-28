@@ -11,9 +11,7 @@
       <li class="sidebar-nav-item">
         <a href="{{ admin_path | default('/admin') }}/"
            class="nav-link {% if request.url.path == admin_path | default('/admin') ~ '/' %}active{% endif %}">
-          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="18" height="18">
-            <use href="/static/icons/heroicons.svg#home"/>
-          </svg>
+          {{ icon("home", size="18px") }}
           <span class="nav-link-label">Dashboard</span>
           <span class="nav-tooltip" x-show="sidebarCollapsed">Dashboard</span>
         </a>
@@ -25,9 +23,7 @@
         <button type="button" @click="open = !open"
                 class="sidebar-section-toggle">
           <span class="sidebar-section-label">{{ group.label }}</span>
-          <svg class="sidebar-section-chevron" :class="{ 'collapsed': !open }" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="14" height="14">
-            <use href="/static/icons/heroicons.svg#chevron-right"/>
-          </svg>
+          {{ icon("chevron-right", size="14px") }}
         </button>
         <ul class="sidebar-section-items" x-show="open" x-collapse x-cloak>
           {% for item in group.items %}
@@ -35,9 +31,7 @@
             <a href="{{ item.url }}"
                class="nav-link {% if not item.icon %}nav-link--no-icon{% endif %} {% if request.url.path.startswith(item.url) %}active{% endif %}">
               {% if item.icon %}
-              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="18" height="18">
-                <use href="/static/icons/heroicons.svg#{{ item.icon }}"/>
-              </svg>
+              {{ icon(item.icon, size="18px") }}
               {% endif %}
               <span class="nav-link-label">{{ item.label }}</span>
               {% if item.badge_fn %}
@@ -53,42 +47,6 @@
         </ul>
       </li>
       {% endfor %}
-
-      {# System section — collapsible #}
-      <li class="sidebar-section" x-data="{ open: true }">
-        <button type="button" @click="open = !open"
-                class="sidebar-section-toggle">
-          <span class="sidebar-section-label">System</span>
-          <svg class="sidebar-section-chevron" :class="{ 'collapsed': !open }" fill="none" stroke="currentColor" viewBox="0 0 24 24" width="14" height="14">
-            <use href="/static/icons/heroicons.svg#chevron-right"/>
-          </svg>
-        </button>
-        <ul class="sidebar-section-items" x-show="open" x-collapse x-cloak>
-          <li class="sidebar-nav-item">
-            <a href="{{ admin_path | default('/admin') }}/audit-log/"
-               class="nav-link {% if request.url.path.startswith(admin_path | default('/admin') ~ '/audit-log') %}active{% endif %}">
-              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="18" height="18">
-                <use href="/static/icons/heroicons.svg#clock"/>
-              </svg>
-              <span class="nav-link-label">Audit Log</span>
-              <span class="nav-tooltip" x-show="sidebarCollapsed">Audit Log</span>
-            </a>
-          </li>
-
-          {% if current_user and current_user.is_superuser %}
-          <li class="sidebar-nav-item">
-            <a href="{{ admin_path | default('/admin') }}/roles/"
-               class="nav-link {% if request.url.path.startswith(admin_path | default('/admin') ~ '/roles') %}active{% endif %}">
-              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="18" height="18">
-                <use href="/static/icons/heroicons.svg#users"/>
-              </svg>
-              <span class="nav-link-label">Roles</span>
-              <span class="nav-tooltip" x-show="sidebarCollapsed">Roles</span>
-            </a>
-          </li>
-          {% endif %}
-        </ul>
-      </li>
     </ul>
   </nav>
 
@@ -98,9 +56,7 @@
       <li class="sidebar-nav-item">
         <a href="{{ admin_path | default('/admin') }}/settings/"
            class="nav-link {% if request.url.path.startswith(admin_path | default('/admin') ~ '/settings') %}active{% endif %}">
-          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="18" height="18">
-            <use href="/static/icons/heroicons.svg#cog-6-tooth"/>
-          </svg>
+          {{ icon("cog-6-tooth", size="18px") }}
           <span class="nav-link-label">Settings</span>
           <span class="nav-tooltip" x-show="sidebarCollapsed">Settings</span>
         </a>

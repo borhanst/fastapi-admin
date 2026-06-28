@@ -14,13 +14,9 @@
          class="flex items-center gap-1 hover:text-[var(--color-gray-900)] transition-colors">
         {{ col.name | replace('_', ' ') | title }}
         {% if ordering == col.name %}
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <use href="/static/icons/heroicons.svg#chevron-right"/>
-        </svg>
+        {{ icon("chevron-right") }}
         {% elif ordering == '-' ~ col.name %}
-        <svg class="w-4 h-4 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <use href="/static/icons/heroicons.svg#chevron-right"/>
-        </svg>
+        {{ icon("chevron-right", class="rotate-180") }}
         {% endif %}
       </a>
     </th>
@@ -83,9 +79,7 @@
 {% macro empty_state(model_name, verbose_name, can_create, admin_path="/admin") %}
 <tr>
   <td colspan="100" class="px-6 py-12 text-center">
-    <svg class="w-12 h-12 mx-auto text-[var(--color-gray-400)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <use href="/static/icons/heroicons.svg#document-text"/>
-    </svg>
+    {{ icon("document-text", size="48px") }}
     <p class="mt-4 text-sm text-[var(--color-gray-500)]">No {{ verbose_name | lower }} found</p>
     {% if can_create %}
     <a href="{{ admin_path }}/{{ model_name }}/create"

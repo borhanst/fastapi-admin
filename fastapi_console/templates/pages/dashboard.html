@@ -65,9 +65,7 @@
     <a href="{{ card.url }}" class="dashboard-stat-card">
       <div class="stat-header">
         <div class="stat-icon stat-icon--{{ _color }}">
-          <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
-            <use href="/static/icons/heroicons.svg#{{ _icon }}"/>
-          </svg>
+          {{ icon(_icon, size="20px") }}
         </div>
         <span class="stat-label">{{ card.title }}</span>
       </div>
@@ -76,13 +74,7 @@
         <span class="stat-subtitle">Total {{ card.title | lower }}</span>
         {% if card.has_trend %}
         <span class="stat-trend {{ card.trend_direction }}">
-          <svg style="width: 10px; height: 10px;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
-            {% if card.trend_direction == 'up' %}
-            <use href="/static/icons/heroicons.svg#arrow-up"/>
-            {% else %}
-            <use href="/static/icons/heroicons.svg#arrow-down"/>
-            {% endif %}
-          </svg>
+          {% if card.trend_direction == 'up' %}{{ icon('arrow-up', size="10px") }}{% else %}{{ icon('arrow-down', size="10px") }}{% endif %}
           {{ card.trend_pct }}%
         </span>
         <span class="stat-trend-period">vs last 30 days</span>
@@ -104,9 +96,7 @@
       <div style="padding: 20px 24px; border-bottom: 1px solid var(--surface-border); display: flex; align-items: center; justify-content: space-between;">
         <div style="display: flex; align-items: center; gap: 10px;">
           <div style="width: 36px; height: 36px; border-radius: var(--radius-md); background: var(--primary-50); display: flex; align-items: center; justify-content: center;">
-            <svg style="width: 18px; height: 18px; color: var(--primary-600);" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
-              <use href="/static/icons/heroicons.svg#clock"/>
-            </svg>
+            {{ icon('clock', size="18px") }}
           </div>
           <div>
             <h2 style="font-family: var(--font-display); font-size: var(--text-md); font-weight: 700; color: var(--text-primary);">Recent Activity</h2>
@@ -117,9 +107,7 @@
         <a href="{{ admin_path | default('/admin') }}/audit-log/" style="display: inline-flex; align-items: center; gap: 4px; font-size: var(--text-sm); font-weight: var(--font-medium); color: var(--text-primary); text-decoration: none; padding: 6px 12px; border-radius: var(--radius-md); border: 1px solid var(--surface-border); transition: all 0.15s;"
            onmouseenter="this.style.borderColor='var(--primary-500)'" onmouseleave="this.style.borderColor='var(--surface-border)'">
           View all
-          <svg style="width: 14px; height: 14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-            <use href="/static/icons/heroicons.svg#chevron-right"/>
-          </svg>
+          {{ icon('chevron-right', size="14px") }}
         </a>
         {% endif %}
       </div>
@@ -132,21 +120,15 @@
           <div style="flex-shrink: 0; margin-top: 2px;">
             {% if entry.action == 'CREATE' %}
             <div style="width: 32px; height: 32px; border-radius: var(--radius-full); background: rgba(34, 197, 94, 0.1); display: flex; align-items: center; justify-content: center;">
-              <svg style="width: 16px; height: 16px; color: var(--success-500);" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                <use href="/static/icons/heroicons.svg#plus"/>
-              </svg>
+              {{ icon('plus', size="16px") }}
             </div>
             {% elif entry.action == 'UPDATE' %}
             <div style="width: 32px; height: 32px; border-radius: var(--radius-full); background: rgba(245, 158, 11, 0.1); display: flex; align-items: center; justify-content: center;">
-              <svg style="width: 16px; height: 16px; color: var(--warning-500);" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                <use href="/static/icons/heroicons.svg#pencil"/>
-              </svg>
+              {{ icon('pencil', size="16px") }}
             </div>
             {% elif entry.action == 'DELETE' %}
             <div style="width: 32px; height: 32px; border-radius: var(--radius-full); background: rgba(239, 68, 68, 0.1); display: flex; align-items: center; justify-content: center;">
-              <svg style="width: 16px; height: 16px; color: var(--danger-500);" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                <use href="/static/icons/heroicons.svg#trash"/>
-              </svg>
+              {{ icon('trash', size="16px") }}
             </div>
             {% endif %}
           </div>
@@ -165,9 +147,7 @@
       {% else %}
       <div style="padding: 48px 24px; text-align: center;">
         <div style="width: 64px; height: 64px; border-radius: var(--radius-full); background: var(--surface-overlay); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px;">
-          <svg style="width: 32px; height: 32px; color: var(--text-tertiary);" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
-            <use href="/static/icons/heroicons.svg#clock"/>
-          </svg>
+          {{ icon('clock', size="32px") }}
         </div>
         <p style="font-size: var(--text-sm); color: var(--text-primary); font-weight: var(--font-semibold);">No recent Activity</p>
         <p style="font-size: var(--text-xs); color: var(--text-tertiary); margin-top: 4px;">System activities will appear here</p>
@@ -179,9 +159,7 @@
     <div style="background: var(--surface-raised); border: 1px solid var(--surface-border); border-radius: var(--radius-lg); overflow: hidden;">
       <div style="padding: 20px 24px; border-bottom: 1px solid var(--surface-border); display: flex; align-items: center; gap: 10px;">
         <div style="width: 36px; height: 36px; border-radius: var(--radius-md); background: rgba(234, 179, 8, 0.12); display: flex; align-items: center; justify-content: center;">
-          <svg style="width: 18px; height: 18px; color: #eab308;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
-            <use href="/static/icons/heroicons.svg#bolt"/>
-          </svg>
+          {{ icon('bolt', size="18px") }}
         </div>
         <div>
           <h2 style="font-family: var(--font-display); font-size: var(--text-md); font-weight: 700; color: var(--text-primary);">Quick Actions</h2>
@@ -205,33 +183,25 @@
         {% set _ac = _action_colors[registered.verbose_name_plural] | default({'bg': 'var(--primary-50)', 'fg': 'var(--primary-600)'}) %}
         <a href="{{ admin_path | default('/admin') }}/{{ registered.table_name }}/" class="quick-action-item">
           <div class="action-icon" style="background: {{ _ac.bg }};">
-            <svg width="18" height="18" style="color: {{ _ac.fg }};" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
-              <use href="/static/icons/heroicons.svg#{{ registered.admin.icon | default('cube') }}"/>
-            </svg>
+            {{ icon(registered.admin.icon | default('cube'), size="18px") }}
           </div>
           <div class="action-text">
             <div class="action-title">Add {{ registered.verbose_name }}</div>
             <div class="action-desc">Create a new {{ registered.verbose_name | lower }}</div>
           </div>
-          <svg class="action-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-            <use href="/static/icons/heroicons.svg#chevron-right"/>
-          </svg>
+          {{ icon('chevron-right', size="18px", class="action-chevron") }}
         </a>
         {% endfor %}
         {# Extra: System Logs link #}
         <a href="{{ admin_path | default('/admin') }}/audit-log/" class="quick-action-item">
           <div class="action-icon" style="background: rgba(6, 182, 212, 0.12);">
-            <svg width="18" height="18" style="color: #06b6d4;" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
-              <use href="/static/icons/heroicons.svg#document-text"/>
-            </svg>
+            {{ icon('document-text', size="18px") }}
           </div>
           <div class="action-text">
             <div class="action-title">System Logs</div>
             <div class="action-desc">View system audit logs</div>
           </div>
-          <svg class="action-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-            <use href="/static/icons/heroicons.svg#chevron-right"/>
-          </svg>
+          {{ icon('chevron-right', size="18px", class="action-chevron") }}
         </a>
       </div>
     </div>
@@ -242,9 +212,7 @@
   <div class="system-overview-card">
     <div class="overview-header">
       <div class="overview-header-icon">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
-          <use href="/static/icons/heroicons.svg#chart-bar"/>
-        </svg>
+        {{ icon('chart-bar') }}
       </div>
       <span class="overview-title">System Overview</span>
     </div>

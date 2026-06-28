@@ -492,6 +492,9 @@ class Admin:
         if self.config.behavior.auto_discover:
             self.registry.auto_discover()
 
+        # 8.1 Auto-register built-in admin models
+        self._register_builtin_models()
+
         # 9. Validate require_tags
         if self.config.nav.require_tags:
             self._validate_tags()
@@ -675,6 +678,9 @@ class Admin:
         templates_dir = Path(__file__).parent.parent / "templates"
         self._jinja_env = Jinja2Templates(directory=str(templates_dir))
 
+        # Disable autoescape — templates are server-controlled, no user XSS risk
+        self._jinja_env.env.autoescape = False
+
         def slugify(s: str) -> str:
             return re.sub(r"[^\w]", "-", s, flags=re.A).strip("-").lower()
 
@@ -716,6 +722,35 @@ class Admin:
                 return []
 
         self._jinja_env.env.globals["get_flash_messages"] = _get_flash_messages
+
+        # Material Symbols icon helper
+        _icon_map = {
+            "home": "home", "chart-bar": "bar_chart", "clock": "schedule",
+            "shield-check": "verified_user", "users": "group", "folder": "folder",
+            "cube": "inventory_2", "shopping-cart": "shopping_cart",
+            "magnifying-glass": "search", "chevron-right": "chevron_right",
+            "chevron-left": "chevron_left", "chevron-up": "expand_less",
+            "chevron-down": "expand_more", "ellipsis-vertical": "more_vert",
+            "pencil": "edit", "trash": "delete", "x-mark": "close",
+            "x-circle": "cancel", "check-circle": "check_circle", "check": "check",
+            "plus": "add", "eye": "visibility", "bell": "notifications",
+            "sun": "light_mode", "moon": "dark_mode", "bars-": "menu",
+            "bars-3": "menu",
+            "arrow-down-tray": "download", "arrow-path": "refresh",
+            "paper-airplane": "send", "exclamation-triangle": "warning",
+            "information-circle": "info", "document-text": "description",
+            "arrow-down": "arrow_downward", "arrow-up": "arrow_upward",
+            "bolt": "bolt", "cog-": "settings", "cog-6-tooth": "settings",
+        }
+
+        def _icon(name: str, size: str = "", **kwargs) -> str:
+            ms_name = _icon_map.get(name, name)
+            css_class = kwargs.get("class", kwargs.get("css_class", ""))
+            size_style = f' style="font-size: {size};"' if size else ""
+            cls = f"material-symbols-outlined {css_class}".strip()
+            return f'<span class="{cls}"{size_style}>{ms_name}</span>'
+
+        self._jinja_env.env.globals["icon"] = _icon
 
         # Admin config global (used by templates for branding, dark mode, etc.)
         admin_cfg = {
@@ -794,6 +829,42 @@ class Admin:
         app.include_router(api_router.build_router())
 
         self._router_built = True
+
+    # ------------------------------------------------------------------
+    # Built-in model registration
+    # ------------------------------------------------------------------
+
+    def _register_builtin_models(self) -> None:
+        """Auto-register built-in admin models with default admin classes."""
+        from fastapi_console.admin.builtin_models import (
+            AdminFieldPermissionAdmin,
+            AdminPermissionAdmin,
+            AdminRefreshTokenAdmin,
+            AdminRoleAdmin,
+            AdminUserAdmin,
+            AuditLogAdmin,
+        )
+        from fastapi_console.audit.models import AuditLog
+        from fastapi_console.auth.models import (
+            AdminFieldPermission,
+            AdminPermission,
+            AdminRefreshToken,
+            AdminRole,
+            AdminUser,
+        )
+
+        builtin_models = [
+            (AdminUser, AdminUserAdmin),
+            (AdminRole, AdminRoleAdmin),
+            (AdminRefreshToken, AdminRefreshTokenAdmin),
+            (AdminPermission, AdminPermissionAdmin),
+            (AdminFieldPermission, AdminFieldPermissionAdmin),
+            (AuditLog, AuditLogAdmin),
+        ]
+
+        for model, admin_class in builtin_models:
+            if model.__tablename__ not in self.registry._models:
+                self.registry.register(model, admin_class)
 
     # ------------------------------------------------------------------
     # Tags validation

@@ -16,9 +16,7 @@
   <div class="page-header">
     <div class="page-header-left">
       <a href="{{ admin_path | default('/admin') }}/{{ registered.table_name }}/" class="page-header-back">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <use href="/static/icons/heroicons.svg#chevron-left"/>
-        </svg>
+        {{ icon("chevron-left", size="16px") }}
         {{ registered.verbose_name_plural }}
       </a>
       <h1 class="page-header-title">View {{ registered.verbose_name }}</h1>
@@ -30,9 +28,7 @@
     <div class="page-header-right">
       {% if permissions.can_edit %}
       <a href="{{ admin_path | default('/admin') }}/{{ registered.table_name }}/{{ obj.id }}" class="btn btn-primary btn-sm">
-        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16">
-          <use href="/static/icons/heroicons.svg#pencil"/>
-        </svg>
+        {{ icon("pencil", size="16px") }}
         Edit
       </a>
       {% endif %}
@@ -65,16 +61,12 @@
           {% elif field.widget_macro == 'toggle' %}
             {% if val %}
             <span class="status-badge status-badge--success">
-              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="14" height="14">
-                <use href="/static/icons/heroicons.svg#check-circle"/>
-              </svg>
+              {{ icon("check-circle", size="14px") }}
               Active
             </span>
             {% else %}
             <span class="status-badge status-badge--muted">
-              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="14" height="14">
-                <use href="/static/icons/heroicons.svg#x-circle"/>
-              </svg>
+              {{ icon("x-circle", size="14px") }}
               Inactive
             </span>
             {% endif %}
@@ -136,16 +128,12 @@
           {% elif field.widget_macro == 'toggle' %}
             {% if val %}
             <span class="status-badge status-badge--success">
-              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="14" height="14">
-                <use href="/static/icons/heroicons.svg#check-circle"/>
-              </svg>
+              {{ icon("check-circle", size="14px") }}
               Active
             </span>
             {% else %}
             <span class="status-badge status-badge--muted">
-              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="14" height="14">
-                <use href="/static/icons/heroicons.svg#x-circle"/>
-              </svg>
+              {{ icon("x-circle", size="14px") }}
               Inactive
             </span>
             {% endif %}

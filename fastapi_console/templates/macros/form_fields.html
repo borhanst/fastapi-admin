@@ -507,9 +507,7 @@ hx-vals='{"field_name": "{{ field_ctx.meta.name }}"}'
         <span class="tag-chip">
           <span x-text="tag"></span>
           <button type="button" @click="remove(index)" class="tag-chip__remove">
-            <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <use href="/static/icons/heroicons.svg#x-mark"/>
-            </svg>
+            {{ icon("x-mark", size="12px") }}
           </button>
         </span>
       </template>
@@ -571,9 +569,7 @@ hx-vals='{"field_name": "{{ field_ctx.meta.name }}"}'
         <span class="tag-chip">
           <span x-text="item.label"></span>
           <button type="button" @click="remove(index)" class="tag-chip__remove">
-            <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <use href="/static/icons/heroicons.svg#x-mark"/>
-            </svg>
+            {{ icon("x-mark", size="12px") }}
           </button>
         </span>
       </template>
