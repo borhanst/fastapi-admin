@@ -169,6 +169,23 @@ class ModelAdmin:
             if self.exclude:
                 raw = [x for x in raw if x.name not in self.exclude]
 
+            # Exclude FK columns that have a corresponding relationship
+            # to avoid duplicate fields (e.g., user_id + user both showing)
+            from sqlalchemy import inspect as sa_inspect
+
+            rel_fk_cols: set[str] = set()
+            try:
+                mapper = sa_inspect(self.model)
+                for r in relationships:
+                    if r.direction in ("MANYTOONE", "MANYTOMANY"):
+                        rel_prop = mapper.relationships.get(r.name)
+                        if rel_prop is not None:
+                            for local_col in rel_prop.local_columns:
+                                rel_fk_cols.add(local_col.key)
+            except Exception:
+                pass
+            raw = [x for x in raw if not (hasattr(x, "foreign_keys") and x.name in rel_fk_cols)]
+
         for item in raw:
             name = item.name
             readonly = name in (self.readonly_fields or [])

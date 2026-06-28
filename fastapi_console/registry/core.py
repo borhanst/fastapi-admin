@@ -33,6 +33,9 @@ class RegisteredModel:
             if col.primary_key:
                 self.pk_field = col.name
                 break
+        # Ensure admin has reference to model for form field deduplication
+        if not hasattr(self.admin, "model") or self.admin.model is None:
+            self.admin.model = self.model
 
     @property
     def form_fields(self) -> list[Any]:
