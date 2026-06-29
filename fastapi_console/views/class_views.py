@@ -236,7 +236,7 @@ class ListView(BaseView):
             ),
         }
         template_context.update(self._get_extra_context(request))
-        inject_sidebar_context(request, template_context)
+        await inject_sidebar_context(request, template_context)
         return template_context
 
     async def html_response(
@@ -279,7 +279,7 @@ class CreateView(BaseView):
     form_parser_class = HTMLFormParser
     api_renderer_class = ItemAPIRenderer
 
-    def _build_form_context(
+    async def _build_form_context(
         self,
         request: Request,
         obj: Any | None = None,
@@ -326,7 +326,7 @@ class CreateView(BaseView):
             ),
         }
         template_context.update(self._get_extra_context(request))
-        inject_sidebar_context(request, template_context)
+        await inject_sidebar_context(request, template_context)
         return template_context
 
     async def _create_object(
@@ -361,7 +361,7 @@ class CreateView(BaseView):
             await checker.load_permissions(self.registered.table_name)
 
         if request.method == "GET":
-            ctx = self._build_form_context(
+            ctx = await self._build_form_context(
                 request, is_create=True, checker=checker
             )
             return await self.html_renderer.render(request, ctx)
@@ -374,7 +374,7 @@ class CreateView(BaseView):
             user = getattr(request.state, "admin_user", None)
             if user is not None:
                 await session.refresh(user)
-            ctx = self._build_form_context(
+            ctx = await self._build_form_context(
                 request,
                 values=parsed,
                 errors=errors,
@@ -438,7 +438,7 @@ class EditView(BaseView):
                 labels[rel_key] = str(fk_val)
         return labels
 
-    def _build_form_context(
+    async def _build_form_context(
         self,
         request: Request,
         obj: Any | None = None,
@@ -487,7 +487,7 @@ class EditView(BaseView):
             ),
         }
         template_context.update(self._get_extra_context(request))
-        inject_sidebar_context(request, template_context)
+        await inject_sidebar_context(request, template_context)
         return template_context
 
     def _apply_parsed(self, obj: Any, parsed: dict[str, Any]) -> None:
@@ -580,7 +580,7 @@ class EditView(BaseView):
             ),
         }
         template_context.update(self._get_extra_context(request))
-        inject_sidebar_context(request, template_context)
+        await inject_sidebar_context(request, template_context)
         return template_context
 
     async def html_response(self, request: Request, id: Any = None) -> Response:
@@ -624,12 +624,11 @@ class EditView(BaseView):
             if user is not None:
                 await session.refresh(user)
             rel_labels = await self._resolve_rel_labels(obj, request)
-            ctx = self._build_form_context(
+            ctx = await self._build_form_context(
                 request,
                 obj=obj,
                 values=parsed,
                 errors=errors,
-                is_create=False,
                 checker=checker,
                 rel_labels=rel_labels,
             )

@@ -41,6 +41,7 @@ class NavGroupConfig:
     icon: str | None = None
     order: int = 999
     collapsed_by_default: bool = False
+    permission: str | None = None
     extra_items: list[NavItemConfig] = field(default_factory=list)
 
 
@@ -67,6 +68,7 @@ class BuiltNavGroup:
     icon: str | None = None
     order: int = 999
     collapsed_by_default: bool = False
+    permission_table: str | None = None
     items: list[BuiltNavItem] = field(default_factory=list)
 
 
@@ -137,6 +139,7 @@ class DefaultSidebarBuilder:
                     icon=cfg.icon,
                     order=cfg.order,
                     collapsed_by_default=cfg.collapsed_by_default,
+                    permission_table=cfg.permission,
                     items=all_items,
                 )
             )
@@ -156,6 +159,7 @@ class DefaultSidebarBuilder:
                     collapsed_by_default=cfg.collapsed_by_default
                     if cfg
                     else False,
+                    permission_table=cfg.permission if cfg else None,
                     items=sorted(items, key=lambda i: (i.order, i.label)),
                 )
             )

@@ -152,7 +152,8 @@ def dashboard_view_factory(admin: Any):
             "overview_total": total_count,
         }
         if hasattr(admin_instance, "build_sidebar_context") and current_user is not None:
-            context.update(admin_instance.build_sidebar_context(request, user=current_user))
+            from fastapi_console.views.sidebar import inject_sidebar_context
+            context = await inject_sidebar_context(request, context)
         html = template.render(**context)
         return HTMLResponse(content=html)
 

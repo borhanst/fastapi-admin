@@ -41,7 +41,7 @@ async def user_list_view(
     return templates.TemplateResponse(
         request,
         "pages/users/list.html",
-        inject_sidebar_context(
+        await inject_sidebar_context(
             request,
             {
                 "users": users,
@@ -65,7 +65,7 @@ async def user_create_view(
     return templates.TemplateResponse(
         request,
         "pages/users/form.html",
-        inject_sidebar_context(
+        await inject_sidebar_context(
             request,
             {
                 "user": None,
@@ -113,7 +113,7 @@ async def user_create_post(
         return templates.TemplateResponse(
             request,
             "pages/users/form.html",
-            inject_sidebar_context(
+            await inject_sidebar_context(
                 request,
                 {
                     "user": None,
@@ -156,7 +156,7 @@ async def user_edit_view(
     return templates.TemplateResponse(
         request,
         "pages/users/form.html",
-        inject_sidebar_context(
+        await inject_sidebar_context(
             request,
             {
                 "user": user,
@@ -221,7 +221,7 @@ async def user_edit_post(
             return templates.TemplateResponse(
                 request,
                 "pages/users/form.html",
-                inject_sidebar_context(
+                await inject_sidebar_context(
                     request,
                     {
                         "user": user,

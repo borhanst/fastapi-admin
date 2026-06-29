@@ -475,10 +475,10 @@ class ViewContextBuilder:
                 registered.admin, "list_filter_horizontal", False
             ),
         }
-        inject_sidebar_context(request, template_context)
+        await inject_sidebar_context(request, template_context)
         return template_context
 
-    def build_form_context(
+    async def build_form_context(
         self,
         registered: RegisteredModel,
         request: Request,
@@ -536,10 +536,10 @@ class ViewContextBuilder:
                 registered.admin, "change_form_show_cancel_button", True
             ),
         }
-        inject_sidebar_context(request, template_context)
+        await inject_sidebar_context(request, template_context)
         return template_context
 
-    def build_delete_context(
+    async def build_delete_context(
         self,
         registered: RegisteredModel,
         request: Request,
@@ -560,5 +560,5 @@ class ViewContextBuilder:
                 can_view=True, can_create=True, can_edit=True, can_delete=True
             ),
         }
-        inject_sidebar_context(request, template_context)
+        await inject_sidebar_context(request, template_context)
         return template_context

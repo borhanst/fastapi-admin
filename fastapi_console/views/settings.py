@@ -25,10 +25,8 @@ async def theme_settings(
         "admin_config": request.app.state.admin_config,
     }
     admin_instance = request.app.state.admin
-    if hasattr(admin_instance, "build_sidebar_context"):
-        context.update(
-            admin_instance.build_sidebar_context(request, user=current_user)
-        )
+    from fastapi_console.views.sidebar import inject_sidebar_context
+    await inject_sidebar_context(request, context)
     template = templates.get_template("pages/settings/theme.html")
     html = template.render(**context)
     return HTMLResponse(content=html)

@@ -75,22 +75,22 @@
                 <div class="text-xs text-[var(--color-gray-500)]">{{ registered.table_name }}</div>
               </td>
               <td class="px-6 py-4 text-center">
-                <input type="checkbox" name="perm[{{ registered.table_name }}][view]" value="1"
+                <input type="checkbox" name="perm[{{ registered.table_name }}][view]" value="on"
                        {% if permissions.get(registered.table_name, {}).get('view', false) %}checked{% endif %}
                        class="rounded border-[var(--color-gray-300)] text-[var(--color-primary-600)] focus:ring-[var(--color-primary-500)]">
               </td>
               <td class="px-6 py-4 text-center">
-                <input type="checkbox" name="perm[{{ registered.table_name }}][create]" value="1"
+                <input type="checkbox" name="perm[{{ registered.table_name }}][create]" value="on"
                        {% if permissions.get(registered.table_name, {}).get('create', false) %}checked{% endif %}
                        class="rounded border-[var(--color-gray-300)] text-[var(--color-primary-600)] focus:ring-[var(--color-primary-500)]">
               </td>
               <td class="px-6 py-4 text-center">
-                <input type="checkbox" name="perm[{{ registered.table_name }}][edit]" value="1"
+                <input type="checkbox" name="perm[{{ registered.table_name }}][edit]" value="on"
                        {% if permissions.get(registered.table_name, {}).get('edit', false) %}checked{% endif %}
                        class="rounded border-[var(--color-gray-300)] text-[var(--color-primary-600)] focus:ring-[var(--color-primary-500)]">
               </td>
               <td class="px-6 py-4 text-center">
-                <input type="checkbox" name="perm[{{ registered.table_name }}][delete]" value="1"
+                <input type="checkbox" name="perm[{{ registered.table_name }}][delete]" value="on"
                        {% if permissions.get(registered.table_name, {}).get('delete', false) %}checked{% endif %}
                        class="rounded border-[var(--color-gray-300)] text-[var(--color-primary-600)] focus:ring-[var(--color-primary-500)]">
               </td>
@@ -110,13 +110,13 @@
                     <span class="text-sm text-[var(--color-gray-700)]">{{ col.name }}</span>
                     <div class="flex items-center gap-2 ml-auto">
                       <label class="flex items-center gap-1 text-xs text-[var(--color-gray-500)]">
-                        <input type="checkbox" name="field_perm[{{ registered.table_name }}][{{ col.name }}][view]" value="1"
+                        <input type="checkbox" name="field_perm[{{ registered.table_name }}][{{ col.name }}][view]" value="on"
                                {% if field_permissions.get(registered.table_name, {}).get(col.name, {}).get('view', true) %}checked{% endif %}
                                class="rounded border-[var(--color-gray-300)] text-[var(--color-primary-600)] focus:ring-[var(--color-primary-500)]">
                         View
                       </label>
                       <label class="flex items-center gap-1 text-xs text-[var(--color-gray-500)]">
-                        <input type="checkbox" name="field_perm[{{ registered.table_name }}][{{ col.name }}][edit]" value="1"
+                        <input type="checkbox" name="field_perm[{{ registered.table_name }}][{{ col.name }}][edit]" value="on"
                                {% if field_permissions.get(registered.table_name, {}).get(col.name, {}).get('edit', true) %}checked{% endif %}
                                class="rounded border-[var(--color-gray-300)] text-[var(--color-primary-600)] focus:ring-[var(--color-primary-500)]">
                         Edit

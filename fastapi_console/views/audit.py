@@ -85,7 +85,7 @@ async def audit_list_view(
     return templates.TemplateResponse(
         request,
         "pages/audit_log.html",
-        inject_sidebar_context(request, {
+        await inject_sidebar_context(request, {
             "entries": entries,
             "page": page,
             "per_page": per_page,
@@ -127,7 +127,7 @@ async def audit_detail_view(
     return templates.TemplateResponse(
         request,
         "pages/audit_detail.html",
-        inject_sidebar_context(request, {
+        await inject_sidebar_context(request, {
             "entry": entry,
             "admin_path": admin_path,
         }),

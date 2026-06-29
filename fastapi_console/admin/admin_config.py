@@ -90,4 +90,6 @@ class AdminConfig:
             "nav_groups": self.nav.nav_groups,
             "sidebar_builder": self.nav.sidebar_builder,
             "require_tags": self.nav.require_tags,
+            "dashboard_permission": self.nav.dashboard_permission,
+            "settings_permission": self.nav.settings_permission,
         }

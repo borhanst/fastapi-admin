@@ -47,7 +47,7 @@ async def role_list_view(
     return templates.TemplateResponse(
         request,
         "pages/roles.html",
-        inject_sidebar_context(request, {
+        await inject_sidebar_context(request, {
             "roles": role_data,
         }),
     )
@@ -66,7 +66,7 @@ async def role_create_view(
     return templates.TemplateResponse(
         request,
         "pages/role_form.html",
-        inject_sidebar_context(request, {
+        await inject_sidebar_context(request, {
             "role": None,
             "models": models,
             "permissions": {},
@@ -105,7 +105,15 @@ async def role_edit_view(
         )
     ).scalars().all()
 
-    perm_map = {(p.table_name): p for p in perms}
+    perm_map = {
+        p.table_name: {
+            "view": p.can_view,
+            "create": p.can_create,
+            "edit": p.can_edit,
+            "delete": p.can_delete,
+        }
+        for p in perms
+    }
     f_perms_map = {}
     for fp in f_perms:
         if fp.table_name not in f_perms_map:
@@ -115,7 +123,7 @@ async def role_edit_view(
     return templates.TemplateResponse(
         request,
         "pages/role_form.html",
-        inject_sidebar_context(request, {
+        await inject_sidebar_context(request, {
             "role": role,
             "models": models,
             "permissions": perm_map,
@@ -178,6 +186,12 @@ async def role_save_view(
                 can_delete=data.get("delete") == "on",
             )
             session.add(perm)
+
+    # Remove permissions that were fully unchecked (not in form data)
+    tables_in_form = set(perm_data.keys())
+    for table, perm in existing_perm_map.items():
+        if table not in tables_in_form:
+            await session.delete(perm)
 
     await session.flush()
 

@@ -608,32 +608,74 @@ class Admin:
             self.registry.all(), self.nav_groups, admin_path=self.admin_path
         )
 
-    def build_sidebar_context(self, request: Any, user: Any = None) -> dict:
+    def build_sidebar_context(self, request: Any, user: Any = None, permissions_map: dict | None = None) -> dict:
         """Build per-request sidebar context (RBAC filter + permissions map)."""
         if user is None:
             user = getattr(request.state, "admin_user", None)
 
-        from sqlalchemy.orm import Session
-
-        from fastapi_console.auth.permissions import PermissionChecker
-
-        session: Session = request.app.state.admin_db_session
         snapshot = getattr(request.state, "admin_user_snapshot", None)
-        checker = (
-            PermissionChecker(session=session, user=user, user_snapshot=snapshot) if user else None
-        )
+        is_superuser = (
+            bool(snapshot.get("is_superuser", False))
+            if snapshot
+            else bool(getattr(user, "is_superuser", False))
+        ) if user else False
 
-        permissions_map: dict[str, Any] = {}
+        from fastapi_console.types import PermissionSet
+
         nav_groups = self._nav_groups_built
-        if checker:
-            for group in nav_groups:
-                for item in group.items:
-                    table = item.permission_table
-                    if table and table not in permissions_map:
-                        permissions_map[table] = checker.permission_set(table)
+
+        if permissions_map is None:
+            permissions_map = {}
+
+            if user and not is_superuser:
+                role_id = (
+                    snapshot.get("role_id")
+                    if snapshot
+                    else getattr(user, "role_id", None)
+                )
+                if role_id is not None:
+                    try:
+                        from sqlalchemy import select
+                        from sqlalchemy.orm import Session
+
+                        from fastapi_console.auth.models import AdminPermission
+
+                        engine = request.app.state.admin_engine
+                        with Session(engine) as s:
+                            result = s.execute(
+                                select(AdminPermission).filter(
+                                    AdminPermission.role_id == role_id
+                                )
+                            )
+                            rows = result.scalars().all()
+                            for perm in rows:
+                                permissions_map[perm.table_name] = PermissionSet(
+                                    can_view=perm.can_view,
+                                    can_create=perm.can_create,
+                                    can_edit=perm.can_edit,
+                                    can_delete=perm.can_delete,
+                                )
+                    except Exception:
+                        pass
+
+        from dataclasses import replace
+
+        filtered_groups: list[Any] = []
+        for group in nav_groups:
+            visible = [
+                item for item in group.items
+                if item.permission_table is None
+                or is_superuser
+                or (
+                    permissions_map.get(item.permission_table)
+                    and permissions_map[item.permission_table].can_view
+                )
+            ]
+            if visible:
+                filtered_groups.append(replace(group, items=visible))
 
         return {
-            "nav_groups": nav_groups,
+            "nav_groups": filtered_groups,
             "permissions_map": permissions_map,
             "current_user": user,
         }

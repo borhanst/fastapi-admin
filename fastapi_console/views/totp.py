@@ -63,7 +63,7 @@ async def totp_setup_view(
     return templates.TemplateResponse(
         request,
         "pages/2fa/setup.html",
-        inject_sidebar_context(
+        await inject_sidebar_context(
             request,
             {
                 "secret": secret,
@@ -99,7 +99,7 @@ async def totp_enable_post(
         return templates.TemplateResponse(
             request,
             "pages/2fa/setup.html",
-            inject_sidebar_context(
+            await inject_sidebar_context(
                 request,
                 {
                     "secret": totp_record.secret_key,
@@ -121,7 +121,7 @@ async def totp_enable_post(
     return templates.TemplateResponse(
         request,
         "pages/2fa/setup.html",
-        inject_sidebar_context(
+        await inject_sidebar_context(
             request,
             {
                 "secret": None,
@@ -154,7 +154,7 @@ async def totp_disable_post(
         return templates.TemplateResponse(
             request,
             "pages/2fa/setup.html",
-            inject_sidebar_context(
+            await inject_sidebar_context(
                 request,
                 {
                     "totp_enabled": True,
@@ -176,7 +176,7 @@ async def totp_disable_post(
         return templates.TemplateResponse(
             request,
             "pages/2fa/setup.html",
-            inject_sidebar_context(
+            await inject_sidebar_context(
                 request,
                 {
                     "totp_enabled": True,
@@ -219,7 +219,7 @@ async def totp_regenerate_backup_codes(
     return templates.TemplateResponse(
         request,
         "pages/2fa/setup.html",
-        inject_sidebar_context(
+        await inject_sidebar_context(
             request,
             {
                 "totp_enabled": True,
@@ -240,7 +240,7 @@ async def totp_verify_view(
     return templates.TemplateResponse(
         request,
         "pages/2fa/verify.html",
-        inject_sidebar_context(
+        await inject_sidebar_context(
             request,
             {
                 "temp_token": temp_token,

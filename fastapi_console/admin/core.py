@@ -173,6 +173,8 @@ class Admin:
         environment_label: str | None = None,
         environment_color: str = "info",
         mobile_sidebar: str = "overlay",
+        dashboard_permission: str | None = None,
+        settings_permission: str | None = None,
     ):
         self.registry = AdminRegistry()
         self._app: FastAPI | None = app
@@ -243,6 +245,8 @@ class Admin:
                     nav_groups=nav_groups or [],
                     sidebar_builder=sidebar_builder,
                     require_tags=require_tags,
+                    dashboard_permission=dashboard_permission,
+                    settings_permission=settings_permission,
                 ),
             )
 
@@ -263,6 +267,8 @@ class Admin:
                 primary_color=config.ui.primary_color,
                 primary_color_dark=config.ui.primary_color_dark,
                 dark_mode_default=config.ui.dark_mode_default,
+                dashboard_permission=config.nav.dashboard_permission,
+                settings_permission=config.nav.settings_permission,
             )
 
         self.config = config
@@ -946,9 +952,9 @@ class Admin:
             admin_path=self.router.admin_path,
         )
 
-    def build_sidebar_context(self, request: Any, user: Any = None) -> dict:
+    def build_sidebar_context(self, request: Any, user: Any = None, permissions_map: dict | None = None) -> dict:
         """Build per-request sidebar context (RBAC filter + permissions map)."""
-        return self.template.build_sidebar_context(request, user=user)
+        return self.template.build_sidebar_context(request, user=user, permissions_map=permissions_map)
 
     def sidebar_template_kwargs(self, request: Any) -> dict[str, Any]:
         """Thin wrapper — returns sidebar kwargs for TemplateResponse contexts."""

@@ -27,7 +27,7 @@ async def profile_view(
     return templates.TemplateResponse(
         request,
         "pages/profile/profile.html",
-        inject_sidebar_context(
+        await inject_sidebar_context(
             request,
             {
                 "profile_user": user,
@@ -57,7 +57,7 @@ async def profile_update(
         return templates.TemplateResponse(
             request,
             "pages/profile/profile.html",
-            inject_sidebar_context(
+            await inject_sidebar_context(
                 request,
                 {
                     "profile_user": user,
@@ -71,7 +71,7 @@ async def profile_update(
         return templates.TemplateResponse(
             request,
             "pages/profile/profile.html",
-            inject_sidebar_context(
+            await inject_sidebar_context(
                 request,
                 {
                     "profile_user": user,
@@ -91,7 +91,7 @@ async def profile_update(
             return templates.TemplateResponse(
                 request,
                 "pages/profile/profile.html",
-                inject_sidebar_context(
+                await inject_sidebar_context(
                     request,
                     {
                         "profile_user": user,
@@ -117,7 +117,7 @@ async def password_change_view(
     return templates.TemplateResponse(
         request,
         "pages/profile/password.html",
-        inject_sidebar_context(request, {}),
+        await inject_sidebar_context(request, {}),
     )
 
 
@@ -143,7 +143,7 @@ async def password_change_post(
         return templates.TemplateResponse(
             request,
             "pages/profile/password.html",
-            inject_sidebar_context(
+            await inject_sidebar_context(
                 request,
                 {
                     "error": "Current password is incorrect.",
@@ -156,7 +156,7 @@ async def password_change_post(
         return templates.TemplateResponse(
             request,
             "pages/profile/password.html",
-            inject_sidebar_context(
+            await inject_sidebar_context(
                 request,
                 {
                     "error": "New passwords do not match.",
@@ -170,7 +170,7 @@ async def password_change_post(
         return templates.TemplateResponse(
             request,
             "pages/profile/password.html",
-            inject_sidebar_context(
+            await inject_sidebar_context(
                 request,
                 {
                     "error": password_errors[0],
