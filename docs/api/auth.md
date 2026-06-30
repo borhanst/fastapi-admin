@@ -47,9 +47,9 @@
       members_order: source
       heading_level: 3
 
-### AdminFieldPermission
+### AdminUserPermission
 
-::: fastapi_console.auth.models.AdminFieldPermission
+::: fastapi_console.auth.models.AdminUserPermission
     options:
       show_source: true
       show_root_heading: true

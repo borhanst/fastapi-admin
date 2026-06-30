@@ -36,6 +36,24 @@ admin = Admin(
 | `session_ttl` | `int` | `28800` | Session lifetime in seconds (8 hours) |
 | `dark_mode_default` | `bool` | `False` | Start in dark mode |
 
+### Theme
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `theme_preset` | `str` | `"editorial"` | Built-in theme preset |
+| `theme_css` | `str` | `None` | Custom CSS variables |
+
+#### Available Presets
+
+| Preset | Description |
+|--------|-------------|
+| `editorial` | Warm serif typography, paper-like textures |
+| `modern` | Clean sans-serif, rounded corners |
+| `midnight` | Dark theme with indigo accents |
+| `paper` | Classic paper aesthetic |
+| `forest` | Green-tinted natural theme |
+| `minimal` | Sharp edges, no decorative elements |
+
 ### Audit Logging
 
 | Option | Type | Default | Description |

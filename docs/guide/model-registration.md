@@ -75,7 +75,7 @@ class ProductAdmin(ModelAdmin):
 |--------|------|---------|-------------|
 | `verbose_name` | `str` | Auto | Human-readable name (e.g., "Product") |
 | `verbose_name_plural` | `str` | Auto | Plural name (e.g., "Products") |
-| `icon` | `str` | `None` | Sidebar icon (Heroicon name) |
+| `icon` | `str` | `None` | Sidebar icon (Material Symbols name) |
 
 ## Auto-Discovery
 
@@ -170,6 +170,42 @@ class ProductAdmin(ModelAdmin):
             {Product.is_active: False}, synchronize_session=False
         )
 ```
+
+## Custom Column Display
+
+Use the `@column()` decorator to create computed columns with custom formatting:
+
+```python
+from fastapi_console import column
+
+@admin.register(Product)
+class ProductAdmin(ModelAdmin):
+    list_display = ["name", "price_display", "stock_status"]
+    
+    @column(header="Price", format="${:,.2f}", icon="attach_money")
+    def price_display(self, obj):
+        return obj.price
+    
+    @column(header="Stock", boolean=True, css_class="text-center")
+    def stock_status(self, obj):
+        return obj.stock > 0
+```
+
+### Column Options
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `header` | `str` | Column header text |
+| `boolean` | `bool` | Render as boolean badge |
+| `order` | `str` | Sort field name |
+| `format` | `str` | Python format string (e.g., `"${:,.2f}"`) |
+| `empty_value` | `str` | Value when result is empty (default: `"-"`) |
+| `template` | `str` | Custom Jinja2 template |
+| `admin_order_field` | `str` | Enable sorting on this column |
+| `css_class` | `str` | Additional CSS classes |
+| `width` | `str` | Column width (e.g., `"120px"`) |
+| `exportable` | `bool` | Include in CSV export (default: `True`) |
+| `icon` | `str` | Material icon name |
 
 ## Customizing Built-in Admin Models
 

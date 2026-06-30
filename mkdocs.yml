@@ -60,6 +60,7 @@ nav:
       - Authentication & RBAC: guide/auth-rbac.md
       - Widgets & Forms: guide/widgets-forms.md
       - Audit Logging: guide/audit-logging.md
+      - Command Palette: guide/command-palette.md
       - Plugins: guide/plugins.md
   - API Reference:
       - Admin: api/admin.md

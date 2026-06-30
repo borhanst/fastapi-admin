@@ -218,6 +218,16 @@ The admin UI automatically hides elements based on permissions:
 {% endif %}
 ```
 
+### Sidebar Visibility
+
+The sidebar automatically filters navigation items based on user permissions:
+
+- **Superusers** see all navigation items
+- **Regular users** only see models where `can_view=True`
+- Models without permission records are hidden
+
+This filtering happens server-side in `build_sidebar_context()` — users never see links to models they can't access.
+
 ## Role Management UI
 
 Access the role management interface at `/admin/roles/`:
