@@ -69,11 +69,15 @@ async def resolve_user(
     cached = getattr(request.state, "admin_user", None)
     if cached is not None:
         if not hasattr(request.state, "admin_user_snapshot"):
+            try:
+                role_ids = list(getattr(cached, "role_ids", []))
+            except Exception:
+                role_ids = []
             request.state.admin_user_snapshot = {
                 "id": getattr(cached, "id", None),
                 "email": getattr(cached, "email", None),
                 "is_superuser": bool(getattr(cached, "is_superuser", False)),
-                "role_id": getattr(cached, "role_id", None),
+                "role_ids": role_ids,
             }
         return cached
 
@@ -95,11 +99,16 @@ async def resolve_user(
 
     # Snapshot scalar fields into a plain dict so sync code can read them
     # without touching the ORM object (which may be expired after a rollback).
+    # Use getattr with [] default — role_ids may not be loaded yet for BYO models.
+    try:
+        role_ids = list(getattr(user, "role_ids", []))
+    except Exception:
+        role_ids = []
     request.state.admin_user_snapshot = {
         "id": getattr(user, "id", None),
         "email": getattr(user, "email", None),
         "is_superuser": bool(getattr(user, "is_superuser", False)),
-        "role_id": getattr(user, "role_id", None),
+        "role_ids": role_ids,
     }
 
     # Inject user identity into the audit context so audit listeners can

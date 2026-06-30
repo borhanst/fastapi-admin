@@ -61,13 +61,42 @@
                  class="form-input">
         </div>
         <div class="field-wrapper">
-          <label for="role_id" class="field-label">Role</label>
-          <select id="role_id" name="role_id" class="form-select">
-            <option value="">No role</option>
-            {% for role in roles %}
-            <option value="{{ role.id }}" {% if user and user.role_id == role.id %}selected{% endif %}>{{ role.name }}</option>
+          <label for="role_ids" class="field-label">Roles</label>
+          {% set selected_role_ids = [] %}
+          {% set selected_role_items = [] %}
+          {% if user and user.id %}
+            {% for r in user.roles %}
+              {% if selected_role_ids.append(r.id) %}{% endif %}
+              {% if selected_role_items.append({"id": r.id, "label": r.name | string}) %}{% endif %}
             {% endfor %}
-          </select>
+          {% endif %}
+          <div x-data="multiRelation({{ selected_role_ids | tojson | forceescape }}, '{{ admin_path | default('/admin') }}/users/roles/search', {{ selected_role_items | tojson | forceescape }})">
+            <input type="hidden" name="role_ids" :value="JSON.stringify(selectedIds)">
+            <div class="flex flex-wrap gap-2" style="margin-bottom: 8px;">
+              <template x-for="(item, index) in selectedItems" :key="item.id">
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[var(--color-primary-50)] text-[var(--color-primary-700)]">
+                  <span x-text="item.label"></span>
+                  <button type="button" @click="remove(index)" class="ml-1 text-[var(--color-primary-400)] hover:text-[var(--color-primary-600)]">&times;</button>
+                </span>
+              </template>
+            </div>
+            <div style="position: relative;">
+              <input type="text" x-model="searchQuery" @input="search()" @focus="open = true" @click.outside="open = false"
+                     placeholder="Search roles..."
+                     class="form-input">
+              <div x-show="open && results.length > 0"
+                   style="position: absolute; z-index: 50; width: 100%; margin-top: 4px; background: var(--surface-base); border: 1px solid var(--surface-border); border-radius: var(--radius-md); box-shadow: var(--shadow-md); max-height: 200px; overflow-y: auto;">
+                <template x-for="result in results" :key="result.id">
+                  <div @click="add(result)"
+                       style="padding: 8px 12px; cursor: pointer; font-size: 0.875rem;"
+                       onmouseover="this.style.background='var(--surface-hover)'" onmouseout="this.style.background=''">
+                    <span x-text="result.label"></span>
+                  </div>
+                </template>
+              </div>
+            </div>
+          </div>
+          <p class="field-help" style="color: var(--text-secondary); font-size: 0.75rem; margin-top: 0.25rem;">Search and select roles. Permissions are merged from all selected roles.</p>
         </div>
       </div>
 

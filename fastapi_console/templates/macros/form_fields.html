@@ -572,9 +572,11 @@ hx-vals='{"field_name": "{{ field_ctx.meta.name }}"}'
 {% set name = field_ctx.meta.name %}
 {% set val = field_ctx.widget_context.value | default('[]') %}
 {% set related_table = field_ctx.widget_context.related_table | default('') %}
+{% set search_url = field_ctx.widget_context.search_url | default('') %}
+{% set url = search_url if search_url else (admin_path + '/' + related_table + '/search') %}
 {{ _field_wrapper_open(field_ctx) }}
   {{ _label(field_ctx) }}
-  <div x-data="multiRelation({{ val }}, '{{ admin_path }}/{{ related_table }}/search')">
+  <div x-data="multiRelation({{ val | tojson | forceescape }}, '{{ url }}', [])">
     <input type="hidden" name="{{ name }}" :value="JSON.stringify(selectedIds)">
     <div class="flex flex-wrap gap-2" style="margin-bottom: 8px;">
       <template x-for="(item, index) in selectedItems" :key="item.id">
@@ -587,7 +589,7 @@ hx-vals='{"field_name": "{{ field_ctx.meta.name }}"}'
       </template>
     </div>
     <div class="relation-picker">
-      <input type="text" x-model="searchQuery" @input="search()" @click.outside="open = false" @focus="open = true"
+      <input type="text" x-model="searchQuery" @input="search()" @focus="open = true" @click.outside="open = false"
              placeholder="Add {{ field_ctx.meta.label | lower }}..."
              class="form-input">
       <div x-show="open && results.length > 0" class="relation-picker-dropdown">

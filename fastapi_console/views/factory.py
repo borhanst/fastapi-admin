@@ -32,6 +32,8 @@ def _apply_parsed_to_obj(
         mapper = None
     if mapper is not None:
         for rel_key, rel_prop in mapper.relationships.items():
+            if rel_prop.direction.name == "MANYTOMANY":
+                continue
             local_cols = [c.key for c in rel_prop.local_columns]
             if local_cols:
                 rel_fk_map[rel_key] = local_cols[0]
@@ -41,8 +43,73 @@ def _apply_parsed_to_obj(
             setattr(obj, key, value)
         elif key in rel_fk_map:
             setattr(obj, rel_fk_map[key], value)
+
+
+def _pop_manytomany_keys(
+    obj: Any, parsed: dict[str, Any], registered: RegisteredModel
+) -> dict[str, dict[str, Any]]:
+    """Remove MANYTOMANY relationship keys from parsed dict in-place.
+
+    Returns a dict mapping rel_key -> raw parsed value for M2M fields.
+    """
+    from sqlalchemy import inspect as sa_inspect
+
+    m2m_data: dict[str, Any] = {}
+    try:
+        model_class = type(obj) if not isinstance(obj, type) else obj
+        mapper = sa_inspect(model_class)
+    except Exception:
+        return m2m_data
+    for rel_key, rel_prop in mapper.relationships.items():
+        if rel_prop.direction.name == "MANYTOMANY" and rel_key in parsed:
+            m2m_data[rel_key] = parsed.pop(rel_key)
+    return m2m_data
+
+
+async def _apply_m2m_from_data(
+    obj: Any, m2m_data: dict[str, Any], registered: RegisteredModel, session: Any
+) -> None:
+    """Apply MANYTOMANY data extracted by _pop_manytomany_keys."""
+    import json as _json
+    from sqlalchemy import inspect as sa_inspect
+
+    if not m2m_data:
+        return
+    try:
+        mapper = sa_inspect(type(obj))
+    except Exception:
+        return
+    for rel_key, rel_prop in mapper.relationships.items():
+        if rel_prop.direction.name != "MANYTOMANY":
+            continue
+        if rel_key not in m2m_data:
+            continue
+        raw = m2m_data[rel_key]
+        pk_list = []
+        if isinstance(raw, list):
+            for item in raw:
+                if isinstance(item, str) and item.startswith("["):
+                    try:
+                        pk_list.extend(_json.loads(item))
+                    except (ValueError, TypeError):
+                        pk_list.append(item)
+                else:
+                    pk_list.append(item)
         else:
-            setattr(obj, key, value)
+            pk_list = [raw]
+        target_model = rel_prop.mapper.class_
+        objs = []
+        for pk in pk_list:
+            if not pk:
+                continue
+            try:
+                loaded = await session.get(target_model, int(pk))
+                if loaded:
+                    objs.append(loaded)
+            except (ValueError, TypeError):
+                pass
+        await session.refresh(obj, [rel_key])
+        setattr(obj, rel_key, objs)
 
 
 def _resolve_rel_keys(
@@ -60,6 +127,8 @@ def _resolve_rel_keys(
         mapper = None
     if mapper is not None:
         for rel_key, rel_prop in mapper.relationships.items():
+            if rel_prop.direction.name == "MANYTOMANY":
+                continue
             local_cols = [c.key for c in rel_prop.local_columns]
             if local_cols:
                 rel_fk_map[rel_key] = local_cols[0]
@@ -311,7 +380,7 @@ class ViewFactory:
             checker = await _resolve_permission_checker(request)
             if checker:
                 await checker.load_permissions(registered.table_name)
-            ctx = self.context_builder.build_form_context(
+            ctx = await self.context_builder.build_form_context(
                 registered, request, is_create=True, permission_checker=checker
             )
             return templates.TemplateResponse(request, "pages/form.html", ctx)
@@ -336,7 +405,7 @@ class ViewFactory:
 
             if errors:
                 await session.rollback()
-                ctx = self.context_builder.build_form_context(
+                ctx = await self.context_builder.build_form_context(
                     registered,
                     request,
                     values=parsed,
@@ -348,10 +417,12 @@ class ViewFactory:
                     request, "pages/form.html", ctx, status_code=422
                 )
 
+            m2m_data = _pop_manytomany_keys(registered.model, parsed, registered)
             parsed = _resolve_rel_keys(parsed, registered)
             obj = registered.model(**parsed)
             registered.admin.on_create(obj, request)
             session.add(obj)
+            await _apply_m2m_from_data(obj, m2m_data, registered, session)
             await session.commit()
             registered.admin.after_create(obj, request)
             add_flash(request, "success", f"{registered.verbose_name} created.")
@@ -374,7 +445,7 @@ class ViewFactory:
             if checker:
                 await checker.load_permissions(registered.table_name)
             rel_labels = await _resolve_rel_labels(obj, registered, request)
-            ctx = self.context_builder.build_form_context(
+            ctx = await self.context_builder.build_form_context(
                 registered,
                 request,
                 obj=obj,
@@ -408,7 +479,7 @@ class ViewFactory:
             if errors:
                 await session.rollback()
                 rel_labels = await _resolve_rel_labels(obj, registered, request)
-                ctx = self.context_builder.build_form_context(
+                ctx = await self.context_builder.build_form_context(
                     registered,
                     request,
                     obj=obj,
@@ -423,7 +494,9 @@ class ViewFactory:
                 )
 
             registered.admin.on_update(obj, parsed, request)
+            m2m_data = _pop_manytomany_keys(obj, parsed, registered)
             _apply_parsed_to_obj(obj, parsed, registered)
+            await _apply_m2m_from_data(obj, m2m_data, registered, session)
             await session.commit()
             registered.admin.after_update(obj, request)
             add_flash(request, "success", f"{registered.verbose_name} updated.")

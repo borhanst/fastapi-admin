@@ -9,18 +9,21 @@ from fastapi_console.auth.csrf import (
     set_csrf_cookie,
 )
 from fastapi_console.auth.models import (
-    AdminFieldPermission,
     AdminPermission,
     AdminRole,
     AdminUser,
+    AdminUserPermission,
 )
-from fastapi_console.auth.session import SessionBackend, SignedCookieSessionBackend
+from fastapi_console.auth.session import (
+    SessionBackend,
+    SignedCookieSessionBackend,
+)
 
 __all__ = [
-    "AdminFieldPermission",
     "AdminPermission",
     "AdminRole",
     "AdminUser",
+    "AdminUserPermission",
     "AuthBackend",
     "BuiltinAuthBackend",
     "SessionBackend",

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from fastapi_console.auth.models import AdminFieldPermission, AdminPermission
+from fastapi_console.auth.models import AdminPermission, AdminUserPermission
 from fastapi_console.types import PermissionSet
 
 if TYPE_CHECKING:
@@ -18,6 +18,12 @@ class PermissionChecker:
 
     Instantiated once per request via ``Depends(get_permission_checker)``.
     Caches permission results in-memory for the lifetime of the request.
+
+    Merges permissions from:
+    1. All assigned roles (M2M via admin_user_roles)
+    2. Direct per-user overrides (AdminUserPermission)
+
+    Role permissions are OR'd together, then direct overrides are OR'd on top.
     """
 
     def __init__(
@@ -33,18 +39,102 @@ class PermissionChecker:
         self._is_superuser: bool = (
             bool(snap["is_superuser"]) if "is_superuser" in snap else bool(user.is_superuser)
         )
-        self._role_id: int | None = (
-            snap["role_id"] if "role_id" in snap else user.role_id
+        self._role_ids: list[int] = (
+            snap["role_ids"] if "role_ids" in snap else getattr(user, "role_ids", [])
         )
+        self._user_id: int | str | None = (
+            snap.get("user_id") if snap else getattr(user, "id", None)
+        )
+        self._role_cache: dict[str, PermissionSet | None] | None = None
+        self._direct_cache: dict[str, PermissionSet | None] | None = None
         self._cache: dict[tuple[str, str], bool] = {}
         self._field_cache: dict[tuple[str, str], set[str] | None] = {}
+
+    async def _load_role_permissions(self) -> dict[str, PermissionSet | None]:
+        """Load and cache all role-based permissions, merged with OR logic."""
+        if self._role_cache is not None:
+            return self._role_cache
+
+        self._role_cache = {}
+        if not self._role_ids:
+            return self._role_cache
+
+        from sqlalchemy import select
+
+        result = await self.session.execute(
+            select(AdminPermission).where(
+                AdminPermission.role_id.in_(self._role_ids)
+            )
+        )
+        for perm in result.scalars():
+            table = perm.table_name
+            if table not in self._role_cache:
+                self._role_cache[table] = PermissionSet()
+            ps = self._role_cache[table]
+            if perm.can_view:
+                ps.can_view = True
+            if perm.can_create:
+                ps.can_create = True
+            if perm.can_edit:
+                ps.can_edit = True
+            if perm.can_delete:
+                ps.can_delete = True
+
+        return self._role_cache
+
+    async def _load_direct_permissions(self) -> dict[str, PermissionSet | None]:
+        """Load and cache direct per-user permission overrides."""
+        if self._direct_cache is not None:
+            return self._direct_cache
+
+        self._direct_cache = {}
+        if self._user_id is None:
+            return self._direct_cache
+
+        from sqlalchemy import select
+
+        result = await self.session.execute(
+            select(AdminUserPermission).where(
+                AdminUserPermission.user_id == self._user_id
+            )
+        )
+        for perm in result.scalars():
+            table = perm.table_name
+            if table not in self._direct_cache:
+                self._direct_cache[table] = PermissionSet()
+            ps = self._direct_cache[table]
+            if perm.can_view:
+                ps.can_view = True
+            if perm.can_create:
+                ps.can_create = True
+            if perm.can_edit:
+                ps.can_edit = True
+            if perm.can_delete:
+                ps.can_delete = True
+
+        return self._direct_cache
+
+    async def _get_merged_permission(self, table_name: str, action: str) -> bool:
+        """Get merged permission for a table+action across roles and direct overrides."""
+        role_perms = await self._load_role_permissions()
+        direct_perms = await self._load_direct_permissions()
+
+        attr = f"can_{action}"
+
+        role_ps = role_perms.get(table_name)
+        direct_ps = direct_perms.get(table_name)
+
+        role_val = getattr(role_ps, attr, False) if role_ps else False
+        direct_val = getattr(direct_ps, attr, False) if direct_ps else False
+
+        return role_val or direct_val
 
     async def has_permission(self, table_name: str, action: str) -> bool:
         """Return True if the current user may perform *action* on *table_name*.
 
         Actions: ``"view"`` | ``"create"`` | ``"edit"`` | ``"delete"``
 
-        Superusers always return True.  Results are cached per-request.
+        Superusers always return True. Results are cached per-request.
         """
         if self._is_superuser:
             return True
@@ -53,21 +143,7 @@ class PermissionChecker:
         if cache_key in self._cache:
             return self._cache[cache_key]
 
-        if self._role_id is None:
-            self._cache[cache_key] = False
-            return False
-
-        from sqlalchemy import select
-
-        result = await self.session.execute(
-            select(AdminPermission).where(
-                AdminPermission.role_id == self._role_id,
-                AdminPermission.table_name == table_name,
-            )
-        )
-        perm = result.scalar_one_or_none()
-
-        result_bool = bool(perm and getattr(perm, f"can_{action}", False))
+        result_bool = await self._get_merged_permission(table_name, action)
         self._cache[cache_key] = result_bool
         return result_bool
 
@@ -88,28 +164,14 @@ class PermissionChecker:
         if cache_key in self._field_cache:
             return self._field_cache[cache_key]
 
-        if self._role_id is None:
+        # No role and no direct permissions → all fields restricted
+        if not self._role_ids and self._user_id is None:
             self._field_cache[cache_key] = set()
             return set()
 
-        from sqlalchemy import select
-
-        result = await self.session.execute(
-            select(AdminFieldPermission).where(
-                AdminFieldPermission.role_id == self._role_id,
-                AdminFieldPermission.table_name == table_name,
-            )
-        )
-        rows = result.scalars().all()
-
-        if not rows:
-            self._field_cache[cache_key] = None
-            return None
-
-        attr = "can_view" if mode == "view" else "can_edit"
-        allowed = {r.field_name for r in rows if getattr(r, attr)}
-        self._field_cache[cache_key] = allowed
-        return allowed
+        # No field-level restrictions in this system anymore
+        self._field_cache[cache_key] = None
+        return None
 
     def permission_set(self, table_name: str) -> PermissionSet:
         """Return a :class:`PermissionSet` for convenient template / UI use.

@@ -112,8 +112,8 @@ document.addEventListener('alpine:init', () => {
 
   /* ── Multi-Relation ──────────────────────────────────────────────── */
 
-  Alpine.data('multiRelation', (initialIds, searchUrl) => ({
-    selectedIds: initialIds || [],
+  Alpine.data('multiRelation', (initialIds, searchUrl, initialItems) => ({
+    selectedIds: [],
     selectedItems: [],
     searchQuery: '',
     results: [],
@@ -121,14 +121,42 @@ document.addEventListener('alpine:init', () => {
     _debounce: null,
 
     init() {
-      if (this.selectedIds.length > 0) {
+      if (Array.isArray(initialIds)) {
+        this.selectedIds = initialIds;
+      } else if (typeof initialIds === 'string' && initialIds) {
+        try { this.selectedIds = JSON.parse(initialIds); } catch (e) { this.selectedIds = []; }
+      }
+      if (Array.isArray(initialItems)) {
+        this.selectedItems = initialItems;
+      } else if (typeof initialItems === 'string' && initialItems) {
+        try { this.selectedItems = JSON.parse(initialItems); } catch (e) { this.selectedItems = []; }
+      }
+      if (this.selectedIds.length > 0 && this.selectedItems.length === 0) {
         this._loadSelected();
       }
+      const self = this;
+      this.$nextTick(() => {
+        const input = self.$el.querySelector('input[type="text"]');
+        if (input) {
+          input.addEventListener('focus', () => {
+            self.open = true;
+            self.search();
+          });
+        }
+      });
+    },
+
+    _ensureArray(val) {
+      if (Array.isArray(val)) return val;
+      if (typeof val === 'string' && val) {
+        try { return JSON.parse(val); } catch (e) { return []; }
+      }
+      return [];
     },
 
     async _loadSelected() {
       try {
-        const ids = Array.isArray(this.selectedIds) ? this.selectedIds : JSON.parse(this.selectedIds);
+        const ids = this._ensureArray(this.selectedIds);
         const resp = await fetch(`${searchUrl}?ids=${ids.join(',')}`);
         if (resp.ok) {
           this.selectedItems = await resp.json();
@@ -141,15 +169,15 @@ document.addEventListener('alpine:init', () => {
     async search() {
       clearTimeout(this._debounce);
       this._debounce = setTimeout(async () => {
-        if (this.searchQuery.length < 1) {
-          this.results = [];
-          return;
-        }
         try {
-          const resp = await fetch(`${searchUrl}?q=${encodeURIComponent(this.searchQuery)}`);
+          const q = this.searchQuery.trim();
+          const url = q ? `${searchUrl}?q=${encodeURIComponent(q)}` : `${searchUrl}`;
+          const resp = await fetch(url);
           if (resp.ok) {
             const all = await resp.json();
-            this.results = all.filter(r => !this.selectedIds.includes(r.id));
+            const ids = this._ensureArray(this.selectedIds);
+            const idStrs = ids.map(String);
+            this.results = all.filter(r => !idStrs.includes(String(r.id)));
           }
         } catch (e) {
           console.error('Multi-relation search error:', e);
@@ -158,7 +186,9 @@ document.addEventListener('alpine:init', () => {
     },
 
     add(result) {
-      if (!this.selectedIds.includes(result.id)) {
+      const ids = this._ensureArray(this.selectedIds);
+      const idStrs = ids.map(String);
+      if (!idStrs.includes(String(result.id))) {
         this.selectedIds.push(result.id);
         this.selectedItems.push(result);
       }

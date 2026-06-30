@@ -343,7 +343,7 @@ class Admin:
             # Default — no validation needed, built-in AdminUser is used
             return
 
-        required_attrs = ["id", "email", "is_active", "is_superuser", "role_id"]
+        required_attrs = ["id", "email", "is_active", "is_superuser", "roles"]
         missing = [attr for attr in required_attrs if not hasattr(model, attr)]
         if missing:
             raise ConfigError(
@@ -628,12 +628,12 @@ class Admin:
             permissions_map = {}
 
             if user and not is_superuser:
-                role_id = (
-                    snapshot.get("role_id")
+                role_ids = (
+                    snapshot.get("role_ids", [])
                     if snapshot
-                    else getattr(user, "role_id", None)
+                    else getattr(user, "role_ids", [])
                 )
-                if role_id is not None:
+                if role_ids:
                     try:
                         from sqlalchemy import select
                         from sqlalchemy.orm import Session
@@ -644,17 +644,26 @@ class Admin:
                         with Session(engine) as s:
                             result = s.execute(
                                 select(AdminPermission).filter(
-                                    AdminPermission.role_id == role_id
+                                    AdminPermission.role_id.in_(role_ids)
                                 )
                             )
                             rows = result.scalars().all()
                             for perm in rows:
-                                permissions_map[perm.table_name] = PermissionSet(
-                                    can_view=perm.can_view,
-                                    can_create=perm.can_create,
-                                    can_edit=perm.can_edit,
-                                    can_delete=perm.can_delete,
-                                )
+                                if perm.table_name in permissions_map:
+                                    existing = permissions_map[perm.table_name]
+                                    permissions_map[perm.table_name] = PermissionSet(
+                                        can_view=existing.can_view or perm.can_view,
+                                        can_create=existing.can_create or perm.can_create,
+                                        can_edit=existing.can_edit or perm.can_edit,
+                                        can_delete=existing.can_delete or perm.can_delete,
+                                    )
+                                else:
+                                    permissions_map[perm.table_name] = PermissionSet(
+                                        can_view=perm.can_view,
+                                        can_create=perm.can_create,
+                                        can_edit=perm.can_edit,
+                                        can_delete=perm.can_delete,
+                                    )
                     except Exception:
                         pass
 

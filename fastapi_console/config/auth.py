@@ -45,7 +45,7 @@ class AuthConfig:
         if model is None:
             return
 
-        required_attrs = ["id", "email", "is_active", "is_superuser", "role_id"]
+        required_attrs = ["id", "email", "is_active", "is_superuser", "roles"]
         missing = [attr for attr in required_attrs if not hasattr(model, attr)]
         if missing:
             raise ConfigError(

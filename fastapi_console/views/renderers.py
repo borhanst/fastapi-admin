@@ -596,6 +596,21 @@ class DefaultQueryProvider:
         return items, total, page, per_page
 
     async def get_object(self, request: Request, id: Any) -> Any | None:
-        """Return a single object by primary key."""
+        """Return a single object by primary key, eagerly loading M2M relationships."""
+        from sqlalchemy import inspect as sa_inspect
+        from sqlalchemy.orm import selectinload
+
         session = get_db_session(request)
+        mapper = sa_inspect(self.registered.model)
+        options = []
+        for rel in mapper.relationships:
+            if rel.direction.name == "MANYTOMANY":
+                options.append(selectinload(getattr(self.registered.model, rel.key)))
+        if options:
+            from sqlalchemy import select
+            stmt = select(self.registered.model).options(*options).where(
+                getattr(self.registered.model, self.registered.pk_field) == id
+            )
+            result = await session.execute(stmt)
+            return result.scalar_one_or_none()
         return await session.get(self.registered.model, id)

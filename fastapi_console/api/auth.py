@@ -59,47 +59,58 @@ def _get_refresh_ttl() -> int:
 async def _build_user_permissions(
     user: Any, db_session: Any
 ) -> dict[str, list[str]]:
-    """Build permissions dict from user's role."""
+    """Build permissions dict from user's roles and direct overrides."""
     permissions: dict[str, list[str]] = {}
     if getattr(user, "is_superuser", False):
         return permissions
 
-    role_id = getattr(user, "role_id", None)
-    if role_id is None:
-        return permissions
-
     from sqlalchemy import select
 
-    from fastapi_console.auth.models import AdminPermission
+    from fastapi_console.auth.models import AdminPermission, AdminUserPermission
 
-    result = await db_session.execute(
-        select(AdminPermission).where(AdminPermission.role_id == role_id)
-    )
-    for perm in result.scalars():
-        actions = []
-        if perm.can_view:
-            actions.append("view")
-        if perm.can_create:
-            actions.append("create")
-        if perm.can_edit:
-            actions.append("edit")
-        if perm.can_delete:
-            actions.append("delete")
-        if actions:
-            permissions[perm.table_name] = actions
-    return permissions
-    for perm in result.scalars():
-        actions = []
-        if perm.can_view:
-            actions.append("view")
-        if perm.can_create:
-            actions.append("create")
-        if perm.can_edit:
-            actions.append("edit")
-        if perm.can_delete:
-            actions.append("delete")
-        if actions:
-            permissions[perm.table_name] = actions
+    # Collect permissions from all assigned roles (OR merge)
+    role_ids = getattr(user, "role_ids", [])
+    if role_ids:
+        result = await db_session.execute(
+            select(AdminPermission).where(AdminPermission.role_id.in_(role_ids))
+        )
+        for perm in result.scalars():
+            actions = []
+            if perm.can_view:
+                actions.append("view")
+            if perm.can_create:
+                actions.append("create")
+            if perm.can_edit:
+                actions.append("edit")
+            if perm.can_delete:
+                actions.append("delete")
+            if actions:
+                permissions[perm.table_name] = actions
+
+    # Merge direct user permission overrides (OR on top)
+    user_id = getattr(user, "id", None)
+    if user_id is not None:
+        result = await db_session.execute(
+            select(AdminUserPermission).where(
+                AdminUserPermission.user_id == user_id
+            )
+        )
+        for perm in result.scalars():
+            actions = []
+            if perm.can_view:
+                actions.append("view")
+            if perm.can_create:
+                actions.append("create")
+            if perm.can_edit:
+                actions.append("edit")
+            if perm.can_delete:
+                actions.append("delete")
+            if actions:
+                existing = permissions.get(perm.table_name, [])
+                permissions[perm.table_name] = list(
+                    set(existing) | set(actions)
+                )
+
     return permissions
 
 
@@ -115,9 +126,9 @@ def create_access_token(
     jti = str(uuid.uuid4())
 
     role_names = []
-    role = getattr(user, "role", None)
-    if role is not None:
-        role_name = getattr(role, "name", None)
+    roles = getattr(user, "roles", [])
+    for r in roles:
+        role_name = getattr(r, "name", None)
         if role_name:
             role_names.append(role_name)
 

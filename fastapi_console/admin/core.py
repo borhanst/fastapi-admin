@@ -452,7 +452,9 @@ class Admin:
 
         # Add audit context middleware
         if not getattr(self, "_audit_middleware_added", False):
-            from fastapi_console.audit.middleware import audit_context_middleware
+            from fastapi_console.audit.middleware import (
+                audit_context_middleware,
+            )
 
             try:
                 app.add_middleware(audit_context_middleware)
@@ -771,22 +773,44 @@ class Admin:
 
         # Material Symbols icon helper
         _icon_map = {
-            "home": "home", "chart-bar": "bar_chart", "clock": "schedule",
-            "shield-check": "verified_user", "users": "group", "folder": "folder",
-            "cube": "inventory_2", "shopping-cart": "shopping_cart",
-            "magnifying-glass": "search", "chevron-right": "chevron_right",
-            "chevron-left": "chevron_left", "chevron-up": "expand_less",
-            "chevron-down": "expand_more", "ellipsis-vertical": "more_vert",
-            "pencil": "edit", "trash": "delete", "x-mark": "close",
-            "x-circle": "cancel", "check-circle": "check_circle", "check": "check",
-            "plus": "add", "eye": "visibility", "bell": "notifications",
-            "sun": "light_mode", "moon": "dark_mode", "bars-": "menu",
+            "home": "home",
+            "chart-bar": "bar_chart",
+            "clock": "schedule",
+            "shield-check": "verified_user",
+            "users": "group",
+            "folder": "folder",
+            "cube": "inventory_2",
+            "shopping-cart": "shopping_cart",
+            "magnifying-glass": "search",
+            "chevron-right": "chevron_right",
+            "chevron-left": "chevron_left",
+            "chevron-up": "expand_less",
+            "chevron-down": "expand_more",
+            "ellipsis-vertical": "more_vert",
+            "pencil": "edit",
+            "trash": "delete",
+            "x-mark": "close",
+            "x-circle": "cancel",
+            "check-circle": "check_circle",
+            "check": "check",
+            "plus": "add",
+            "eye": "visibility",
+            "bell": "notifications",
+            "sun": "light_mode",
+            "moon": "dark_mode",
+            "bars-": "menu",
             "bars-3": "menu",
-            "arrow-down-tray": "download", "arrow-path": "refresh",
-            "paper-airplane": "send", "exclamation-triangle": "warning",
-            "information-circle": "info", "document-text": "description",
-            "arrow-down": "arrow_downward", "arrow-up": "arrow_upward",
-            "bolt": "bolt", "cog-": "settings", "cog-6-tooth": "settings",
+            "arrow-down-tray": "download",
+            "arrow-path": "refresh",
+            "paper-airplane": "send",
+            "exclamation-triangle": "warning",
+            "information-circle": "info",
+            "document-text": "description",
+            "arrow-down": "arrow_downward",
+            "arrow-up": "arrow_upward",
+            "bolt": "bolt",
+            "cog-": "settings",
+            "cog-6-tooth": "settings",
         }
 
         def _icon(name: str, size: str = "", **kwargs) -> str:
@@ -809,6 +833,17 @@ class Admin:
             "admin_path": self.router.admin_path,
         }
         self._jinja_env.env.globals["admin_config"] = admin_cfg
+
+        # Static file cache-busting version hash
+        import hashlib
+        from pathlib import Path as _Path
+
+        _admin_js_path = _Path(__file__).parent.parent / "static" / "js" / "admin.js"
+        if _admin_js_path.is_file():
+            _js_hash = hashlib.md5(_admin_js_path.read_bytes()).hexdigest()[:12]
+        else:
+            _js_hash = "dev"
+        self._jinja_env.env.globals["static_version"] = _js_hash
 
         # Theme config globals
         self._jinja_env.env.globals["theme_preset"] = "editorial"
@@ -883,7 +918,6 @@ class Admin:
     def _register_builtin_models(self) -> None:
         """Auto-register built-in admin models with default admin classes."""
         from fastapi_console.admin.builtin_models import (
-            AdminFieldPermissionAdmin,
             AdminLoginAttemptAdmin,
             AdminPermissionAdmin,
             AdminRefreshTokenAdmin,
@@ -894,7 +928,6 @@ class Admin:
         )
         from fastapi_console.audit.models import AuditLog
         from fastapi_console.auth.models import (
-            AdminFieldPermission,
             AdminLoginAttempt,
             AdminPermission,
             AdminRefreshToken,
@@ -908,7 +941,6 @@ class Admin:
             (AdminRole, AdminRoleAdmin),
             (AdminRefreshToken, AdminRefreshTokenAdmin),
             (AdminPermission, AdminPermissionAdmin),
-            (AdminFieldPermission, AdminFieldPermissionAdmin),
             (AdminUserTOTP, AdminUserTOTPAdmin),
             (AdminLoginAttempt, AdminLoginAttemptAdmin),
             (AuditLog, AuditLogAdmin),
@@ -952,9 +984,16 @@ class Admin:
             admin_path=self.router.admin_path,
         )
 
-    def build_sidebar_context(self, request: Any, user: Any = None, permissions_map: dict | None = None) -> dict:
+    def build_sidebar_context(
+        self,
+        request: Any,
+        user: Any = None,
+        permissions_map: dict | None = None,
+    ) -> dict:
         """Build per-request sidebar context (RBAC filter + permissions map)."""
-        return self.template.build_sidebar_context(request, user=user, permissions_map=permissions_map)
+        return self.template.build_sidebar_context(
+            request, user=user, permissions_map=permissions_map
+        )
 
     def sidebar_template_kwargs(self, request: Any) -> dict[str, Any]:
         """Thin wrapper — returns sidebar kwargs for TemplateResponse contexts."""

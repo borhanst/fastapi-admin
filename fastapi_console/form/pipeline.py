@@ -35,16 +35,31 @@ def build_form_context(
         if value is None and obj is not None:
             if hasattr(obj, "__dict__"):
                 value = obj.__dict__.get(field_meta.name)
-            # For relationship fields, read the FK column value to avoid lazy load
+            # For M2M relationships, extract IDs from loaded collection
             if value is None and rel is not None:
                 try:
                     from sqlalchemy import inspect as sa_inspect
                     mapper = sa_inspect(type(obj))
                     rel_prop = mapper.relationships.get(rel.name)
                     if rel_prop is not None:
-                        local_cols = [c.key for c in rel_prop.local_columns]
-                        if local_cols:
-                            value = getattr(obj, local_cols[0], None)
+                        if rel_prop.direction.name == "MANYTOMANY":
+                            collection = getattr(obj, rel_prop.key, None)
+                            if collection is not None:
+                                value = [str(item.id) for item in collection]
+                        else:
+                            local_cols = [c.key for c in rel_prop.local_columns]
+                            if local_cols:
+                                value = getattr(obj, local_cols[0], None)
+                except Exception:
+                    pass
+            # Handle case where __dict__ returned loaded M2M collection objects
+            if value is not None and rel is not None and isinstance(value, list) and value and hasattr(value[0], 'id'):
+                try:
+                    from sqlalchemy import inspect as sa_inspect
+                    mapper = sa_inspect(type(obj))
+                    rel_prop = mapper.relationships.get(rel.name)
+                    if rel_prop is not None and rel_prop.direction.name == "MANYTOMANY":
+                        value = [str(item.id) for item in value]
                 except Exception:
                     pass
             elif value is None and col is not None:

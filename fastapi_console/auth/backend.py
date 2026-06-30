@@ -8,7 +8,6 @@ from typing import TYPE_CHECKING, Any
 import bcrypt
 
 if TYPE_CHECKING:
-
     from fastapi_console.auth.protocol import AdminUserProtocol
 
 
@@ -41,7 +40,9 @@ class AuthBackend(ABC):
         ...
 
     @abstractmethod
-    async def get_user(self, user_id: int | str, session: Any) -> AdminUserProtocol | None:
+    async def get_user(
+        self, user_id: int | str, session: Any
+    ) -> AdminUserProtocol | None:
         """Load user by PK. Return ``None`` if not found or inactive."""
         ...
 
@@ -74,15 +75,18 @@ class BuiltinAuthBackend(AuthBackend):
             return None
         return user
 
-    async def get_user(self, user_id: int | str, session: Any) -> AdminUserProtocol | None:
+    async def get_user(
+        self, user_id: int | str, session: Any
+    ) -> AdminUserProtocol | None:
         from sqlalchemy import select
+        from sqlalchemy.orm import selectinload
 
         from fastapi_console.auth.models import AdminUser
 
         result = await session.execute(
-            select(AdminUser).where(
-                AdminUser.id == user_id, AdminUser.is_active.is_(True)
-            )
+            select(AdminUser)
+            .options(selectinload(AdminUser.roles))
+            .where(AdminUser.id == user_id, AdminUser.is_active.is_(True))
         )
         return result.scalar_one_or_none()
 

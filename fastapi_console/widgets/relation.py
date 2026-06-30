@@ -47,14 +47,16 @@ class MultiRelationWidget(Widget):
 
     macro_name = "multi_relation"
 
-    def __init__(self, related_table: str = "", related_verbose: str = ""):
+    def __init__(self, related_table: str = "", related_verbose: str = "", search_url: str = ""):
         self.related_table = related_table
         self.related_verbose = related_verbose
+        self.search_url = search_url
 
     def render_context(self, field: FieldMeta, value: Any) -> dict:
         ctx = super().render_context(field, value)
         ctx["related_table"] = self.related_table
         ctx["related_verbose"] = self.related_verbose
+        ctx["search_url"] = self.search_url
         return ctx
 
     def parse(self, raw: str | list | None) -> list[str]:

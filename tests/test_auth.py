@@ -50,9 +50,9 @@ def user(session, role):
         email="admin@example.com",
         hashed_password=_PasswordHasher.hash("secret123"),
         full_name="Test Admin",
-        role_id=role.id,
         is_active=True,
     )
+    user.roles.append(role)
     session.add(user)
     session.flush()
     return user
@@ -202,9 +202,9 @@ class TestBuiltinAuthBackend:
                 email="admin@example.com",
                 hashed_password=_PasswordHasher.hash("secret123"),
                 full_name="Test Admin",
-                role_id=role.id,
                 is_active=True,
             )
+            user.roles.append(role)
             session.add(user)
             await session.commit()
 
@@ -224,9 +224,9 @@ class TestBuiltinAuthBackend:
                 email="admin@example.com",
                 hashed_password=_PasswordHasher.hash("secret123"),
                 full_name="Test Admin",
-                role_id=role.id,
                 is_active=True,
             )
+            user.roles.append(role)
             session.add(user)
             await session.commit()
 
@@ -245,9 +245,9 @@ class TestBuiltinAuthBackend:
                 email="admin@example.com",
                 hashed_password=_PasswordHasher.hash("secret123"),
                 full_name="Test Admin",
-                role_id=role.id,
                 is_active=True,
             )
+            user.roles.append(role)
             session.add(user)
             await session.commit()
 
@@ -266,9 +266,9 @@ class TestBuiltinAuthBackend:
                 email="admin@example.com",
                 hashed_password=_PasswordHasher.hash("secret123"),
                 full_name="Test Admin",
-                role_id=role.id,
                 is_active=False,
             )
+            user.roles.append(role)
             session.add(user)
             await session.commit()
 
@@ -287,9 +287,9 @@ class TestBuiltinAuthBackend:
                 email="admin@example.com",
                 hashed_password=_PasswordHasher.hash("secret123"),
                 full_name="Test Admin",
-                role_id=role.id,
                 is_active=True,
             )
+            user.roles.append(role)
             session.add(user)
             await session.commit()
             await session.refresh(user)
@@ -317,9 +317,9 @@ class TestBuiltinAuthBackend:
                 email="admin@example.com",
                 hashed_password=_PasswordHasher.hash("secret123"),
                 full_name="Test Admin",
-                role_id=role.id,
                 is_active=False,
             )
+            user.roles.append(role)
             session.add(user)
             await session.commit()
             await session.refresh(user)

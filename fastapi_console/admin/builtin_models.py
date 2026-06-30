@@ -3,6 +3,7 @@
 from fastapi_console.modeladmin import ModelAdmin
 from fastapi_console.types import ExtraField
 from fastapi_console.widgets.inputs import PasswordWidget
+from fastapi_console.widgets.relation import MultiRelationWidget
 
 
 class AdminUserAdmin(ModelAdmin):
@@ -22,9 +23,16 @@ class AdminUserAdmin(ModelAdmin):
             widget=PasswordWidget(),
         ),
     ]
+    formfield_overrides = {
+        "roles": MultiRelationWidget(
+            related_table="admin_roles",
+            search_url="/admin/users/roles/search",
+        ),
+    }
 
     def prepare_create_data(self, data, request=None):
         from fastapi_console.auth.backend import pwd_context
+
         password = data.pop("password", None)
         if password:
             data["hashed_password"] = pwd_context.hash(password)
@@ -37,6 +45,7 @@ class AdminUserAdmin(ModelAdmin):
 
     def prepare_update_data(self, data, request=None):
         from fastapi_console.auth.backend import pwd_context
+
         password = data.pop("password", None)
         if password:
             data["hashed_password"] = pwd_context.hash(password)
@@ -69,15 +78,15 @@ class AdminPermissionAdmin(ModelAdmin):
     icon = "lock"
     verbose_name = "Permission"
     verbose_name_plural = "Permissions"
-    list_display = ["id", "role", "table_name", "can_view", "can_create", "can_edit", "can_delete"]
-
-
-class AdminFieldPermissionAdmin(ModelAdmin):
-    tag = "admin"
-    icon = "lock"
-    verbose_name = "Field Permission"
-    verbose_name_plural = "Field Permissions"
-    list_display = ["id", "role_id", "table_name", "field_name", "can_view", "can_edit"]
+    list_display = [
+        "id",
+        "role",
+        "table_name",
+        "can_view",
+        "can_create",
+        "can_edit",
+        "can_delete",
+    ]
 
 
 class AuditLogAdmin(ModelAdmin):
@@ -85,9 +94,29 @@ class AuditLogAdmin(ModelAdmin):
     icon = "clock"
     verbose_name = "Audit Log"
     verbose_name_plural = "Audit Logs"
-    list_display = ["id", "user_email", "action", "model_name", "object_id", "timestamp"]
+    list_display = [
+        "id",
+        "user_email",
+        "action",
+        "model_name",
+        "object_id",
+        "timestamp",
+    ]
     search_fields = ["user_email", "model_name"]
-    readonly_fields = ["user_id", "user_email", "action", "model_name", "table_name", "object_id", "object_repr", "changes", "full_snapshot", "ip_address", "user_agent", "timestamp"]
+    readonly_fields = [
+        "user_id",
+        "user_email",
+        "action",
+        "model_name",
+        "table_name",
+        "object_id",
+        "object_repr",
+        "changes",
+        "full_snapshot",
+        "ip_address",
+        "user_agent",
+        "timestamp",
+    ]
 
 
 class AdminUserTOTPAdmin(ModelAdmin):
@@ -96,7 +125,6 @@ class AdminUserTOTPAdmin(ModelAdmin):
     verbose_name = "2FA Token"
     verbose_name_plural = "2FA Tokens"
     list_display = ["id", "user_id", "enabled", "secret_key", "created_at"]
-    # exclude = ["secret_key", "backup_codes"]
 
 
 class AdminLoginAttemptAdmin(ModelAdmin):

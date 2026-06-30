@@ -29,7 +29,7 @@
         <tr class="border-b border-[var(--color-gray-200)]">
           <th class="px-6 py-3 text-left font-medium text-[var(--color-gray-500)]">Email</th>
           <th class="px-6 py-3 text-left font-medium text-[var(--color-gray-500)]">Full Name</th>
-          <th class="px-6 py-3 text-left font-medium text-[var(--color-gray-500)]">Role</th>
+          <th class="px-6 py-3 text-left font-medium text-[var(--color-gray-500)]">Roles</th>
           <th class="px-6 py-3 text-center font-medium text-[var(--color-gray-500)]">Superuser</th>
           <th class="px-6 py-3 text-center font-medium text-[var(--color-gray-500)]">Active</th>
           <th class="px-6 py-3 text-left font-medium text-[var(--color-gray-500)]">Last Login</th>
@@ -42,13 +42,16 @@
           <td class="px-6 py-4 font-medium text-[var(--color-gray-900)]">{{ u.email }}</td>
           <td class="px-6 py-4 text-[var(--color-gray-600)]">{{ u.full_name or '—' }}</td>
           <td class="px-6 py-4">
-            {% if u.role %}
-            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[var(--color-primary-50)] text-[var(--color-primary-700)]">
-              {{ u.role.name }}
-            </span>
-            {% else %}
-            <span class="text-[var(--color-gray-400)]">—</span>
-            {% endif %}
+            <div class="flex flex-wrap gap-1">
+              {% for r in u.roles %}
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[var(--color-primary-50)] text-[var(--color-primary-700)]">
+                {{ r.name }}
+              </span>
+              {% endfor %}
+              {% if not u.roles %}
+              <span class="text-[var(--color-gray-400)]">—</span>
+              {% endif %}
+            </div>
           </td>
           <td class="px-6 py-4 text-center">
             {% if u.is_superuser %}

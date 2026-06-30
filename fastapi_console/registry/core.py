@@ -65,6 +65,10 @@ class RegisteredModel:
         if resolver is None:
             resolver = WidgetResolver(widget_registry)
 
+        overrides = getattr(self.admin, "formfield_overrides", {})
+        if field_name in overrides:
+            return overrides[field_name]
+
         col = next((c for c in self.columns if c.name == field_name), None)
         rel = next(
             (r for r in self.relationships if r.name == field_name), None

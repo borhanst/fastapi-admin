@@ -101,6 +101,8 @@ class BaseView:
             mapper = None
         if mapper is not None:
             for rel_key, rel_prop in mapper.relationships.items():
+                if rel_prop.direction.name == "MANYTOMANY":
+                    continue
                 local_cols = [c.key for c in rel_prop.local_columns]
                 if local_cols:
                     rel_fk_map[rel_key] = local_cols[0]
@@ -335,11 +337,13 @@ class CreateView(BaseView):
         """Create object in database."""
         try:
             session = get_db_session(request)
+            m2m_data = self._pop_manytomany_keys(self.registered.model, parsed)
             resolved = self._resolve_rel_keys(parsed)
             resolved = self.admin.prepare_create_data(resolved, request)
             obj = self.registered.model(**resolved)
             self.admin.on_create(obj, request)
             session.add(obj)
+            await self._apply_m2m_from_data(obj, m2m_data, session)
             await session.commit()
             self.admin.after_create(obj, request)
             add_flash(
@@ -490,6 +494,69 @@ class EditView(BaseView):
         await inject_sidebar_context(request, template_context)
         return template_context
 
+    def _pop_manytomany_keys(self, obj: Any, parsed: dict[str, Any]) -> dict[str, Any]:
+        """Remove MANYTOMANY relationship keys from parsed dict in-place.
+
+        Returns a dict mapping rel_key -> raw parsed value for M2M fields.
+        """
+        from sqlalchemy import inspect as sa_inspect
+
+        m2m_data: dict[str, Any] = {}
+        try:
+            model_class = type(obj) if not isinstance(obj, type) else obj
+            mapper = sa_inspect(model_class)
+        except Exception:
+            return m2m_data
+        for rel_key, rel_prop in mapper.relationships.items():
+            if rel_prop.direction.name == "MANYTOMANY" and rel_key in parsed:
+                m2m_data[rel_key] = parsed.pop(rel_key)
+        return m2m_data
+
+    async def _apply_m2m_from_data(
+        self, obj: Any, m2m_data: dict[str, Any], session: Any
+    ) -> None:
+        """Apply MANYTOMANY data extracted by _pop_manytomany_keys."""
+        import json as _json
+        from sqlalchemy import inspect as sa_inspect
+
+        if not m2m_data:
+            return
+        try:
+            mapper = sa_inspect(type(obj))
+        except Exception:
+            return
+        for rel_key, rel_prop in mapper.relationships.items():
+            if rel_prop.direction.name != "MANYTOMANY":
+                continue
+            if rel_key not in m2m_data:
+                continue
+            raw = m2m_data[rel_key]
+            pk_list = []
+            if isinstance(raw, list):
+                for item in raw:
+                    if isinstance(item, str) and item.startswith("["):
+                        try:
+                            pk_list.extend(_json.loads(item))
+                        except (ValueError, TypeError):
+                            pk_list.append(item)
+                    else:
+                        pk_list.append(item)
+            else:
+                pk_list = [raw]
+            target_model = rel_prop.mapper.class_
+            objs = []
+            for pk in pk_list:
+                if not pk:
+                    continue
+                try:
+                    loaded = await session.get(target_model, int(pk))
+                    if loaded:
+                        objs.append(loaded)
+                except (ValueError, TypeError):
+                    pass
+            await session.refresh(obj, [rel_key])
+            setattr(obj, rel_key, objs)
+
     def _apply_parsed(self, obj: Any, parsed: dict[str, Any]) -> None:
         """Apply parsed form/JSON data to an ORM object.
 
@@ -509,6 +576,8 @@ class EditView(BaseView):
             mapper = None
         if mapper is not None:
             for rel_key, rel_prop in mapper.relationships.items():
+                if rel_prop.direction.name == "MANYTOMANY":
+                    continue
                 local_cols = [c.key for c in rel_prop.local_columns]
                 if local_cols:
                     rel_fk_map[rel_key] = local_cols[0]
@@ -518,8 +587,6 @@ class EditView(BaseView):
                 setattr(obj, key, value)
             elif key in rel_fk_map:
                 setattr(obj, rel_fk_map[key], value)
-            else:
-                setattr(obj, key, value)
 
     async def _update_object(
         self, request: Request, obj: Any, parsed: dict[str, Any]
@@ -527,9 +594,11 @@ class EditView(BaseView):
         """Update object in database."""
         try:
             parsed = self.admin.prepare_update_data(parsed, request)
+            m2m_data = self._pop_manytomany_keys(obj, parsed)
             self._apply_parsed(obj, parsed)
-            self.admin.on_update(obj, parsed, request)
             session = get_db_session(request)
+            await self._apply_m2m_from_data(obj, m2m_data, session)
+            self.admin.on_update(obj, parsed, request)
             await session.commit()
             self.admin.after_update(obj, request)
             add_flash(
@@ -605,7 +674,7 @@ class EditView(BaseView):
                     request, "pages/detail.html", ctx
                 )
             rel_labels = await self._resolve_rel_labels(obj, request)
-            ctx = self._build_form_context(
+            ctx = await self._build_form_context(
                 request,
                 obj=obj,
                 is_create=False,
@@ -654,9 +723,11 @@ class EditView(BaseView):
         parser = JSONBodyParser(self.registered)
         parsed, _ = await parser.parse(request, obj)
         try:
+            m2m_data = self._pop_manytomany_keys(obj, parsed)
             self._apply_parsed(obj, parsed)
-            self.admin.on_update(obj, parsed, request)
             session = get_db_session(request)
+            await self._apply_m2m_from_data(obj, m2m_data, session)
+            self.admin.on_update(obj, parsed, request)
             await session.commit()
             self.admin.after_update(obj, request)
         except Exception:

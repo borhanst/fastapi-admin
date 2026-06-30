@@ -1,4 +1,4 @@
-"""SQLAlchemy models for admin auth: roles, users, permissions, field permissions."""
+"""SQLAlchemy models for admin auth: roles, users, permissions."""
 
 from __future__ import annotations
 
@@ -9,15 +9,33 @@ from sqlalchemy import (
     ForeignKey,
     Integer,
     String,
+    Table,
     Text,
     UniqueConstraint,
 )
 from sqlalchemy.orm import relationship
-
-from fastapi_console.modeladmin import ModelAdmin
 from sqlalchemy.sql import func
 
+from fastapi_console.modeladmin import ModelAdmin
 from fastapi_console.models.base import Base
+
+# Junction table — no ORM model needed
+admin_user_roles = Table(
+    "admin_user_roles",
+    Base.metadata,
+    Column(
+        "user_id",
+        Integer,
+        ForeignKey("admin_users.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+    Column(
+        "role_id",
+        Integer,
+        ForeignKey("admin_roles.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+)
 
 
 class AdminRole(Base):
@@ -28,12 +46,11 @@ class AdminRole(Base):
     description = Column(Text)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
-    users = relationship("AdminUser", back_populates="role")
+    users = relationship(
+        "AdminUser", secondary=admin_user_roles, back_populates="roles"
+    )
     permissions = relationship(
         "AdminPermission", back_populates="role", cascade="all, delete-orphan"
-    )
-    field_permissions = relationship(
-        "AdminFieldPermission", back_populates="role", cascade="all, delete-orphan"
     )
 
     def __str__(self) -> str:
@@ -50,20 +67,35 @@ class AdminUser(Base):
     email = Column(String(255), unique=True, nullable=False)
     hashed_password = Column(String(255), nullable=False)
     full_name = Column(String(255))
-    role_id = Column(Integer, ForeignKey("admin_roles.id"), nullable=True)
     is_superuser = Column(Boolean, default=False)
     is_active = Column(Boolean, default=True)
     last_login = Column(DateTime(timezone=True))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     password_changed_at = Column(DateTime(timezone=True), nullable=True)
 
-    role = relationship("AdminRole", back_populates="users")
+    # Many-to-many roles
+    roles = relationship(
+        "AdminRole", secondary=admin_user_roles, back_populates="users"
+    )
+    # Direct permission overrides
+    direct_permissions = relationship(
+        "AdminUserPermission",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
     refresh_tokens = relationship(
         "AdminRefreshToken", back_populates="user", cascade="all, delete-orphan"
     )
     totp = relationship(
-        "AdminUserTOTP", back_populates="user", uselist=False, cascade="all, delete-orphan"
+        "AdminUserTOTP",
+        back_populates="user",
+        uselist=False,
+        cascade="all, delete-orphan",
     )
+
+    @property
+    def role_ids(self) -> list[int]:
+        return [r.id for r in self.roles]
 
     def __str__(self) -> str:
         return str(self.email)
@@ -73,9 +105,13 @@ class AdminUser(Base):
 
 
 class AdminPermission(Base):
+    """Permission matrix per role per model."""
+
     __tablename__ = "admin_permissions"
     __table_args__ = (
-        UniqueConstraint("role_id", "table_name", name="uq_admin_perm_role_table"),
+        UniqueConstraint(
+            "role_id", "table_name", name="uq_admin_perm_role_table"
+        ),
     )
 
     id = Column(Integer, primary_key=True)
@@ -96,41 +132,40 @@ class AdminPermission(Base):
         return f"{self.table_name} (role {self.role_id})"
 
     def __repr__(self) -> str:
-        return f"<AdminPermission role={self.role_id} table={self.table_name!r}>"
+        return (
+            f"<AdminPermission role={self.role_id} table={self.table_name!r}>"
+        )
 
 
-class AdminFieldPermission(Base):
-    __tablename__ = "admin_field_permissions"
+class AdminUserPermission(Base):
+    """Direct per-user permission overrides — merged with role permissions."""
+
+    __tablename__ = "admin_user_permissions"
     __table_args__ = (
         UniqueConstraint(
-            "role_id",
-            "table_name",
-            "field_name",
-            name="uq_admin_field_perm_role_table_field",
+            "user_id", "table_name", name="uq_admin_user_perm_user_table"
         ),
     )
 
     id = Column(Integer, primary_key=True)
-    role_id = Column(
+    user_id = Column(
         Integer,
-        ForeignKey("admin_roles.id", ondelete="CASCADE"),
+        ForeignKey("admin_users.id", ondelete="CASCADE"),
         nullable=False,
     )
     table_name = Column(String(255), nullable=False)
-    field_name = Column(String(255), nullable=False)
-    can_view = Column(Boolean, default=True)
-    can_edit = Column(Boolean, default=True)
+    can_view = Column(Boolean, default=False)
+    can_create = Column(Boolean, default=False)
+    can_edit = Column(Boolean, default=False)
+    can_delete = Column(Boolean, default=False)
 
-    role = relationship("AdminRole", back_populates="field_permissions")
+    user = relationship("AdminUser", back_populates="direct_permissions")
 
     def __str__(self) -> str:
-        return f"{self.table_name}.{self.field_name} (role {self.role_id})"
+        return f"{self.table_name} (user {self.user_id})"
 
     def __repr__(self) -> str:
-        return (
-            f"<AdminFieldPermission role={self.role_id} "
-            f"table={self.table_name!r} field={self.field_name!r}>"
-        )
+        return f"<AdminUserPermission user={self.user_id} table={self.table_name!r}>"
 
 
 class AdminRefreshToken(Base):
@@ -150,7 +185,9 @@ class AdminRefreshToken(Base):
     user = relationship("AdminUser", back_populates="refresh_tokens")
 
     __table_args__ = (
-        UniqueConstraint("user_id", "token_hash", name="uq_admin_refresh_token"),
+        UniqueConstraint(
+            "user_id", "token_hash", name="uq_admin_refresh_token"
+        ),
     )
 
     def __str__(self) -> str:
@@ -198,12 +235,12 @@ class AdminLoginAttempt(Base):
     success = Column(Boolean, default=False)
     timestamp = Column(DateTime(timezone=True), server_default=func.now())
 
-    __table_args__ = (
-        UniqueConstraint("id", name="uq_admin_login_attempt_id"),
-    )
+    __table_args__ = (UniqueConstraint("id", name="uq_admin_login_attempt_id"),)
 
     def __str__(self) -> str:
         return f"{self.email} - {'success' if self.success else 'failed'}"
 
     def __repr__(self) -> str:
-        return f"<AdminLoginAttempt email={self.email!r} success={self.success}>"
+        return (
+            f"<AdminLoginAttempt email={self.email!r} success={self.success}>"
+        )

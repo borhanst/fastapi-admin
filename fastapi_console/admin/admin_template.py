@@ -50,7 +50,12 @@ class AdminTemplate:
         """Thin wrapper — returns sidebar kwargs for TemplateResponse contexts."""
         return self.build_sidebar_context(request)
 
-    def build_sidebar_context(self, request: Any, user: Any = None, permissions_map: dict | None = None) -> dict:
+    def build_sidebar_context(
+        self,
+        request: Any,
+        user: Any = None,
+        permissions_map: dict | None = None,
+    ) -> dict:
         """Build per-request sidebar context (RBAC filter + permissions map).
 
         If *permissions_map* is provided (pre-loaded by the async caller),
@@ -61,10 +66,14 @@ class AdminTemplate:
 
         snapshot = getattr(request.state, "admin_user_snapshot", None)
         is_superuser = (
-            bool(snapshot.get("is_superuser", False))
-            if snapshot
-            else bool(getattr(user, "is_superuser", False))
-        ) if user else False
+            (
+                bool(snapshot.get("is_superuser", False))
+                if snapshot
+                else bool(getattr(user, "is_superuser", False))
+            )
+            if user
+            else False
+        )
 
         from fastapi_console.types import PermissionSet
 
@@ -74,12 +83,12 @@ class AdminTemplate:
             permissions_map = {}
 
             if user and not is_superuser:
-                role_id = (
-                    snapshot.get("role_id")
+                role_ids = (
+                    snapshot.get("role_ids", [])
                     if snapshot
-                    else getattr(user, "role_id", None)
+                    else getattr(user, "role_ids", [])
                 )
-                if role_id is not None:
+                if role_ids:
                     try:
                         from sqlalchemy import select
                         from sqlalchemy.orm import Session
@@ -90,17 +99,34 @@ class AdminTemplate:
                         with Session(engine) as s:
                             result = s.execute(
                                 select(AdminPermission).filter(
-                                    AdminPermission.role_id == role_id
+                                    AdminPermission.role_id.in_(role_ids)
                                 )
                             )
                             rows = result.scalars().all()
                             for perm in rows:
-                                permissions_map[perm.table_name] = PermissionSet(
-                                    can_view=perm.can_view,
-                                    can_create=perm.can_create,
-                                    can_edit=perm.can_edit,
-                                    can_delete=perm.can_delete,
-                                )
+                                if perm.table_name in permissions_map:
+                                    existing = permissions_map[perm.table_name]
+                                    permissions_map[perm.table_name] = (
+                                        PermissionSet(
+                                            can_view=existing.can_view
+                                            or perm.can_view,
+                                            can_create=existing.can_create
+                                            or perm.can_create,
+                                            can_edit=existing.can_edit
+                                            or perm.can_edit,
+                                            can_delete=existing.can_delete
+                                            or perm.can_delete,
+                                        )
+                                    )
+                                else:
+                                    permissions_map[perm.table_name] = (
+                                        PermissionSet(
+                                            can_view=perm.can_view,
+                                            can_create=perm.can_create,
+                                            can_edit=perm.can_edit,
+                                            can_delete=perm.can_delete,
+                                        )
+                                    )
                     except Exception:
                         pass
 
@@ -116,11 +142,14 @@ class AdminTemplate:
 
         def _filter_items(items: list[Any]) -> list[Any]:
             from dataclasses import replace
+
             result = []
             for item in items:
                 if not _item_visible(item):
                     continue
-                filtered_children = _filter_items(item.children) if item.children else []
+                filtered_children = (
+                    _filter_items(item.children) if item.children else []
+                )
                 result.append(replace(item, children=filtered_children))
             return result
 

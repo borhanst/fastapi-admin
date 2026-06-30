@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from sqlalchemy import or_, select
+from sqlalchemy.orm import selectinload
 
 from fastapi_console.auth.csrf import require_csrf_token
 from fastapi_console.auth.dependencies import get_current_admin_user
@@ -24,6 +25,43 @@ async def _require_superuser(
             status_code=403, detail="Superuser access required."
         )
     return user
+
+
+@router.get("/users/roles/search")
+async def roles_search(
+    request: Request,
+    q: str = Query("", description="Search query"),
+    ids: str = Query("", description="Comma-separated role IDs to load"),
+    _: AdminUserProtocol = Depends(_require_superuser),
+):
+    """Search roles for the multi-relation picker. Supports ?q= and ?ids=."""
+    session = get_db_session(request)
+
+    if ids:
+        id_list = [
+            int(i.strip()) for i in ids.split(",") if i.strip().isdigit()
+        ]
+        result = await session.execute(
+            select(AdminRole).where(AdminRole.id.in_(id_list))
+        )
+    elif q:
+        result = await session.execute(
+            select(AdminRole)
+            .where(
+                or_(
+                    AdminRole.name.ilike(f"%{q}%"),
+                    AdminRole.description.ilike(f"%{q}%"),
+                )
+            )
+            .limit(20)
+        )
+    else:
+        result = await session.execute(
+            select(AdminRole).order_by(AdminRole.name).limit(20)
+        )
+
+    roles = result.scalars().all()
+    return JSONResponse(content=[{"id": r.id, "label": r.name} for r in roles])
 
 
 @router.get("/users", response_class=HTMLResponse)
@@ -91,7 +129,6 @@ async def user_create_post(
     email = form.get("email", "").strip()
     password = form.get("password", "")
     full_name = form.get("full_name", "").strip()
-    role_id = form.get("role_id")
     is_superuser = form.get("is_superuser") == "on"
 
     if not email:
@@ -127,10 +164,34 @@ async def user_create_post(
         email=email,
         hashed_password=pwd_context.hash(password),
         full_name=full_name,
-        role_id=int(role_id) if role_id else None,
         is_superuser=is_superuser,
     )
     session.add(user)
+    await session.flush()
+
+    # Assign selected roles (from multiRelation JSON string or multi-select)
+    import json as _json
+
+    raw_role_ids = form.get("role_ids", "")
+    if isinstance(raw_role_ids, list):
+        raw_role_ids = raw_role_ids[0] if raw_role_ids else ""
+    if raw_role_ids:
+        try:
+            parsed = _json.loads(raw_role_ids)
+            if isinstance(parsed, list):
+                role_id_strs = [str(v) for v in parsed]
+            else:
+                role_id_strs = [str(parsed)]
+        except (ValueError, TypeError):
+            role_id_strs = [raw_role_ids]
+        for rid in role_id_strs:
+            try:
+                role = await session.get(AdminRole, int(rid))
+                if role:
+                    user.roles.append(role)
+            except (ValueError, TypeError):
+                pass
+
     await session.commit()
 
     return RedirectResponse(url="/admin/users", status_code=302)
@@ -146,7 +207,12 @@ async def user_edit_view(
     templates = request.app.state.admin_jinja_env
     session = get_db_session(request)
 
-    user = await session.get(AdminUser, user_id)
+    result = await session.execute(
+        select(AdminUser)
+        .options(selectinload(AdminUser.roles))
+        .where(AdminUser.id == user_id)
+    )
+    user = result.scalar_one_or_none()
     if user is None:
         raise HTTPException(status_code=404, detail="User not found.")
 
@@ -186,14 +252,12 @@ async def user_edit_post(
     email = form.get("email", "").strip()
     password = form.get("password", "")
     full_name = form.get("full_name", "").strip()
-    role_id = form.get("role_id")
     is_superuser = form.get("is_superuser") == "on"
     is_active = form.get("is_active") != "off"
 
     if email:
         user.email = email
     user.full_name = full_name
-    user.role_id = int(role_id) if role_id else None
 
     # Prevent superuser from deactivating themselves
     if user.id == current_user.id and not is_active:
@@ -231,6 +295,30 @@ async def user_edit_post(
                 ),
             )
         user.hashed_password = pwd_context.hash(password)
+
+    # Update roles: clear existing, add selected
+    import json as _json
+
+    user.roles.clear()
+    raw_role_ids = form.get("role_ids", "")
+    if isinstance(raw_role_ids, list):
+        raw_role_ids = raw_role_ids[0] if raw_role_ids else ""
+    if raw_role_ids:
+        try:
+            parsed = _json.loads(raw_role_ids)
+            if isinstance(parsed, list):
+                role_id_strs = [str(v) for v in parsed]
+            else:
+                role_id_strs = [str(parsed)]
+        except (ValueError, TypeError):
+            role_id_strs = [raw_role_ids]
+        for rid in role_id_strs:
+            try:
+                role = await session.get(AdminRole, int(rid))
+                if role:
+                    user.roles.append(role)
+            except (ValueError, TypeError):
+                pass
 
     await session.commit()
     return RedirectResponse(url="/admin/users", status_code=302)

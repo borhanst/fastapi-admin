@@ -8,7 +8,7 @@ from sqlalchemy import select
 
 from fastapi_console.auth.csrf import require_csrf_token
 from fastapi_console.auth.dependencies import get_current_admin_user
-from fastapi_console.auth.models import AdminFieldPermission, AdminPermission, AdminRole
+from fastapi_console.auth.models import AdminPermission, AdminRole
 from fastapi_console.auth.protocol import AdminUserProtocol
 from fastapi_console.db import get_db_session
 from fastapi_console.views.sidebar import inject_sidebar_context
@@ -70,7 +70,6 @@ async def role_create_view(
             "role": None,
             "models": models,
             "permissions": {},
-            "field_permissions": {},
         }),
     )
 
@@ -97,13 +96,6 @@ async def role_edit_view(
             select(AdminPermission).where(AdminPermission.role_id == role_id)
         )
     ).scalars().all()
-    f_perms = (
-        await session.execute(
-            select(AdminFieldPermission).where(
-                AdminFieldPermission.role_id == role_id
-            )
-        )
-    ).scalars().all()
 
     perm_map = {
         p.table_name: {
@@ -114,11 +106,6 @@ async def role_edit_view(
         }
         for p in perms
     }
-    f_perms_map = {}
-    for fp in f_perms:
-        if fp.table_name not in f_perms_map:
-            f_perms_map[fp.table_name] = {}
-        f_perms_map[fp.table_name][fp.field_name] = fp
 
     return templates.TemplateResponse(
         request,
@@ -127,7 +114,6 @@ async def role_edit_view(
             "role": role,
             "models": models,
             "permissions": perm_map,
-            "field_permissions": f_perms_map,
         }),
     )
 
@@ -148,19 +134,12 @@ async def role_save_view(
 
     form = await request.form()
     perm_data: dict[str, dict[str, str]] = {}
-    field_perm_data: dict[str, dict[str, dict[str, str]]] = {}
 
     for key, value in form.multi_items():
         if key.startswith("perm[") and key.endswith("]"):
             inner = key[5:-1]
             table, action = inner.split("][")
             perm_data.setdefault(table, {})[action] = value
-        elif key.startswith("field_perm[") and key.endswith("]"):
-            inner = key[11:-1]
-            parts = inner.split("][")
-            if len(parts) == 3:
-                table, field, mode = parts
-                field_perm_data.setdefault(table, {}).setdefault(field, {})[mode] = value
 
     existing_perms = (
         await session.execute(
@@ -192,24 +171,6 @@ async def role_save_view(
     for table, perm in existing_perm_map.items():
         if table not in tables_in_form:
             await session.delete(perm)
-
-    await session.flush()
-
-    await session.execute(
-        select(AdminFieldPermission)
-        .where(AdminFieldPermission.role_id == role_id)
-        .delete()
-    )
-    for table, fields in field_perm_data.items():
-        for field, modes in fields.items():
-            f_perm = AdminFieldPermission(
-                role_id = role_id,
-                table_name = table,
-                field_name = field,
-                can_view = modes.get("view") == "on",
-                can_edit = modes.get("edit") == "on",
-            )
-            session.add(f_perm)
 
     await session.commit()
 

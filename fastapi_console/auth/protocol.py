@@ -17,8 +17,6 @@ class AdminUserProtocol(Protocol):
     is_active: bool  # inactive users are refused login
     is_superuser: bool  # bypasses all permission checks if True
 
-    # Role linkage — the admin reads this to look up permissions.
-    # Must be either:
-    #   (a) an integer FK to admin_roles.id (simplest)
-    #   (b) None — then the user has no role and all permissions default to False
-    role_id: int | None
+    # Many-to-many roles — the admin reads this to look up permissions.
+    # Must be an iterable of role objects, each with an `id` attribute.
+    roles: list  # list of AdminRole objects (or compatible)

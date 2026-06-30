@@ -47,10 +47,10 @@ def admin_user(engine):
             email="test@example.com",
             hashed_password="$2b$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW",  # secret
             full_name="Test User",
-            role_id=role.id,
             is_superuser=True,
             is_active=True,
         )
+        user.roles.append(role)
         session.add(user)
         session.commit()
         session.refresh(user)

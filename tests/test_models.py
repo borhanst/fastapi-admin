@@ -6,7 +6,6 @@ from sqlalchemy.orm import Session
 
 from fastapi_console.audit.models import AuditLog
 from fastapi_console.auth.models import (
-    AdminFieldPermission,
     AdminPermission,
     AdminRole,
     AdminUser,
@@ -37,7 +36,7 @@ def test_all_tables_created(engine):
     assert "admin_roles" in tables
     assert "admin_users" in tables
     assert "admin_permissions" in tables
-    assert "admin_field_permissions" in tables
+    assert "admin_user_roles" in tables
     assert "admin_audit_log" in tables
 
 
@@ -72,15 +71,15 @@ def test_admin_user_create(session):
         email="admin@example.com",
         hashed_password="hashed_secret",
         full_name="Test Admin",
-        role_id=role.id,
         is_superuser=False,
         is_active=True,
     )
+    user.roles.append(role)
     session.add(user)
     session.flush()
     assert user.id is not None
     assert user.email == "admin@example.com"
-    assert user.role_id == role.id
+    assert role in user.roles
 
 
 def test_admin_user_unique_email(session):
@@ -103,13 +102,13 @@ def test_admin_user_role_relationship(session):
     user = AdminUser(
         email="viewer@example.com",
         hashed_password="h",
-        role_id=role.id,
     )
+    user.roles.append(role)
     session.add(user)
     session.flush()
 
-    assert user.role is not None
-    assert user.role.name == "Viewer"
+    assert len(user.roles) == 1
+    assert user.roles[0].name == "Viewer"
     assert role.users[0].email == "viewer@example.com"
 
 
@@ -119,7 +118,7 @@ def test_admin_user_defaults(session):
     session.flush()
     assert user.is_superuser is False
     assert user.is_active is True
-    assert user.role_id is None
+    assert user.roles == []
     assert user.last_login is None
 
 
@@ -177,46 +176,6 @@ def test_admin_permission_cascade_delete(session):
     assert session.query(AdminPermission).count() == 0
 
 
-# ── AdminFieldPermission ────────────────────────────────────────────────
-
-
-def test_admin_field_permission_create(session):
-    role = AdminRole(name="Restricted")
-    session.add(role)
-    session.flush()
-
-    fp = AdminFieldPermission(
-        role_id=role.id,
-        table_name="products",
-        field_name="price",
-        can_view=True,
-        can_edit=False,
-    )
-    session.add(fp)
-    session.flush()
-    assert fp.id is not None
-
-
-def test_admin_field_permission_unique_constraint(session):
-    role = AdminRole(name="Restricted")
-    session.add(role)
-    session.flush()
-
-    session.add(
-        AdminFieldPermission(
-            role_id=role.id, table_name="products", field_name="price"
-        )
-    )
-    session.flush()
-    with pytest.raises(Exception):
-        session.add(
-            AdminFieldPermission(
-                role_id=role.id, table_name="products", field_name="price"
-            )
-        )
-        session.flush()
-
-
 # ── AuditLog ─────────────────────────────────────────────────────────────
 
 
@@ -263,7 +222,6 @@ def test_admin_user_satisfies_protocol():
         hashed_password="h",
         is_active=True,
         is_superuser=False,
-        role_id=1,
     )
     assert isinstance(user, AdminUserProtocol)
 
@@ -282,7 +240,6 @@ def test_models_package_exports():
     assert Base is not None
 
     from fastapi_console.auth.models import (
-        AdminFieldPermission,
         AdminPermission,
         AdminRole,
         AdminUser,
@@ -291,7 +248,6 @@ def test_models_package_exports():
     assert AdminRole is not None
     assert AdminUser is not None
     assert AdminPermission is not None
-    assert AdminFieldPermission is not None
 
 
 def test_audit_log_exportable():
