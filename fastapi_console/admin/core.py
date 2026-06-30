@@ -880,17 +880,23 @@ class Admin:
         from fastapi_console.views.users import router as users_router
 
         for registered in self.registry.all():
+            if getattr(registered.admin, "skip_auto_routes", False):
+                continue
             model_router = build_model_router(registered)
             app.include_router(model_router, prefix=self.router.admin_path)
 
         # Auth routes (login/logout)
         app.include_router(auth_router, prefix=self.router.admin_path)
 
+        # Global search API
+        from fastapi_console.api.search import router as search_api_router
+        app.include_router(search_api_router, prefix=self.router.admin_path)
+
         # Audit, role management, settings, user management, profile, and 2FA routes
         app.include_router(audit_router, prefix=self.router.admin_path)
         app.include_router(roles_router, prefix=self.router.admin_path)
         app.include_router(settings_router, prefix=self.router.admin_path)
-        app.include_router(users_router, prefix=self.router.admin_path)
+        # app.include_router(users_router, prefix=self.router.admin_path) #TODO: this line add admin user duplicate endpoint
         app.include_router(profile_router, prefix=self.router.admin_path)
         app.include_router(totp_router, prefix=self.router.admin_path)
 

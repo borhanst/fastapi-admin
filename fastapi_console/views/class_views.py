@@ -115,6 +115,69 @@ class BaseView:
                 resolved[key] = value
         return resolved
 
+    def _pop_manytomany_keys(self, obj: Any, parsed: dict[str, Any]) -> dict[str, Any]:
+        """Remove MANYTOMANY relationship keys from parsed dict in-place.
+
+        Returns a dict mapping rel_key -> raw parsed value for M2M fields.
+        """
+        from sqlalchemy import inspect as sa_inspect
+
+        m2m_data: dict[str, Any] = {}
+        try:
+            model_class = type(obj) if not isinstance(obj, type) else obj
+            mapper = sa_inspect(model_class)
+        except Exception:
+            return m2m_data
+        for rel_key, rel_prop in mapper.relationships.items():
+            if rel_prop.direction.name == "MANYTOMANY" and rel_key in parsed:
+                m2m_data[rel_key] = parsed.pop(rel_key)
+        return m2m_data
+
+    async def _apply_m2m_from_data(
+        self, obj: Any, m2m_data: dict[str, Any], session: Any
+    ) -> None:
+        """Apply MANYTOMANY data extracted by _pop_manytomany_keys."""
+        import json as _json
+        from sqlalchemy import inspect as sa_inspect
+
+        if not m2m_data:
+            return
+        try:
+            mapper = sa_inspect(type(obj))
+        except Exception:
+            return
+        for rel_key, rel_prop in mapper.relationships.items():
+            if rel_prop.direction.name != "MANYTOMANY":
+                continue
+            if rel_key not in m2m_data:
+                continue
+            raw = m2m_data[rel_key]
+            pk_list = []
+            if isinstance(raw, list):
+                for item in raw:
+                    if isinstance(item, str) and item.startswith("["):
+                        try:
+                            pk_list.extend(_json.loads(item))
+                        except (ValueError, TypeError):
+                            pk_list.append(item)
+                    else:
+                        pk_list.append(item)
+            else:
+                pk_list = [raw]
+            target_model = rel_prop.mapper.class_
+            objs = []
+            for pk in pk_list:
+                if not pk:
+                    continue
+                try:
+                    loaded = await session.get(target_model, int(pk))
+                    if loaded:
+                        objs.append(loaded)
+                except (ValueError, TypeError):
+                    pass
+            await session.refresh(obj, [rel_key])
+            setattr(obj, rel_key, objs)
+
 
 class ListView(BaseView):
     """Orchestrates list view: query -> render HTML or API."""
@@ -204,6 +267,9 @@ class ListView(BaseView):
 
         display_columns = self._build_display_columns()
         filter_fields = await self._build_filter_fields(request)
+        ordering = request.query_params.get("ordering", "")
+        if not ordering and self.admin.ordering:
+            ordering = self.admin.ordering[0]
 
         template_context = {
             "model": self.registered,
@@ -217,6 +283,7 @@ class ListView(BaseView):
             "per_page": per_page,
             "filter_fields": filter_fields,
             "active_filters": active_filters,
+            "ordering": ordering,
             "permissions": checker.permission_set(self.registered.table_name)
             if checker
             else PermissionSet(
@@ -493,69 +560,6 @@ class EditView(BaseView):
         template_context.update(self._get_extra_context(request))
         await inject_sidebar_context(request, template_context)
         return template_context
-
-    def _pop_manytomany_keys(self, obj: Any, parsed: dict[str, Any]) -> dict[str, Any]:
-        """Remove MANYTOMANY relationship keys from parsed dict in-place.
-
-        Returns a dict mapping rel_key -> raw parsed value for M2M fields.
-        """
-        from sqlalchemy import inspect as sa_inspect
-
-        m2m_data: dict[str, Any] = {}
-        try:
-            model_class = type(obj) if not isinstance(obj, type) else obj
-            mapper = sa_inspect(model_class)
-        except Exception:
-            return m2m_data
-        for rel_key, rel_prop in mapper.relationships.items():
-            if rel_prop.direction.name == "MANYTOMANY" and rel_key in parsed:
-                m2m_data[rel_key] = parsed.pop(rel_key)
-        return m2m_data
-
-    async def _apply_m2m_from_data(
-        self, obj: Any, m2m_data: dict[str, Any], session: Any
-    ) -> None:
-        """Apply MANYTOMANY data extracted by _pop_manytomany_keys."""
-        import json as _json
-        from sqlalchemy import inspect as sa_inspect
-
-        if not m2m_data:
-            return
-        try:
-            mapper = sa_inspect(type(obj))
-        except Exception:
-            return
-        for rel_key, rel_prop in mapper.relationships.items():
-            if rel_prop.direction.name != "MANYTOMANY":
-                continue
-            if rel_key not in m2m_data:
-                continue
-            raw = m2m_data[rel_key]
-            pk_list = []
-            if isinstance(raw, list):
-                for item in raw:
-                    if isinstance(item, str) and item.startswith("["):
-                        try:
-                            pk_list.extend(_json.loads(item))
-                        except (ValueError, TypeError):
-                            pk_list.append(item)
-                    else:
-                        pk_list.append(item)
-            else:
-                pk_list = [raw]
-            target_model = rel_prop.mapper.class_
-            objs = []
-            for pk in pk_list:
-                if not pk:
-                    continue
-                try:
-                    loaded = await session.get(target_model, int(pk))
-                    if loaded:
-                        objs.append(loaded)
-                except (ValueError, TypeError):
-                    pass
-            await session.refresh(obj, [rel_key])
-            setattr(obj, rel_key, objs)
 
     def _apply_parsed(self, obj: Any, parsed: dict[str, Any]) -> None:
         """Apply parsed form/JSON data to an ORM object.

@@ -572,7 +572,11 @@ class DefaultQueryProvider:
         count_q = select(func.count()).select_from(base.subquery())
         total = (await session.execute(count_q)).scalar() or 0
 
-        order = registered.admin.ordering or []
+        query_ordering = request.query_params.get("ordering", "")
+        if query_ordering:
+            order = [query_ordering]
+        else:
+            order = registered.admin.ordering or []
         if order:
             col_name = order[0].lstrip("-")
             col = (

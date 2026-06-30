@@ -19,6 +19,7 @@ class AdminRouter:
 
     def _build_router(self, app: Any) -> None:
         """Build and mount routers for all registered models."""
+        from fastapi_console.api.search import router as search_api_router
         from fastapi_console.auth.router import router as auth_router
         from fastapi_console.registry import AdminRegistry
         from fastapi_console.router import build_model_router
@@ -33,6 +34,9 @@ class AdminRouter:
 
         # Auth routes (login/logout)
         app.include_router(auth_router, prefix=self.admin_path)
+
+        # Global search API
+        app.include_router(search_api_router, prefix=self.admin_path)
 
         # Audit & role management routes
         app.include_router(audit_router, prefix=self.admin_path)

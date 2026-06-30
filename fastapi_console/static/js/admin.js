@@ -371,6 +371,92 @@ document.addEventListener('alpine:init', () => {
     },
   }))
 
+  /* ── Command Palette (global search) ──────────────────────────────── */
+
+  Alpine.data('commandPalette', () => ({
+    open: false,
+    query: '',
+    results: [],
+    selectedIndex: 0,
+    _debounce: null,
+
+    init() {
+      window.addEventListener('open-command-palette', () => {
+        this.open = true;
+        this.$nextTick(() => {
+          const input = this.$refs.paletteInput;
+          if (input) { input.focus(); input.select(); }
+        });
+      });
+
+      document.addEventListener('keydown', (e) => {
+        if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+          e.preventDefault();
+          this.open = !this.open;
+          if (this.open) {
+            this.$nextTick(() => {
+              const input = this.$refs.paletteInput;
+              if (input) { input.focus(); input.select(); }
+            });
+          }
+        }
+      });
+    },
+
+    close() {
+      this.open = false;
+      this.query = '';
+      this.results = [];
+      this.selectedIndex = 0;
+    },
+
+    onInput() {
+      clearTimeout(this._debounce);
+      this._debounce = setTimeout(() => this.search(), 200);
+    },
+
+    async search() {
+      const q = this.query.trim();
+      if (!q) {
+        this.results = [];
+        this.selectedIndex = 0;
+        return;
+      }
+      try {
+        const resp = await fetch(`/admin/search/suggestions?q=${encodeURIComponent(q)}`);
+        if (resp.ok) {
+          const data = await resp.json();
+          this.results = data.suggestions || [];
+          this.selectedIndex = 0;
+        }
+      } catch (e) {
+        console.error('Command palette search error:', e);
+      }
+    },
+
+    onKeydown(e) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        this.selectedIndex = Math.min(this.selectedIndex + 1, this.results.length - 1);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        this.selectedIndex = Math.max(this.selectedIndex - 1, 0);
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (this.results[this.selectedIndex]) {
+          this.navigate(this.results[this.selectedIndex].url);
+        }
+      } else if (e.key === 'Escape') {
+        this.close();
+      }
+    },
+
+    navigate(url) {
+      this.close();
+      window.location.href = url;
+    },
+  }));
+
   /* ── JSON Editor ─────────────────────────────────────────────────── */
 
   Alpine.data('jsonEditor', (textareaId) => ({

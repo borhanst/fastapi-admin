@@ -73,7 +73,9 @@ async def user_list_view(
     templates = request.app.state.admin_jinja_env
     session = get_db_session(request)
 
-    result = await session.execute(select(AdminUser).order_by(AdminUser.id))
+    result = await session.execute(
+        select(AdminUser).options(selectinload(AdminUser.roles)).order_by(AdminUser.id)
+    )
     users = list(result.scalars().all())
 
     return templates.TemplateResponse(

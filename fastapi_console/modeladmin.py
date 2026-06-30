@@ -64,6 +64,9 @@ class ModelAdmin:
     nav_order: int = 999
     nav_children: list[NavItemConfig] | None = None
 
+    # Route generation
+    skip_auto_routes: bool = False
+
     # Custom display functions (dict-based fallback)
     display_functions: dict[str, Any] | None = None
 

@@ -382,7 +382,11 @@ class ViewContextBuilder:
         count_q = select(func.count()).select_from(base.subquery())
         total = (await session.execute(count_q)).scalar() or 0
 
-        order = registered.admin.ordering or []
+        query_ordering = request.query_params.get("ordering", "")
+        if query_ordering:
+            order = [query_ordering]
+        else:
+            order = registered.admin.ordering or []
         if order:
             col_name = order[0].lstrip("-")
             col = (
@@ -441,6 +445,10 @@ class ViewContextBuilder:
                     model, filter_field, session
                 )
 
+        ordering = request.query_params.get("ordering", "")
+        if not ordering and registered.admin.ordering:
+            ordering = registered.admin.ordering[0]
+
         template_context = {
             "model": registered,
             "registered": registered,
@@ -453,6 +461,7 @@ class ViewContextBuilder:
             "per_page": per_page,
             "filter_fields": filter_fields,
             "active_filters": active_filters,
+            "ordering": ordering,
             "permissions": permission_checker.permission_set(
                 registered.table_name
             )

@@ -14,9 +14,14 @@ from fastapi_console.registry import RegisteredModel
 
 def search_factory(registered: RegisteredModel):
     """Create a search handler — delegates to SearchView.html_response."""
-    from fastapi_console.views.class_views import SearchView, _resolve_view_class
+    from fastapi_console.views.class_views import (
+        SearchView,
+        _resolve_view_class,
+    )
 
-    view_class = _resolve_view_class(registered.admin, "search_view_class", SearchView)
+    view_class = _resolve_view_class(
+        registered.admin, "search_view_class", SearchView
+    )
     view_instance = view_class(registered)
 
     async def _handler(request: Request, **kwargs: Any):

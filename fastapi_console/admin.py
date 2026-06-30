@@ -559,6 +559,10 @@ class Admin:
         # Auth routes (login/logout)
         app.include_router(auth_router, prefix=self.admin_path)
 
+        # Global search API
+        from fastapi_console.api.search import router as search_api_router
+        app.include_router(search_api_router, prefix=self.admin_path)
+
         # Audit & role management routes
         app.include_router(audit_router, prefix=self.admin_path)
         app.include_router(roles_router, prefix=self.admin_path)
