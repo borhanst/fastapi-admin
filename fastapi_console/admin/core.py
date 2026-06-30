@@ -838,12 +838,14 @@ class Admin:
         import hashlib
         from pathlib import Path as _Path
 
-        _admin_js_path = _Path(__file__).parent.parent / "static" / "js" / "admin.js"
-        if _admin_js_path.is_file():
-            _js_hash = hashlib.md5(_admin_js_path.read_bytes()).hexdigest()[:12]
-        else:
-            _js_hash = "dev"
-        self._jinja_env.env.globals["static_version"] = _js_hash
+        _static_dir = _Path(__file__).parent.parent / "static"
+        _hash_data = b""
+        for _f in ("css/tokens.css", "css/presets.css", "css/admin.css", "js/admin.js"):
+            _fp = _static_dir / _f
+            if _fp.is_file():
+                _hash_data += _fp.read_bytes()
+        _static_version = hashlib.md5(_hash_data).hexdigest()[:12] if _hash_data else "dev"
+        self._jinja_env.env.globals["static_version"] = _static_version
 
         # Theme config globals
         self._jinja_env.env.globals["theme_preset"] = "editorial"

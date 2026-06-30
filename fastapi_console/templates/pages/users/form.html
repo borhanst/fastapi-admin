@@ -74,9 +74,9 @@
             <input type="hidden" name="role_ids" :value="JSON.stringify(selectedIds)">
             <div class="flex flex-wrap gap-2" style="margin-bottom: 8px;">
               <template x-for="(item, index) in selectedItems" :key="item.id">
-                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[var(--color-primary-50)] text-[var(--color-primary-700)]">
+                <span class="tag-chip">
                   <span x-text="item.label"></span>
-                  <button type="button" @click="remove(index)" class="ml-1 text-[var(--color-primary-400)] hover:text-[var(--color-primary-600)]">&times;</button>
+                  <button type="button" @click="remove(index)" class="tag-chip__remove">&times;</button>
                 </span>
               </template>
             </div>
