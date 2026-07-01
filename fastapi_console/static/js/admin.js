@@ -315,6 +315,74 @@ document.addEventListener('alpine:init', () => {
     },
   }));
 
+  /* ── Autocomplete Field ──────────────────────────────────────────── */
+
+  Alpine.data('autocompleteField', (suggestions, initialValue) => ({
+    query: initialValue || '',
+    open: false,
+    filtered: [],
+    highlighted: -1,
+    allSuggestions: suggestions || [],
+
+    onInput() {
+      const q = this.query.toLowerCase().trim();
+      this.highlighted = -1;
+      if (q.length > 0) {
+        this.filtered = this.allSuggestions.filter(s =>
+          s.toLowerCase().includes(q)
+        );
+        this.open = this.filtered.length > 0;
+      } else {
+        this.filtered = [];
+        this.open = false;
+      }
+    },
+
+    onFocus() {
+      const q = this.query.toLowerCase().trim();
+      if (q.length > 0) {
+        this.filtered = this.allSuggestions.filter(s =>
+          s.toLowerCase().includes(q)
+        );
+        this.open = this.filtered.length > 0;
+      }
+    },
+
+    selectItem(item) {
+      this.query = item;
+      this.filtered = [];
+      this.open = false;
+      this.highlighted = -1;
+    },
+
+    clearSelection() {
+      this.query = '';
+      this.filtered = [];
+      this.open = false;
+      this.highlighted = -1;
+    },
+
+    onArrowDown() {
+      if (this.highlighted < this.filtered.length - 1) {
+        this.highlighted++;
+      }
+    },
+
+    onArrowUp() {
+      if (this.highlighted > 0) {
+        this.highlighted--;
+      }
+    },
+
+    onEnter() {
+      if (this.highlighted >= 0 && this.highlighted < this.filtered.length) {
+        this.selectItem(this.filtered[this.highlighted]);
+      } else if (this.filtered.length > 0) {
+        this.selectItem(this.filtered[0]);
+      }
+    },
+  }));
+
   /* ── Row Selection ─────────────────────────────────────────────── */
 
   Alpine.data('rowSelect', () => ({

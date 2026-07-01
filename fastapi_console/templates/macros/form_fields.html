@@ -16,6 +16,7 @@
 {% macro render_field(field_ctx, model_name) %}
   {% set m = field_ctx.widget_macro %}
   {% if   m == "text_input"      %}{{ _text_input(field_ctx, model_name) }}
+  {% elif m == "autocomplete"    %}{{ _autocomplete(field_ctx, model_name) }}
   {% elif m == "textarea"        %}{{ _textarea(field_ctx, model_name) }}
   {% elif m == "number_input"    %}{{ _number_input(field_ctx, model_name) }}
   {% elif m == "toggle"          %}{{ _toggle(field_ctx) }}
@@ -86,6 +87,58 @@ hx-target="#field-wrapper-{{ field_ctx.meta.name }}"
 hx-swap="outerHTML"
 hx-include="[name='csrf_token']"
 hx-vals='{"field_name": "{{ field_ctx.meta.name }}"}'
+{% endmacro %}
+
+{# ─── Text Input ────────────────────────────────────────────────────────── #}
+
+{# ─── Autocomplete (Text Input with Datalist) ──────────────────────────── #}
+
+{% macro _autocomplete(field_ctx, model_name) %}
+{% set name = field_ctx.meta.name %}
+{% set val = field_ctx.widget_context.value | default('') %}
+{% set suggestions = field_ctx.widget_context.suggestions | default([]) %}
+{% set has_error = field_ctx.errors | length > 0 %}
+{{ _field_wrapper_open(field_ctx) }}
+  {{ _label(field_ctx) }}
+  {% set safe_suggestions = suggestions | tojson | forceescape %}
+  <div x-data="autocompleteField({{ safe_suggestions }}, '{{ val | e }}')"
+       @click.outside="open = false" style="position: relative;">
+    <div style="position: relative; display: flex; align-items: center;">
+      <input type="text" id="{{ name }}" name="{{ name }}"
+             x-model="query"
+             @input="onInput()"
+             @focus="onFocus()"
+             @keydown.escape="open = false"
+             @keydown.arrow-down.prevent="onArrowDown()"
+             @keydown.arrow-up.prevent="onArrowUp()"
+             @keydown.enter.prevent="onEnter()"
+             {% if field_ctx.meta.required %}required{% endif %}
+             {% if field_ctx.meta.readonly %}readonly{% endif %}
+             {% if field_ctx.meta.placeholder %}placeholder="{{ field_ctx.meta.placeholder }}"{% endif %}
+             {{ _htmx_validate(field_ctx, model_name) }}
+             class="form-input" style="padding-right: 32px;">
+      <button type="button" x-show="query.length > 0" x-cloak
+              @click.prevent="clearSelection()"
+              style="position: absolute; right: 6px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--text-secondary); padding: 2px; line-height: 1; display: flex; align-items: center; justify-content: center; z-index: 1;">
+        {{ icon("x-mark", size="14px") }}
+      </button>
+    </div>
+    <div x-show="open && filtered.length > 0" x-cloak
+         style="position: absolute; z-index: 50; width: 100%; background: var(--surface-base); border: 1px solid var(--surface-border); border-radius: var(--radius-md); box-shadow: var(--shadow-md); max-height: 200px; overflow-y: auto; margin-top: 4px;">
+      <template x-for="(item, index) in filtered" :key="item">
+        <div @mousedown.prevent="selectItem(item)"
+             @mouseenter="highlighted = index"
+             :style="index === highlighted ? 'background: var(--surface-hover);' : 'background: transparent;'"
+             style="padding: 10px 14px; cursor: pointer; font-size: var(--text-sm); transition: background 0.1s ease; border-bottom: 1px solid var(--surface-border);"
+             :style="index === highlighted ? 'background: var(--surface-hover);' : 'background: transparent;'">
+          <span x-text="item"></span>
+        </div>
+      </template>
+    </div>
+  </div>
+  {{ _errors(field_ctx) }}
+  {{ _help_text(field_ctx) }}
+{{ _field_wrapper_close() }}
 {% endmacro %}
 
 {# ─── Text Input ────────────────────────────────────────────────────────── #}

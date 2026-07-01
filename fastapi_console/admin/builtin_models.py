@@ -2,8 +2,15 @@
 
 from fastapi_console.modeladmin import ModelAdmin
 from fastapi_console.types import ExtraField
-from fastapi_console.widgets.inputs import PasswordWidget
+from fastapi_console.widgets.inputs import AutocompleteWidget, PasswordWidget
 from fastapi_console.widgets.relation import MultiRelationWidget
+
+
+def _get_table_names() -> list[str]:
+    from fastapi_console.registry.core import AdminRegistry
+
+    registry = AdminRegistry()
+    return sorted({m.table_name for m in registry.all()})
 
 
 class AdminUserAdmin(ModelAdmin):
@@ -87,6 +94,9 @@ class AdminPermissionAdmin(ModelAdmin):
         "can_edit",
         "can_delete",
     ]
+    formfield_overrides = {
+        "table_name": AutocompleteWidget(suggestions_fn=_get_table_names),
+    }
 
 
 class AuditLogAdmin(ModelAdmin):
@@ -125,6 +135,25 @@ class AdminUserTOTPAdmin(ModelAdmin):
     verbose_name = "2FA Token"
     verbose_name_plural = "2FA Tokens"
     list_display = ["id", "user_id", "enabled", "secret_key", "created_at"]
+
+
+class AdminUserPermissionAdmin(ModelAdmin):
+    tag = "admin"
+    icon = "lock"
+    verbose_name = "User Permission"
+    verbose_name_plural = "User Permissions"
+    list_display = [
+        "id",
+        "user",
+        "table_name",
+        "can_view",
+        "can_create",
+        "can_edit",
+        "can_delete",
+    ]
+    formfield_overrides = {
+        "table_name": AutocompleteWidget(suggestions_fn=_get_table_names),
+    }
 
 
 class AdminLoginAttemptAdmin(ModelAdmin):

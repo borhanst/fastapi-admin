@@ -840,11 +840,18 @@ class Admin:
 
         _static_dir = _Path(__file__).parent.parent / "static"
         _hash_data = b""
-        for _f in ("css/tokens.css", "css/presets.css", "css/admin.css", "js/admin.js"):
+        for _f in (
+            "css/tokens.css",
+            "css/presets.css",
+            "css/admin.css",
+            "js/admin.js",
+        ):
             _fp = _static_dir / _f
             if _fp.is_file():
                 _hash_data += _fp.read_bytes()
-        _static_version = hashlib.md5(_hash_data).hexdigest()[:12] if _hash_data else "dev"
+        _static_version = (
+            hashlib.md5(_hash_data).hexdigest()[:12] if _hash_data else "dev"
+        )
         self._jinja_env.env.globals["static_version"] = _static_version
 
         # Theme config globals
@@ -890,13 +897,14 @@ class Admin:
 
         # Global search API
         from fastapi_console.api.search import router as search_api_router
+
         app.include_router(search_api_router, prefix=self.router.admin_path)
 
         # Audit, role management, settings, user management, profile, and 2FA routes
         app.include_router(audit_router, prefix=self.router.admin_path)
         app.include_router(roles_router, prefix=self.router.admin_path)
         app.include_router(settings_router, prefix=self.router.admin_path)
-        # app.include_router(users_router, prefix=self.router.admin_path) #TODO: this line add admin user duplicate endpoint
+        app.include_router(users_router, prefix=self.router.admin_path)
         app.include_router(profile_router, prefix=self.router.admin_path)
         app.include_router(totp_router, prefix=self.router.admin_path)
 
@@ -931,6 +939,7 @@ class Admin:
             AdminRefreshTokenAdmin,
             AdminRoleAdmin,
             AdminUserAdmin,
+            AdminUserPermissionAdmin,
             AdminUserTOTPAdmin,
             AuditLogAdmin,
         )
@@ -941,6 +950,7 @@ class Admin:
             AdminRefreshToken,
             AdminRole,
             AdminUser,
+            AdminUserPermission,
             AdminUserTOTP,
         )
 
@@ -949,6 +959,7 @@ class Admin:
             (AdminRole, AdminRoleAdmin),
             (AdminRefreshToken, AdminRefreshTokenAdmin),
             (AdminPermission, AdminPermissionAdmin),
+            (AdminUserPermission, AdminUserPermissionAdmin),
             (AdminUserTOTP, AdminUserTOTPAdmin),
             (AdminLoginAttempt, AdminLoginAttemptAdmin),
             (AuditLog, AuditLogAdmin),

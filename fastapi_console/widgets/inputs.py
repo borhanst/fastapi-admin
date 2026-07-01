@@ -181,6 +181,30 @@ class JsonEditorWidget(Widget):
         return errors
 
 
+class AutocompleteWidget(Widget):
+    """Text input with datalist autocomplete suggestions."""
+
+    macro_name = "autocomplete"
+
+    def __init__(
+        self,
+        suggestions: list[str] | None = None,
+        suggestions_fn: Any = None,
+    ):
+        self.suggestions = suggestions
+        self.suggestions_fn = suggestions_fn
+
+    def _get_suggestions(self) -> list[str]:
+        if self.suggestions_fn is not None:
+            return self.suggestions_fn()
+        return self.suggestions or []
+
+    def render_context(self, field: FieldMeta, value: Any) -> dict:
+        ctx = super().render_context(field, value)
+        ctx["suggestions"] = self._get_suggestions()
+        return ctx
+
+
 class PasswordWidget(Widget):
     macro_name = "password_input"
 
