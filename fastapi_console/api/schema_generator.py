@@ -148,9 +148,11 @@ def build_list_response_schema(registered: Any) -> type[BaseModel]:
         model_name,
         items=(list[item_schema], Field(...)),
         total=(int, Field(...)),
-        page=(int, Field(...)),
+        page=(int | None, Field(default=None)),
         per_page=(int, Field(...)),
-        total_pages=(int, Field(...)),
+        total_pages=(int | None, Field(default=None)),
+        next_cursor=(str | None, Field(default=None)),
+        has_next=(bool, Field(default=False)),
     )
 
 

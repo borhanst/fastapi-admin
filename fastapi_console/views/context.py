@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
-import math
 from typing import Any
 
 from fastapi import Request
-from sqlalchemy import and_, asc, desc, func, or_, select
+from sqlalchemy import and_, asc, desc, or_, select
 from sqlalchemy.orm import joinedload
 
 from fastapi_console.db import get_db_session
@@ -379,9 +378,6 @@ class ViewContextBuilder:
             if clauses:
                 base = base.where(or_(*clauses))
 
-        count_q = select(func.count()).select_from(base.subquery())
-        total = (await session.execute(count_q)).scalar() or 0
-
         query_ordering = request.query_params.get("ordering", "")
         if query_ordering:
             order = [query_ordering]
@@ -400,12 +396,25 @@ class ViewContextBuilder:
                 )
 
         per_page = registered.admin.per_page
-        total_pages = max(1, math.ceil(total / per_page))
-        page = max(1, min(page, total_pages))
-        offset = (page - 1) * per_page
-        base = base.offset(offset).limit(per_page)
-        result = await session.execute(base)
-        items = list(result.unique().scalars().all())
+
+        from fastapi_console.pagination import OffsetPagination, PaginationResult
+
+        pagination = getattr(registered.admin, "pagination", None) or OffsetPagination()
+        pk_col = getattr(model, registered.pk_field) if registered.pk_field else None
+        pagination_result: PaginationResult = await pagination.paginate(
+            base,
+            session,
+            per_page=per_page,
+            page=page,
+            after=request.query_params.get("after"),
+            before=request.query_params.get("before"),
+            pk_col=pk_col,
+            model=model,
+        )
+        items = pagination_result.items
+        total = pagination_result.total
+        page = pagination_result.page or 1
+        total_pages = pagination_result.total_pages or 1
 
         from sqlalchemy import inspect as sa_inspect
 
@@ -459,6 +468,9 @@ class ViewContextBuilder:
             "total_pages": total_pages,
             "total": total,
             "per_page": per_page,
+            "next_cursor": pagination_result.next_cursor,
+            "has_next": pagination_result.has_next,
+            "pagination_mode": pagination_result.mode,
             "filter_fields": filter_fields,
             "active_filters": active_filters,
             "ordering": ordering,

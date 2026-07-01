@@ -81,11 +81,14 @@ def _register_model_routes(router: APIRouter, registered: Any) -> None:
         per_page: int = Query(25, ge=1, le=100),
         q: str = Query(""),
         order: str = Query(""),
+        after: str | None = Query(None),
+        before: str | None = Query(None),
     ):
         user = await _get_current_user(request)
         await _check_permission(request, user, table_name, "view")
         result = await list_v.api_response(
-            request, page=page, per_page=per_page, q=q, order=order
+            request, page=page, per_page=per_page, q=q, order=order,
+            after=after, before=before,
         )
         if isinstance(result, JSONResponse):
             return result

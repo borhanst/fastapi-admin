@@ -45,6 +45,8 @@ class PaginationParams(BaseModel):
     per_page: int = 25
     q: str = ""
     order: str = ""
+    after: str | None = None
+    before: str | None = None
 
 
 class PaginatedResponse(BaseModel):
@@ -52,9 +54,11 @@ class PaginatedResponse(BaseModel):
 
     items: list[Any]
     total: int
-    page: int
+    page: int | None = None
     per_page: int
-    total_pages: int
+    total_pages: int | None = None
+    next_cursor: str | None = None
+    has_next: bool = False
 
 
 class ErrorResponse(BaseModel):

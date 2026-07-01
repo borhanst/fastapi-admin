@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from fastapi_console.admin.decorators import ColumnOptions, column
+from fastapi_console.admin.decorators import column
 from fastapi_console.types import ExtraField, FieldMeta
 
 if TYPE_CHECKING:
@@ -26,6 +26,7 @@ class ModelAdmin:
     search_fields: list[str] | None = None
     ordering: list[str] | None = None
     per_page: int = 20
+    pagination: Any = None  # OffsetPagination | CursorPagination | DynamicPagination
     list_filter_options: dict[str, dict[str, Any]] = {}
     list_filter_horizontal: bool = False
 

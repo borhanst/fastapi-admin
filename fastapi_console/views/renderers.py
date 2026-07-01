@@ -6,7 +6,6 @@ DIP: View classes depend on these via protocol abstractions.
 
 from __future__ import annotations
 
-import math
 from typing import Any
 
 from fastapi import Request
@@ -425,7 +424,7 @@ class DefaultQueryProvider:
 
         Returns (items, total, page, per_page).
         """
-        from sqlalchemy import and_, asc, desc, func, or_, select
+        from sqlalchemy import and_, asc, desc, or_, select
 
         session = get_db_session(request)
         registered = self.registered
@@ -569,9 +568,6 @@ class DefaultQueryProvider:
             if clauses:
                 base = base.where(or_(*clauses))
 
-        count_q = select(func.count()).select_from(base.subquery())
-        total = (await session.execute(count_q)).scalar() or 0
-
         query_ordering = request.query_params.get("ordering", "")
         if query_ordering:
             order = [query_ordering]
@@ -590,14 +586,31 @@ class DefaultQueryProvider:
                 )
 
         per_page = registered.admin.per_page
-        total_pages = max(1, math.ceil(total / per_page))
-        page = max(1, min(page, total_pages))
-        offset = (page - 1) * per_page
-        base = base.offset(offset).limit(per_page)
-        result = await session.execute(base)
-        items = list(result.unique().scalars().all())
 
-        return items, total, page, per_page
+        from fastapi_console.pagination import OffsetPagination, PaginationResult
+
+        pagination = getattr(registered.admin, "pagination", None) or OffsetPagination()
+        pk_col = getattr(model, self.registered.pk_field) if self.registered.pk_field else None
+        pagination_result: PaginationResult = await pagination.paginate(
+            base,
+            session,
+            per_page=per_page,
+            page=page,
+            after=request.query_params.get("after"),
+            before=request.query_params.get("before"),
+            pk_col=pk_col,
+            model=model,
+        )
+
+        return (
+            pagination_result.items,
+            pagination_result.total,
+            pagination_result.page or page,
+            per_page,
+            pagination_result.next_cursor,
+            pagination_result.has_next,
+            pagination_result.mode,
+        )
 
     async def get_object(self, request: Request, id: Any) -> Any | None:
         """Return a single object by primary key, eagerly loading M2M relationships."""

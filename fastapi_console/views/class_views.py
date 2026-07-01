@@ -138,6 +138,7 @@ class BaseView:
     ) -> None:
         """Apply MANYTOMANY data extracted by _pop_manytomany_keys."""
         import json as _json
+
         from sqlalchemy import inspect as sa_inspect
 
         if not m2m_data:
@@ -248,9 +249,15 @@ class ListView(BaseView):
         from fastapi_console.types import PermissionSet
         from fastapi_console.views.sidebar import inject_sidebar_context
 
-        items, total, page, per_page = await self.query_provider.get_list(
-            request, q, page
-        )
+        (
+            items,
+            total,
+            page,
+            per_page,
+            next_cursor,
+            has_next,
+            pagination_mode,
+        ) = await self.query_provider.get_list(request, q, page)
 
         active_filters: dict[str, str] = {}
         if self.admin.list_filter:
@@ -278,9 +285,12 @@ class ListView(BaseView):
             "items": items,
             "search_query": q,
             "page": page,
-            "total_pages": max(1, math.ceil(total / per_page)),
+            "total_pages": max(1, math.ceil(total / per_page)) if per_page else 1,
             "total": total,
             "per_page": per_page,
+            "next_cursor": next_cursor,
+            "has_next": has_next,
+            "pagination_mode": pagination_mode,
             "filter_fields": filter_fields,
             "active_filters": active_filters,
             "ordering": ordering,
@@ -324,10 +334,18 @@ class ListView(BaseView):
         per_page: int = 25,
         q: str = "",
         order: str = "",
+        after: str | None = None,
+        before: str | None = None,
     ) -> Any:
-        items, total, page, per_page = await self.query_provider.get_list(
-            request, q, page
-        )
+        (
+            items,
+            total,
+            page,
+            per_page,
+            next_cursor,
+            has_next,
+            pagination_mode,
+        ) = await self.query_provider.get_list(request, q, page)
         item_list = [self._serialize(item) for item in items]
         return await self.api_renderer.render(
             request,
@@ -337,6 +355,8 @@ class ListView(BaseView):
                 "page": page,
                 "per_page": per_page,
                 "total_pages": math.ceil(total / per_page) if per_page else 1,
+                "next_cursor": next_cursor,
+                "has_next": has_next,
             },
         )
 

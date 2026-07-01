@@ -173,6 +173,6 @@
   {# Pagination #}
   <div class="table-footer">
     {% from "partials/pagination.html" import render_pagination %}
-    {{ render_pagination(page, total_pages, total, registered.admin.per_page) }}
+    {{ render_pagination(page, total_pages, total, registered.admin.per_page, next_cursor|default(null), has_next|default(false), pagination_mode|default("offset")) }}
   </div>
 </div>
