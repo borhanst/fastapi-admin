@@ -52,84 +52,11 @@
     <div class="bg-white rounded-xl border border-[var(--color-gray-200)]">
       <div class="px-6 py-4 border-b border-[var(--color-gray-200)]">
         <h2 class="text-lg font-semibold text-[var(--color-gray-900)]">Permissions</h2>
-        <p class="mt-1 text-sm text-[var(--color-gray-500)]">Configure what this role can do with each model.</p>
+        <p class="mt-1 text-sm text-[var(--color-gray-500)]">Select tables and configure actions for this role.</p>
       </div>
 
-      <div class="overflow-x-auto">
-        <table class="w-full text-sm">
-          <thead>
-            <tr class="border-b border-[var(--color-gray-200)]">
-              <th class="px-6 py-3 text-left font-medium text-[var(--color-gray-500)]">Model</th>
-              <th class="px-6 py-3 text-center font-medium text-[var(--color-gray-500)]">View</th>
-              <th class="px-6 py-3 text-center font-medium text-[var(--color-gray-500)]">Create</th>
-              <th class="px-6 py-3 text-center font-medium text-[var(--color-gray-500)]">Edit</th>
-              <th class="px-6 py-3 text-center font-medium text-[var(--color-gray-500)]">Delete</th>
-              <th class="px-6 py-3 text-center font-medium text-[var(--color-gray-500)]">Field-Level</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-[var(--color-gray-100)]">
-            {% for registered in registered_models %}
-            <tr class="hover:bg-[var(--color-gray-50)] transition-colors" x-data="{ showFields: false }">
-              <td class="px-6 py-4">
-                <div class="font-medium text-[var(--color-gray-900)]">{{ registered.verbose_name }}</div>
-                <div class="text-xs text-[var(--color-gray-500)]">{{ registered.table_name }}</div>
-              </td>
-              <td class="px-6 py-4 text-center">
-                <input type="checkbox" name="perm[{{ registered.table_name }}][view]" value="on"
-                       {% if permissions.get(registered.table_name, {}).get('view', false) %}checked{% endif %}
-                       class="rounded border-[var(--color-gray-300)] text-[var(--color-primary-600)] focus:ring-[var(--color-primary-500)]">
-              </td>
-              <td class="px-6 py-4 text-center">
-                <input type="checkbox" name="perm[{{ registered.table_name }}][create]" value="on"
-                       {% if permissions.get(registered.table_name, {}).get('create', false) %}checked{% endif %}
-                       class="rounded border-[var(--color-gray-300)] text-[var(--color-primary-600)] focus:ring-[var(--color-primary-500)]">
-              </td>
-              <td class="px-6 py-4 text-center">
-                <input type="checkbox" name="perm[{{ registered.table_name }}][edit]" value="on"
-                       {% if permissions.get(registered.table_name, {}).get('edit', false) %}checked{% endif %}
-                       class="rounded border-[var(--color-gray-300)] text-[var(--color-primary-600)] focus:ring-[var(--color-primary-500)]">
-              </td>
-              <td class="px-6 py-4 text-center">
-                <input type="checkbox" name="perm[{{ registered.table_name }}][delete]" value="on"
-                       {% if permissions.get(registered.table_name, {}).get('delete', false) %}checked{% endif %}
-                       class="rounded border-[var(--color-gray-300)] text-[var(--color-primary-600)] focus:ring-[var(--color-primary-500)]">
-              </td>
-              <td class="px-6 py-4 text-center">
-                <button type="button" @click="showFields = !showFields"
-                        class="text-[var(--color-primary-600)] hover:text-[var(--color-primary-500)] text-sm font-medium">
-                  <span x-text="showFields ? 'Hide' : 'Show'"></span>
-                </button>
-              </td>
-            </tr>
-            <tr x-show="showFields" x-collapse class="bg-[var(--color-gray-50)]">
-              <td colspan="6" class="px-6 py-4">
-                <div class="text-sm font-medium text-[var(--color-gray-700)] mb-2">Field-Level Permissions</div>
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-                  {% for col in registered.columns %}
-                  <div class="flex items-center gap-4 p-2 rounded bg-white border border-[var(--color-gray-200)]">
-                    <span class="text-sm text-[var(--color-gray-700)]">{{ col.name }}</span>
-                    <div class="flex items-center gap-2 ml-auto">
-                      <label class="flex items-center gap-1 text-xs text-[var(--color-gray-500)]">
-                        <input type="checkbox" name="field_perm[{{ registered.table_name }}][{{ col.name }}][view]" value="on"
-                               {% if field_permissions.get(registered.table_name, {}).get(col.name, {}).get('view', true) %}checked{% endif %}
-                               class="rounded border-[var(--color-gray-300)] text-[var(--color-primary-600)] focus:ring-[var(--color-primary-500)]">
-                        View
-                      </label>
-                      <label class="flex items-center gap-1 text-xs text-[var(--color-gray-500)]">
-                        <input type="checkbox" name="field_perm[{{ registered.table_name }}][{{ col.name }}][edit]" value="on"
-                               {% if field_permissions.get(registered.table_name, {}).get(col.name, {}).get('edit', true) %}checked{% endif %}
-                               class="rounded border-[var(--color-gray-300)] text-[var(--color-primary-600)] focus:ring-[var(--color-primary-500)]">
-                        Edit
-                      </label>
-                    </div>
-                  </div>
-                  {% endfor %}
-                </div>
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+      <div class="p-6">
+        {% include "partials/permission_widget.html" with context %}
       </div>
     </div>
 

@@ -154,6 +154,57 @@ class ModelAdmin:
         """
         return data
 
+    # ── Form data processing hooks ──────────────────────────────────
+
+    def process_form_data(self, data: dict[str, Any], request: Any = None) -> dict[str, Any]:
+        """Process form data before save. Override for custom processing.
+
+        Called after form parsing and validation. Use this to transform
+        form data, extract special fields, or prepare data for saving.
+        """
+        return data
+
+    def save_model(
+        self, obj: Any, data: dict[str, Any], request: Any = None, is_create: bool = False
+    ) -> None:
+        """Custom save logic. Override for full control over save flow.
+
+        When overridden, this method is called instead of the default
+        save logic. The object is already added to the session but not
+        committed yet. Call session.commit() yourself if needed.
+        """
+        pass
+
+    # ── Form context hooks ──────────────────────────────────────────
+
+    def get_form_context(
+        self, context: dict[str, Any], obj: Any = None, request: Any = None
+    ) -> dict[str, Any]:
+        """Customize form template context. Return modified context.
+
+        Called when building the form context for create/edit views.
+        Override to add custom template variables.
+        """
+        return context
+
+    # ── Dynamic field hooks ─────────────────────────────────────────
+
+    def get_readonly_fields(self, obj: Any = None, request: Any = None) -> list[str]:
+        """Return list of readonly field names. Override for dynamic readonly.
+
+        Called during form field generation. Fields returned here are
+        in addition to the static readonly_fields list.
+        """
+        return self.readonly_fields or []
+
+    def get_hidden_fields(self, obj: Any = None, request: Any = None) -> list[str]:
+        """Return list of hidden field names. Override for dynamic hidden.
+
+        Called during form field generation. Hidden fields are excluded
+        from the form entirely.
+        """
+        return []
+
     # ── Form field helper ───────────────────────────────────────────
 
     def get_form_fields(
@@ -207,9 +258,14 @@ class ModelAdmin:
                 pass
             raw = [x for x in raw if not (hasattr(x, "foreign_keys") and x.name in rel_fk_cols)]
 
+        dynamic_readonly = set(self.get_readonly_fields())
+        dynamic_hidden = set(self.get_hidden_fields())
+
         for item in raw:
             name = item.name
-            readonly = name in (self.readonly_fields or [])
+            if name in dynamic_hidden:
+                continue
+            readonly = name in (self.readonly_fields or []) or name in dynamic_readonly
             required = is_required(item) if hasattr(item, "nullable") else False
             label = auto_label(name)
             placeholder = self.field_placeholders.get(
@@ -232,7 +288,11 @@ class ModelAdmin:
                     label=extra.label or auto_label(extra.name),
                     required=extra.required,
                     readonly=False,
-                    extra={"extra_field": True, "widget": extra.widget, "required_on_create": extra.required_on_create},
+                    extra={
+                        "extra_field": True,
+                        "widget": extra.widget,
+                        "required_on_create": extra.required_on_create,
+                    },
                 )
             )
 

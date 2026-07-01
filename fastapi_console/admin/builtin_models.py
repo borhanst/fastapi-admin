@@ -50,17 +50,136 @@ class AdminUserAdmin(ModelAdmin):
     def on_create(self, obj, request=None):
         pass
 
-    def prepare_update_data(self, data, request=None):
-        from fastapi_console.auth.backend import pwd_context
-
-        password = data.pop("password", None)
-        if password:
-            data["hashed_password"] = pwd_context.hash(password)
-        data.pop("hashed_password", None)
-        return data
-
     def on_update(self, obj, data, request=None):
         pass
+
+    def after_create(self, obj, request=None):
+        if request is None:
+            return
+        perm_data = getattr(request.state, "_admin_perm_data", None)
+        if perm_data:
+            self._save_direct_permissions_after_commit(obj, perm_data, request)
+
+    def after_update(self, obj, request=None):
+        if request is None:
+            return
+        perm_data = getattr(request.state, "_admin_perm_data", None)
+        if perm_data:
+            self._save_direct_permissions_after_commit(obj, perm_data, request)
+
+    def _save_direct_permissions_after_commit(self, obj, perm_data, request):
+        import os
+        import sqlite3
+
+        db_url = os.getenv("DATABASE_URL", "")
+        if "sqlite" in db_url or not db_url:
+            db_path = db_url.split("///")[-1] if "///" in db_url else "test_debug.db"
+            conn = sqlite3.connect(db_path)
+            cursor = conn.cursor()
+
+            cursor.execute(
+                "DELETE FROM admin_user_permissions WHERE user_id = ?",
+                (obj.id,),
+            )
+
+            for table_name, perms in perm_data.items():
+                if not any(perms.get(a) for a in ["view", "create", "edit", "delete"]):
+                    continue
+                cursor.execute(
+                    """INSERT INTO admin_user_permissions
+                       (user_id, table_name, can_view, can_create, can_edit, can_delete)
+                       VALUES (?, ?, ?, ?, ?, ?)""",
+                    (
+                        obj.id,
+                        table_name,
+                        1 if perms.get("view") else 0,
+                        1 if perms.get("create") else 0,
+                        1 if perms.get("edit") else 0,
+                        1 if perms.get("delete") else 0,
+                    ),
+                )
+
+            conn.commit()
+            conn.close()
+
+    def get_form_context(self, context, obj=None, request=None):
+        from sqlalchemy import select
+
+        from fastapi_console.auth.models import AdminUserPermission
+        from fastapi_console.db import get_db_session
+
+        perm_data = {}
+        if obj is not None and request is not None:
+            try:
+                session = get_db_session(request)
+                import asyncio
+
+                async def _load_perms():
+                    result = await session.execute(
+                        select(AdminUserPermission).where(
+                            AdminUserPermission.user_id == obj.id
+                        )
+                    )
+                    return result.scalars().all()
+
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    import concurrent.futures
+                    with concurrent.futures.ThreadPoolExecutor() as pool:
+                        perms = pool.submit(asyncio.run, _load_perms()).result()
+                else:
+                    perms = loop.run_until_complete(_load_perms())
+
+                for p in perms:
+                    perm_data[p.table_name] = {
+                        "_label": p.table_name,
+                        "view": p.can_view,
+                        "create": p.can_create,
+                        "edit": p.can_edit,
+                        "delete": p.can_delete,
+                    }
+            except Exception:
+                pass
+
+        context["perm_data"] = perm_data
+        context["search_url"] = "/admin/tables/search"
+        return context
+
+    def process_form_data(self, data, request=None):
+        if request is not None:
+            import asyncio
+
+            async def _get_perm_data():
+                form = await request.form()
+                return form.get("perm_data", "{}")
+
+            try:
+                loop = asyncio.get_running_loop()
+            except RuntimeError:
+                loop = None
+
+            if loop and loop.is_running():
+                import concurrent.futures
+                with concurrent.futures.ThreadPoolExecutor() as pool:
+                    perm_data_raw = pool.submit(asyncio.run, _get_perm_data()).result()
+            elif loop:
+                perm_data_raw = loop.run_until_complete(_get_perm_data())
+            else:
+                perm_data_raw = asyncio.run(_get_perm_data())
+        else:
+            perm_data_raw = "{}"
+
+        import json
+
+        try:
+            perm_data = json.loads(perm_data_raw)
+        except (json.JSONDecodeError, TypeError):
+            perm_data = {}
+
+        if request is not None and perm_data:
+            request.state._admin_perm_data = perm_data
+
+        return data
 
 
 class AdminRoleAdmin(ModelAdmin):

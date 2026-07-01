@@ -202,6 +202,80 @@ document.addEventListener('alpine:init', () => {
     },
   }));
 
+  /* ── Permission Widget ────────────────────────────────────────────── */
+
+  Alpine.data('permissionWidget', (searchUrl, initialPermData) => ({
+    selectedTables: [],
+    searchQuery: '',
+    results: [],
+    open: false,
+    _debounce: null,
+    permData: {},
+    expandedTable: null,
+
+    init() {
+      this.permData = initialPermData || {};
+      this.selectedTables = Object.keys(this.permData).map(k => ({
+        id: k, label: this.permData[k]._label || k
+      }));
+    },
+
+    async search() {
+      clearTimeout(this._debounce);
+      this._debounce = setTimeout(async () => {
+        try {
+          const q = this.searchQuery.trim();
+          const url = q ? `${searchUrl}?q=${encodeURIComponent(q)}` : searchUrl;
+          const resp = await fetch(url);
+          if (resp.ok) {
+            const all = await resp.json();
+            const selected = new Set(this.selectedTables.map(t => t.id));
+            this.results = all.filter(r => !selected.has(r.id));
+          }
+        } catch (e) { console.error('Permission search error:', e); }
+      }, 250);
+    },
+
+    addTable(table) {
+      if (!this.permData[table.id]) {
+        this.permData[table.id] = {
+          _label: table.label,
+          view: false, create: false, edit: false, delete: false
+        };
+      }
+      this.selectedTables.push(table);
+      this.searchQuery = '';
+      this.results = [];
+      this.expandedTable = table.id;
+    },
+
+    removeTable(index) {
+      const table = this.selectedTables[index];
+      delete this.permData[table.id];
+      this.selectedTables.splice(index, 1);
+      if (this.expandedTable === table.id) this.expandedTable = null;
+    },
+
+    toggleExpand(tableId) {
+      this.expandedTable = this.expandedTable === tableId ? null : tableId;
+    },
+
+    toggleAllActions(tableId, on) {
+      this.permData[tableId].view = on;
+      this.permData[tableId].create = on;
+      this.permData[tableId].edit = on;
+      this.permData[tableId].delete = on;
+    },
+
+    get serializedPermData() {
+      const out = {};
+      for (const [table, data] of Object.entries(this.permData)) {
+        out[table] = { view: data.view, create: data.create, edit: data.edit, delete: data.delete };
+      }
+      return JSON.stringify(out);
+    }
+  }));
+
   /* ── Slug Widget ─────────────────────────────────────────────────── */
 
   Alpine.data('slugWidget', (sourceField, name) => ({

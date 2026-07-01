@@ -43,7 +43,7 @@ class PermissionChecker:
             snap["role_ids"] if "role_ids" in snap else getattr(user, "role_ids", [])
         )
         self._user_id: int | str | None = (
-            snap.get("user_id") if snap else getattr(user, "id", None)
+            snap.get("id") if snap else getattr(user, "id", None)
         )
         self._role_cache: dict[str, PermissionSet | None] | None = None
         self._direct_cache: dict[str, PermissionSet | None] | None = None

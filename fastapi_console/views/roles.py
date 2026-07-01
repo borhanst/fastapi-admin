@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+import json
+
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from sqlalchemy import select
 
 from fastapi_console.auth.csrf import require_csrf_token
@@ -22,6 +24,31 @@ async def _require_superuser(
     if not getattr(user, "is_superuser", False):
         raise HTTPException(status_code=403, detail="Superuser access required.")
     return user
+
+
+@router.get("/tables/search")
+async def tables_search(
+    request: Request,
+    q: str = Query("", description="Search query"),
+    _: AdminUserProtocol = Depends(_require_superuser),
+):
+    """Search registered models for permission table picker."""
+    registry = request.app.state.admin_registry
+    models = registry.all()
+
+    results = [
+        {"id": m.table_name, "label": m.verbose_name}
+        for m in models
+    ]
+
+    if q:
+        q_lower = q.lower()
+        results = [
+            r for r in results
+            if q_lower in r["label"].lower() or q_lower in r["id"].lower()
+        ]
+
+    return JSONResponse(content=results)
 
 
 @router.get("/roles", response_class=HTMLResponse)
@@ -60,16 +87,14 @@ async def role_create_view(
 ):
     """Show empty role create form."""
     templates = request.app.state.admin_jinja_env
-    registry = request.app.state.admin_registry
 
-    models = registry.all()
     return templates.TemplateResponse(
         request,
         "pages/role_form.html",
         await inject_sidebar_context(request, {
             "role": None,
-            "models": models,
-            "permissions": {},
+            "perm_data": {},
+            "search_url": "/admin/tables/search",
         }),
     )
 
@@ -90,6 +115,7 @@ async def role_edit_view(
         raise HTTPException(status_code=404, detail="Role not found")
 
     models = registry.all()
+    model_map = {m.table_name: m.verbose_name for m in models}
 
     perms = (
         await session.execute(
@@ -97,23 +123,23 @@ async def role_edit_view(
         )
     ).scalars().all()
 
-    perm_map = {
-        p.table_name: {
+    perm_data = {}
+    for p in perms:
+        perm_data[p.table_name] = {
+            "_label": model_map.get(p.table_name, p.table_name),
             "view": p.can_view,
             "create": p.can_create,
             "edit": p.can_edit,
             "delete": p.can_delete,
         }
-        for p in perms
-    }
 
     return templates.TemplateResponse(
         request,
         "pages/role_form.html",
         await inject_sidebar_context(request, {
             "role": role,
-            "models": models,
-            "permissions": perm_map,
+            "perm_data": perm_data,
+            "search_url": "/admin/tables/search",
         }),
     )
 
@@ -133,13 +159,12 @@ async def role_save_view(
         raise HTTPException(status_code=404, detail="Role not found")
 
     form = await request.form()
-    perm_data: dict[str, dict[str, str]] = {}
+    perm_data_raw = form.get("perm_data", "{}")
 
-    for key, value in form.multi_items():
-        if key.startswith("perm[") and key.endswith("]"):
-            inner = key[5:-1]
-            table, action = inner.split("][")
-            perm_data.setdefault(table, {})[action] = value
+    try:
+        perm_data = json.loads(perm_data_raw)
+    except (json.JSONDecodeError, TypeError):
+        perm_data = {}
 
     existing_perms = (
         await session.execute(
@@ -149,24 +174,25 @@ async def role_save_view(
     existing_perm_map = {p.table_name: p for p in existing_perms}
 
     for table, data in perm_data.items():
+        if not any(data.get(a) for a in ["view", "create", "edit", "delete"]):
+            continue
         if table in existing_perm_map:
             perm = existing_perm_map[table]
-            perm.can_view = data.get("view") == "on"
-            perm.can_create = data.get("create") == "on"
-            perm.can_edit = data.get("edit") == "on"
-            perm.can_delete = data.get("delete") == "on"
+            perm.can_view = data.get("view", False)
+            perm.can_create = data.get("create", False)
+            perm.can_edit = data.get("edit", False)
+            perm.can_delete = data.get("delete", False)
         else:
             perm = AdminPermission(
                 role_id=role_id,
                 table_name=table,
-                can_view=data.get("view") == "on",
-                can_create=data.get("create") == "on",
-                can_edit=data.get("edit") == "on",
-                can_delete=data.get("delete") == "on",
+                can_view=data.get("view", False),
+                can_create=data.get("create", False),
+                can_edit=data.get("edit", False),
+                can_delete=data.get("delete", False),
             )
             session.add(perm)
 
-    # Remove permissions that were fully unchecked (not in form data)
     tables_in_form = set(perm_data.keys())
     for table, perm in existing_perm_map.items():
         if table not in tables_in_form:
