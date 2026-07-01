@@ -26,6 +26,7 @@ class RegisteredModel:
     columns: list = field(default_factory=list)
     relationships: list = field(default_factory=list)
     pk_field: str | tuple[str, ...] | None = "id"
+    _schemas: dict | None = field(default=None, repr=False)
 
     def __post_init__(self) -> None:
         # Find primary key

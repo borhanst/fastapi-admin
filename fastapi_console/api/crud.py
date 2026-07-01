@@ -8,7 +8,9 @@ from __future__ import annotations
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi.responses import JSONResponse
 
+from fastapi_console.api.schema_generator import get_or_build_schemas
 from fastapi_console.views.class_views import (
     CreateView,
     DeleteView,
@@ -67,7 +69,12 @@ def _register_model_routes(router: APIRouter, registered: Any) -> None:
         registered
     )
 
-    @router.get(prefix)
+    # Generate dynamic schemas for OpenAPI docs
+    schemas = get_or_build_schemas(registered)
+    response_schema = schemas["response"]
+    list_response_schema = schemas["list_response"]
+
+    @router.get(prefix, response_model=list_response_schema)
     async def list_items(
         request: Request,
         page: int = Query(1, ge=1),
@@ -77,27 +84,39 @@ def _register_model_routes(router: APIRouter, registered: Any) -> None:
     ):
         user = await _get_current_user(request)
         await _check_permission(request, user, table_name, "view")
-        return await list_v.api_response(
+        result = await list_v.api_response(
             request, page=page, per_page=per_page, q=q, order=order
         )
+        if isinstance(result, JSONResponse):
+            return result
+        return result
 
-    @router.post(prefix, status_code=201)
+    @router.post(prefix, response_model=response_schema, status_code=201)
     async def create_item(request: Request):
         user = await _get_current_user(request)
         await _check_permission(request, user, table_name, "create")
-        return await create_v.api_response(request)
+        result = await create_v.api_response(request)
+        if isinstance(result, JSONResponse):
+            return result
+        return result
 
-    @router.get(f"{prefix}/{{item_id}}")
+    @router.get(f"{prefix}/{{item_id}}", response_model=response_schema)
     async def retrieve_item(request: Request, item_id: str):
         user = await _get_current_user(request)
         await _check_permission(request, user, table_name, "view")
-        return await edit_v.api_response(request, item_id=item_id)
+        result = await edit_v.api_response(request, item_id=item_id)
+        if isinstance(result, JSONResponse):
+            return result
+        return result
 
-    @router.put(f"{prefix}/{{item_id}}")
+    @router.put(f"{prefix}/{{item_id}}", response_model=response_schema)
     async def update_item(request: Request, item_id: str):
         user = await _get_current_user(request)
         await _check_permission(request, user, table_name, "edit")
-        return await edit_v.api_response(request, item_id=item_id)
+        result = await edit_v.api_response(request, item_id=item_id)
+        if isinstance(result, JSONResponse):
+            return result
+        return result
 
     @router.delete(f"{prefix}/{{item_id}}", status_code=204)
     async def delete_item(request: Request, item_id: str):
