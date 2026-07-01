@@ -47,37 +47,15 @@ That's it — you now have a full admin panel at `/admin/products/` with list, c
 | CSS | Tailwind CSS |
 | Interactivity | HTMX |
 | Micro-interactions | Alpine.js |
-| Icons | Material Symbols |
+| Icons | Google Icon |
 
 ## Getting Started
 
-<div class="grid cards" markdown>
-
--   :material-download:{ .lg .middle } **Installation**
-
-    ---
-
-    Install fastapi-console with pip
-
-    [:octicons-arrow-right-24: Installation](getting-started/installation.md)
-
--   :material-rocket-launch:{ .lg .middle } **Quick Start**
-
-    ---
-
-    Get up and running in 5 minutes
-
-    [:octicons-arrow-right-24: Quick Start](getting-started/quickstart.md)
-
--   :material-cog:{ .lg .middle } **Configuration**
-
-    ---
-
-    Customize the admin to fit your needs
-
-    [:octicons-arrow-right-24: Configuration](getting-started/configuration.md)
-
-</div>
+| | | |
+|---|---|---|
+| **Installation** | **Quick Start** | **Configuration** |
+| Install fastapi-console with pip | Get up and running in 5 minutes | Customize the admin to fit your needs |
+| [Installation :octicons-arrow-right-24:](getting-started/installation.md) | [Quick Start :octicons-arrow-right-24:](getting-started/quickstart.md) | [Configuration :octicons-arrow-right-24:](getting-started/configuration.md) |
 
 ## How It Works
 

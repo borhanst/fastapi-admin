@@ -103,11 +103,13 @@ admin = Admin(
 
 ### How It Works
 
-Every admin user has a role. Each role has permissions per model:
+Permissions come from two sources, merged together:
 
 ```
-User → Role → Permissions → {model: {can_view, can_create, can_edit, can_delete}}
+User → Role Permissions (OR) → Direct User Permissions → Effective Permissions
 ```
+
+Each permission entry controls four actions per model: view, create, edit, delete.
 
 ### Permission Tables
 
@@ -133,32 +135,35 @@ CREATE TABLE admin_permissions (
 
 ### Permission Checker
 
+The `PermissionChecker` merges permissions from two sources:
+
+1. **Role-based** — all assigned roles (M2M via `admin_user_roles`), OR'd together
+2. **Direct per-user overrides** — `AdminUserPermission` records, OR'd on top
+
 ```python
 from fastapi_console.auth.permissions import PermissionChecker
 
-checker = PermissionChecker(session)
+checker = PermissionChecker(session, user)
 
-# Check if user can view products
-if checker.has_permission(user, "products", "view"):
-    # Show list view
-    pass
+# Check if user can perform an action on a table
+await checker.has_permission("products", "view")   # True/False
+await checker.has_permission("products", "create")  # True/False
+await checker.has_permission("products", "edit")    # True/False
+await checker.has_permission("products", "delete")  # True/False
 
-# Check if user can edit products
-if checker.has_permission(user, "products", "edit"):
-    # Show edit form
-    pass
+# Get allowed fields (None = all allowed, empty set = none allowed)
+await checker.get_allowed_fields("products", "view")   # set[str] | None
+await checker.get_allowed_fields("products", "edit")   # set[str] | None
+
+# Sync convenience for templates
+await checker.load_permissions("products")
+perm_set = checker.permission_set("products")  # PermissionSet dataclass
+# perm_set.can_view, perm_set.can_create, perm_set.can_edit, perm_set.can_delete
 ```
 
 ### Superuser Bypass
 
-Users with `is_superuser=True` bypass all permission checks:
-
-```python
-def has_permission(self, user, table_name, action):
-    if user.is_superuser:
-        return True
-    # ... check permissions table
-```
+Users with `is_superuser=True` bypass all permission checks — `has_permission()` always returns `True`.
 
 ## Default Roles
 
@@ -265,14 +270,48 @@ CREATE TABLE admin_field_permissions (
 ### Check Field Permissions
 
 ```python
-checker = PermissionChecker(session)
+checker = PermissionChecker(session, user)
 
 # Get allowed fields for viewing
-allowed_fields = checker.get_allowed_field_names(user, "products", "view")
+allowed_fields = await checker.get_allowed_fields("products", "view")
 
 # Returns None if no restrictions (all allowed)
 # Returns set of field names if restricted
 ```
+
+## Direct User Permissions
+
+In addition to role-based permissions, you can assign permissions directly to individual users. Direct permissions are OR'd with role permissions — a user gets the union of both.
+
+### How It Works
+
+```
+User → Role Permissions (OR) → Direct Permissions → Effective Permissions
+```
+
+The `admin_user_permissions` table stores per-user overrides:
+
+```sql
+CREATE TABLE admin_user_permissions (
+    id          SERIAL PRIMARY KEY,
+    user_id     INTEGER REFERENCES admin_users(id),
+    table_name  VARCHAR(255) NOT NULL,
+    can_view    BOOLEAN DEFAULT FALSE,
+    can_create  BOOLEAN DEFAULT FALSE,
+    can_edit    BOOLEAN DEFAULT FALSE,
+    can_delete  BOOLEAN DEFAULT FALSE
+);
+```
+
+### Permission Widget
+
+The role and user forms include an autocomplete-enabled permission widget. When editing a role or user, you can:
+
+1. Search for models by name using the autocomplete input
+2. Toggle view/create/edit/delete permissions per model
+3. Remove permissions by clicking the remove button
+
+The widget uses the `/admin/tables/search?q=<query>` endpoint to find registered models.
 
 ## Custom Auth Backend
 

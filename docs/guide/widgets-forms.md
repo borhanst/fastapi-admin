@@ -161,6 +161,158 @@ class ProductAdmin(ModelAdmin):
     }
 ```
 
+### AutocompleteWidget
+
+Datalist autocomplete for text fields with static or dynamic suggestions:
+
+```python
+from fastapi_console.widgets import AutocompleteWidget
+
+class ProductAdmin(ModelAdmin):
+    form_widgets = {
+        "brand": AutocompleteWidget(
+            suggestions=["Nike", "Adidas", "Puma", "Reebok"],
+        ),
+    }
+```
+
+Dynamic suggestions via a callable:
+
+```python
+def get_category_suggestions():
+    return ["Electronics", "Clothing", "Home", "Sports"]
+
+class ProductAdmin(ModelAdmin):
+    form_widgets = {
+        "category_name": AutocompleteWidget(
+            suggestions_fn=get_category_suggestions,
+        ),
+    }
+```
+
+### PasswordWidget
+
+For password fields — never pre-fills values:
+
+```python
+from fastapi_console.widgets import PasswordWidget
+
+class UserAdmin(ModelAdmin):
+    form_widgets = {
+        "password": PasswordWidget(),
+    }
+```
+
+### ReadOnlyWidget
+
+Displays a value without allowing edits:
+
+```python
+from fastapi_console.widgets import ReadOnlyWidget
+
+class ProductAdmin(ModelAdmin):
+    form_widgets = {
+        "sku": ReadOnlyWidget(),
+    }
+```
+
+### HiddenWidget
+
+Hidden input field:
+
+```python
+from fastapi_console.widgets import HiddenWidget
+
+class ProductAdmin(ModelAdmin):
+    form_widgets = {
+        "internal_code": HiddenWidget(),
+    }
+```
+
+### DatePickerWidget
+
+For `Date` columns (separate from DateTimePicker):
+
+```python
+from fastapi_console.widgets import DatePickerWidget
+
+class ProductAdmin(ModelAdmin):
+    form_widgets = {
+        "release_date": DatePickerWidget(),
+    }
+```
+
+### DateTimePickerWidget
+
+For `DateTime` columns:
+
+```python
+from fastapi_console.widgets import DateTimePickerWidget
+
+class ProductAdmin(ModelAdmin):
+    form_widgets = {
+        "published_at": DateTimePickerWidget(),
+    }
+```
+
+### FileUploadWidget
+
+For file uploads with size limits and type filtering:
+
+```python
+from fastapi_console.widgets import FileUploadWidget
+
+class ProductAdmin(ModelAdmin):
+    form_widgets = {
+        "document": FileUploadWidget(
+            max_size_mb=10,
+            accept=".pdf,.doc,.docx",
+        ),
+    }
+```
+
+### ImageUploadWidget
+
+Specialized file upload restricted to images:
+
+```python
+from fastapi_console.widgets import ImageUploadWidget
+
+class ProductAdmin(ModelAdmin):
+    form_widgets = {
+        "avatar": ImageUploadWidget(
+            max_size_mb=5,
+            accept="image/*",
+        ),
+    }
+```
+
+### WysiwygWidget
+
+Rich text editor for HTML content:
+
+```python
+from fastapi_console.widgets import WysiwygWidget
+
+class ArticleAdmin(ModelAdmin):
+    form_widgets = {
+        "content": WysiwygWidget(height=300),
+    }
+```
+
+### ArrayWidget
+
+Dynamic list input for JSON array columns:
+
+```python
+from fastapi_console.widgets import ArrayWidget
+
+class ProductAdmin(ModelAdmin):
+    form_widgets = {
+        "tags": ArrayWidget(min_items=1, max_items=10),
+    }
+```
+
 ## Custom Widget
 
 Create your own widget by extending the base class:
@@ -375,20 +527,28 @@ class Product(Base):
 
 Rendered as a multi-select with search and removable tags.
 
-## File Upload Widgets
+## File Upload
+
+File uploads are handled by the storage backend configured on the Admin instance:
 
 ```python
-class Product(Base):
-    image_url = Column(String(500))
+admin = Admin(
+    app=app,
+    engine=engine,
+    secret_key="...",
+    storage=LocalStorageBackend(path="/uploads"),
+    uploads_url="/uploads",
+)
+```
 
+Use `FileUploadWidget` or `ImageUploadWidget` on the model field to enable upload UI:
+
+```python
 @admin.register(Product)
 class ProductAdmin(ModelAdmin):
     form_widgets = {
-        "image_url": FileUploadWidget(
-            storage="local",  # or "s3"
-            allowed_types=["image/jpeg", "image/png"],
-            max_size=5 * 1024 * 1024,  # 5MB
-        ),
+        "image_url": ImageUploadWidget(max_size_mb=5),
+        "document": FileUploadWidget(max_size_mb=10, accept=".pdf,.doc"),
     }
 ```
 

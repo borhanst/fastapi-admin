@@ -58,8 +58,21 @@ class ProductAdmin(ModelAdmin):
 | `list_display` | `list[str]` | All columns | Columns to show in list view |
 | `list_filter` | `list[str]` | `None` | Fields to filter by (sidebar) |
 | `search_fields` | `list[str]` | `None` | Fields to search across |
-| `ordering` | `list[str]` | `None` | Default sort order |
+| `ordering` | `list[str]` | `None` | Default sort order (prefix `-` for desc) |
 | `per_page` | `int` | `20` | Rows per page |
+| `pagination` | `BasePagination` | `None` | Pagination strategy (see below) |
+| `list_filter_options` | `dict[str, dict]` | `{}` | Per-filter UI options |
+| `list_filter_horizontal` | `bool` | `False` | Horizontal filter layout |
+
+### Actions
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `actions_list` | `list[str]` | `[]` | List-level action names |
+| `actions_row` | `list[str]` | `[]` | Row-level action names |
+| `actions_detail` | `list[str]` | `[]` | Detail-level action names |
+| `actions_submit_line` | `list[str]` | `[]` | Submit-line action names |
+| `actions_list_hide_default` | `bool` | `False` | Hide default delete action |
 
 ### Form View
 
@@ -68,14 +81,91 @@ class ProductAdmin(ModelAdmin):
 | `fields` | `list[str]` | All fields | Fields to show in form |
 | `exclude` | `list[str]` | `None` | Fields to hide from form |
 | `readonly_fields` | `list[str]` | `None` | Fields shown but not editable |
+| `formfield_overrides` | `dict[str, Any]` | `{}` | Widget overrides per field name |
+| `extra_fields` | `list[ExtraField]` | `[]` | Extra non-model fields |
+| `fieldsets` | `list[FieldsetSpec]` | `[]` | Form fieldset grouping |
+| `field_placeholders` | `dict[str, str]` | `{}` | Custom placeholders |
+| `conditional_fields` | `dict[str, dict]` | `{}` | Conditional field visibility |
 
-### Labels
+### Form UX
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `warn_unsaved_form` | `bool` | `True` | Show unsaved changes warning |
+| `compressed_fields` | `bool` | `True` | Compact field layout |
+| `change_form_show_cancel_button` | `bool` | `True` | Show cancel button |
+
+### Labels & Navigation
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `verbose_name` | `str` | Auto | Human-readable name (e.g., "Product") |
 | `verbose_name_plural` | `str` | Auto | Plural name (e.g., "Products") |
 | `icon` | `str` | `None` | Sidebar icon (Material Symbols name) |
+| `tag` | `str` | `None` | Single nav group tag |
+| `tags` | `list[str]` | `None` | Multiple nav group tags |
+| `nav_order` | `int` | `999` | Sidebar ordering (lower = higher) |
+| `nav_children` | `list[NavItemConfig]` | `None` | Nested nav items |
+| `skip_auto_routes` | `bool` | `False` | Skip automatic route generation |
+
+### Pagination Strategies
+
+Use `pagination` to control how list views paginate:
+
+```python
+from fastapi_console.pagination import OffsetPagination, CursorPagination, DynamicPagination
+
+@admin.register(Product)
+class ProductAdmin(ModelAdmin):
+    # Traditional page numbers (default)
+    pagination = OffsetPagination()
+
+    # Keyset pagination for large datasets
+    pagination = CursorPagination(cursor_column="id")
+
+    # Auto-switches between offset and cursor based on total count
+    pagination = DynamicPagination(cursor_column="id", threshold=1000)
+```
+
+### Fieldsets
+
+Group form fields into sections:
+
+```python
+@admin.register(Product)
+class ProductAdmin(ModelAdmin):
+    fieldsets = [
+        {
+            "title": "Basic Info",
+            "fields": ["name", "description", "sku"],
+        },
+        {
+            "title": "Pricing",
+            "fields": ["price", "sale_price"],
+        },
+        {
+            "title": "Inventory",
+            "fields": ["stock", "is_active"],
+        },
+    ]
+```
+
+### Conditional Fields
+
+Show/hide fields based on other field values:
+
+```python
+@admin.register(Product)
+class ProductAdmin(ModelAdmin):
+    conditional_fields = {
+        "sale_price": {
+            "show_when": {"is_on_sale": True},
+        },
+        "discount_percent": {
+            "show_when": {"is_on_sale": True},
+        },
+    }
+```
 
 ## Auto-Discovery
 
@@ -144,32 +234,55 @@ class ProductAdmin(ModelAdmin):
 
 ## Custom Actions
 
-Add bulk actions to the list view:
+Add actions to list, row, detail, or submit-line locations:
 
 ```python
-from fastapi_console.actions import Action
+from fastapi_console.actions.base import Action, ModelAction
+
+class ActivateAction(ModelAction):
+    name = "activate"
+    label = "Activate"
+    icon = "check_circle"
+    variant = "success"
+    location = "row"
+    confirmation_message = "Activate this product?"
+
+    async def execute_single(self, obj, request):
+        obj.is_active = True
+        request.state.db_session.add(obj)
+        await request.state.db_session.flush()
+
+class BulkActivateAction(Action):
+    name = "bulk_activate"
+    label = "Activate Selected"
+    icon = "check_circle"
+    variant = "success"
+    location = "list"
+    permissions = ["edit"]
+
+    async def execute(self, objects, request):
+        for obj in objects:
+            obj.is_active = True
+            request.state.db_session.add(obj)
+        await request.state.db_session.flush()
 
 @admin.register(Product)
 class ProductAdmin(ModelAdmin):
-    
-    def get_actions(self):
-        return [
-            Action(name="activate", label="Activate Selected"),
-            Action(name="deactivate", label="Deactivate Selected"),
-        ]
-    
-    def perform_activate(self, session, selected_ids):
-        """Bulk activate products"""
-        session.query(Product).filter(Product.id.in_(selected_ids)).update(
-            {Product.is_active: True}, synchronize_session=False
-        )
-    
-    def perform_deactivate(self, session, selected_ids):
-        """Bulk deactivate products"""
-        session.query(Product).filter(Product.id.in_(selected_ids)).update(
-            {Product.is_active: False}, synchronize_session=False
-        )
+    actions_row = ["activate"]
+    actions_list = ["bulk_activate"]
 ```
+
+### Action Options
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `name` | `str` | Unique action identifier |
+| `label` | `str` | Display text |
+| `icon` | `str` | Material icon name |
+| `variant` | `str` | `default`, `primary`, `danger`, `success`, `warning` |
+| `location` | `str` | `list`, `row`, `detail`, `submit_line` |
+| `permissions` | `list[str]` | Required permissions (e.g., `["edit"]`) |
+| `confirmation_message` | `str` | Confirmation dialog text |
 
 ## Custom Column Display
 

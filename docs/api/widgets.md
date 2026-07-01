@@ -92,6 +92,78 @@
       members_order: source
       heading_level: 3
 
+### AutocompleteWidget
+
+::: fastapi_console.widgets.inputs.AutocompleteWidget
+    options:
+      show_source: true
+      show_root_heading: true
+      members_order: source
+      heading_level: 3
+
+### PasswordWidget
+
+::: fastapi_console.widgets.inputs.PasswordWidget
+    options:
+      show_source: true
+      show_root_heading: true
+      members_order: source
+      heading_level: 3
+
+### ReadOnlyWidget
+
+::: fastapi_console.widgets.inputs.ReadOnlyWidget
+    options:
+      show_source: true
+      show_root_heading: true
+      members_order: source
+      heading_level: 3
+
+### HiddenWidget
+
+::: fastapi_console.widgets.inputs.HiddenWidget
+    options:
+      show_source: true
+      show_root_heading: true
+      members_order: source
+      heading_level: 3
+
+### FileUploadWidget
+
+::: fastapi_console.widgets.inputs.FileUploadWidget
+    options:
+      show_source: true
+      show_root_heading: true
+      members_order: source
+      heading_level: 3
+
+### ImageUploadWidget
+
+::: fastapi_console.widgets.inputs.ImageUploadWidget
+    options:
+      show_source: true
+      show_root_heading: true
+      members_order: source
+      heading_level: 3
+
+### WysiwygWidget
+
+::: fastapi_console.widgets.inputs.WysiwygWidget
+    options:
+      show_source: true
+      show_root_heading: true
+      members_order: source
+      heading_level: 3
+
+### ArrayWidget
+
+::: fastapi_console.widgets.inputs.ArrayWidget
+    options:
+      show_source: true
+      show_root_heading: true
+      members_order: source
+      heading_level: 3
+
 ## Relationship Widgets
 
 ### RelationPickerWidget
