@@ -610,11 +610,12 @@ class DefaultQueryProvider:
         for rel in mapper.relationships:
             if rel.direction.name == "MANYTOMANY":
                 options.append(selectinload(getattr(self.registered.model, rel.key)))
+        int_id = int(id) if id is not None else None
         if options:
             from sqlalchemy import select
             stmt = select(self.registered.model).options(*options).where(
-                getattr(self.registered.model, self.registered.pk_field) == id
+                getattr(self.registered.model, self.registered.pk_field) == int_id
             )
             result = await session.execute(stmt)
             return result.scalar_one_or_none()
-        return await session.get(self.registered.model, id)
+        return await session.get(self.registered.model, int_id)

@@ -187,7 +187,7 @@ def build_model_router(registered: RegisteredModel) -> APIRouter:
         if not action_obj:
             raise HTTPException(status_code=404, detail=f"Unknown action: {action_name}")
 
-        obj = await session.get(registered.model, id)
+        obj = await session.get(registered.model, int(id))
         if not obj:
             raise HTTPException(status_code=404, detail="Not found")
 
@@ -294,7 +294,7 @@ def build_model_router(registered: RegisteredModel) -> APIRouter:
 
         session = get_db_session(request)
         try:
-            obj = await session.get(registered.model, id)
+            obj = await session.get(registered.model, int(id))
             if obj is None:
                 raise HTTPException(status_code=404, detail="Object not found")
 
