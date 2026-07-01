@@ -434,7 +434,7 @@ class CreateView(BaseView):
             self.admin.on_create(obj, request)
             session.add(obj)
             await self._apply_m2m_from_data(obj, m2m_data, session)
-            await session.commit()
+            await session.flush()
             self.admin.after_create(obj, request)
             add_flash(
                 request, "success", f"{self.registered.verbose_name} created."
@@ -504,7 +504,7 @@ class CreateView(BaseView):
         obj = self.registered.model(**parsed)
         self.admin.on_create(obj, request)
         session.add(obj)
-        await session.commit()
+        await session.flush()
         self.admin.after_create(obj, request)
         return await self.api_renderer.render(request, self._serialize(obj))
 
@@ -645,7 +645,7 @@ class EditView(BaseView):
             session = get_db_session(request)
             await self._apply_m2m_from_data(obj, m2m_data, session)
             self.admin.on_update(obj, parsed, request)
-            await session.commit()
+            await session.flush()
             self.admin.after_update(obj, request)
             add_flash(
                 request, "success", f"{self.registered.verbose_name} updated."
@@ -793,7 +793,7 @@ class EditView(BaseView):
             session = get_db_session(request)
             await self._apply_m2m_from_data(obj, m2m_data, session)
             self.admin.on_update(obj, parsed, request)
-            await session.commit()
+            await session.flush()
             self.admin.after_update(obj, request)
         except Exception:
             session = get_db_session(request)
@@ -813,7 +813,7 @@ class DeleteView(BaseView):
             self.admin.on_delete(obj, request)
             session = get_db_session(request)
             await session.delete(obj)
-            await session.commit()
+            await session.flush()
             self.admin.after_delete(obj, request)
             add_flash(
                 request, "success", f"{self.registered.verbose_name} deleted."
@@ -841,7 +841,7 @@ class DeleteView(BaseView):
         self.admin.on_delete(obj, request)
         session = get_db_session(request)
         await session.delete(obj)
-        await session.commit()
+        await session.flush()
         self.admin.after_delete(obj, request)
         return Response(status_code=204)
 
@@ -877,7 +877,7 @@ class BulkView(BaseView):
                 if obj:
                     self.admin.on_delete(obj, request)
                     await session.delete(obj)
-            await session.commit()
+            await session.flush()
         else:
             action_obj = None
             for a in self.admin.get_list_actions():
@@ -893,7 +893,7 @@ class BulkView(BaseView):
                         objects.append(obj)
                 if objects:
                     await action_obj.execute(objects, request)
-                await session.commit()
+                await session.flush()
             else:
                 action_fn = getattr(self.admin, f"action_{action}", None)
                 if not action_fn:
@@ -904,7 +904,7 @@ class BulkView(BaseView):
                     obj = await session.get(self.registered.model, pid)
                     if obj:
                         action_fn(obj)
-                await session.commit()
+                await session.flush()
 
         if is_htmx:
             list_view = ListView(self.registered)
@@ -936,7 +936,7 @@ class BulkView(BaseView):
                     self.admin.on_delete(obj, request)
                     await session.delete(obj)
                     deleted += 1
-            await session.commit()
+            await session.flush()
             return JSONResponse({"deleted": deleted})
 
         action_obj = None
@@ -953,7 +953,7 @@ class BulkView(BaseView):
                     objects.append(obj)
             if objects:
                 await action_obj.execute(objects, request)
-            await session.commit()
+            await session.flush()
             return JSONResponse({"executed": len(objects)})
 
         action_fn = getattr(self.admin, f"action_{action}", None)
@@ -968,7 +968,7 @@ class BulkView(BaseView):
             if obj:
                 action_fn(obj)
                 executed += 1
-        await session.commit()
+        await session.flush()
         return JSONResponse({"executed": executed})
 
 

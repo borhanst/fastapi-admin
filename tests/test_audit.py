@@ -316,6 +316,10 @@ class TestSqlAlchemyAuditLogger:
             full_snapshot={"id": 1, "name": "Widget"},
         )
         logger.log_create(event)
+        # Manually flush the buffered entries (sync path for tests)
+        for entry in logger._pending:
+            session.add(entry)
+        logger._pending.clear()
         session.flush()
 
         rows = session.query(AuditLog).all()
@@ -335,6 +339,9 @@ class TestSqlAlchemyAuditLogger:
             full_snapshot={"id": 5, "name": "B"},
         )
         logger.log_update(event)
+        for entry in logger._pending:
+            session.add(entry)
+        logger._pending.clear()
         session.flush()
 
         row = session.query(AuditLog).one()
@@ -350,6 +357,9 @@ class TestSqlAlchemyAuditLogger:
             object_id="10",
         )
         logger.log_delete(event)
+        for entry in logger._pending:
+            session.add(entry)
+        logger._pending.clear()
         session.flush()
 
         row = session.query(AuditLog).one()
@@ -369,6 +379,9 @@ class TestSqlAlchemyAuditLogger:
             user_agent="Mozilla/5.0",
         )
         logger.log_create(event)
+        for entry in logger._pending:
+            session.add(entry)
+        logger._pending.clear()
         session.flush()
 
         row = session.query(AuditLog).one()
@@ -471,7 +484,7 @@ class TestAuditListenerIntegration:
 
     @pytest.fixture
     def session_and_bus(self, engine):
-        from fastapi_console.audit.listener import attach_audit_listener
+        from fastapi_console.audit.event_bus import AuditEventBus
 
         # Fake registry that recognizes fake_products
         registry = MagicMock()
@@ -479,7 +492,7 @@ class TestAuditListenerIntegration:
             MagicMock() if tn == "fake_products" else None
         )
 
-        bus = attach_audit_listener(None, registry)
+        bus = AuditEventBus()
         # Wire up a logger that writes to a session
         logger_session = Session(engine)
         logger = SqlAlchemyAuditLogger(logger_session)

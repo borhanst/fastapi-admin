@@ -442,7 +442,7 @@ class ViewFactory:
             registered.admin.on_create(obj, request)
             session.add(obj)
             await _apply_m2m_from_data(obj, m2m_data, registered, session)
-            await session.commit()
+            await session.flush()
             registered.admin.after_create(obj, request)
             add_flash(request, "success", f"{registered.verbose_name} created.")
             url = f"{request.app.state.admin_config['admin_path']}/{registered.table_name}/"
@@ -537,7 +537,7 @@ class ViewFactory:
             m2m_data = _pop_manytomany_keys(obj, parsed, registered)
             _apply_parsed_to_obj(obj, parsed, registered)
             await _apply_m2m_from_data(obj, m2m_data, registered, session)
-            await session.commit()
+            await session.flush()
             registered.admin.after_update(obj, request)
             add_flash(request, "success", f"{registered.verbose_name} updated.")
             url = f"{request.app.state.admin_config['admin_path']}/{registered.table_name}/"
@@ -561,7 +561,7 @@ class ViewFactory:
             try:
                 registered.admin.on_delete(obj, request)
                 await session.delete(obj)
-                await session.commit()
+                await session.flush()
                 registered.admin.after_delete(obj, request)
                 add_flash(
                     request, "success", f"{registered.verbose_name} deleted."
@@ -609,7 +609,7 @@ class ViewFactory:
                         if obj:
                             registered.admin.on_delete(obj, request)
                             await session.delete(obj)
-                    await session.commit()
+                    await session.flush()
                     add_flash(
                         request,
                         "success",
@@ -627,7 +627,7 @@ class ViewFactory:
                         obj = await session.get(registered.model, int(pid))
                         if obj:
                             action_fn(obj)
-                    await session.commit()
+                    await session.flush()
                     add_flash(
                         request,
                         "success",

@@ -163,7 +163,7 @@ def build_model_router(registered: RegisteredModel) -> APIRouter:
 
         if objects:
             await action_obj.execute(objects, request)
-            await session.commit()
+            await session.flush()
 
         from fastapi.responses import HTMLResponse
         return HTMLResponse(content="OK")
@@ -192,7 +192,7 @@ def build_model_router(registered: RegisteredModel) -> APIRouter:
             raise HTTPException(status_code=404, detail="Not found")
 
         await action_obj.execute([obj], request)
-        await session.commit()
+        await session.flush()
 
         from fastapi.responses import HTMLResponse
         return HTMLResponse(content="OK")
@@ -216,7 +216,7 @@ def build_model_router(registered: RegisteredModel) -> APIRouter:
             obj = await session.get(registered.model, item_id)
             if obj:
                 setattr(obj, ordering_field, idx)
-        await session.commit()
+        await session.flush()
 
         from fastapi.responses import HTMLResponse
         return HTMLResponse(content="OK")
@@ -299,7 +299,7 @@ def build_model_router(registered: RegisteredModel) -> APIRouter:
                 raise HTTPException(status_code=404, detail="Object not found")
 
             setattr(obj, field_name, new_value)
-            await session.commit()
+            await session.flush()
         except Exception:
             await session.rollback()
             raise

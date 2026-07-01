@@ -198,7 +198,7 @@ async def role_save_view(
         if table not in tables_in_form:
             await session.delete(perm)
 
-    await session.commit()
+    await session.flush()
 
     return RedirectResponse(url="/admin/roles", status_code=302)
 
@@ -225,6 +225,6 @@ async def role_delete_view(
         )
 
     await session.delete(role)
-    await session.commit()
+    await session.flush()
 
     return RedirectResponse(url="/admin/roles", status_code=302)

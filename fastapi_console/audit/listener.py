@@ -1,4 +1,10 @@
-"""Audit listener — SQLAlchemy event listeners that publish audit events."""
+"""Audit listener — SQLAlchemy event listeners that write audit rows atomically.
+
+AuditLog rows are created inside ``before_flush`` and added to the session
+via ``session.add()``.  SQLAlchemy re-runs ``before_flush`` until no new
+pending objects appear, so the audit rows ride along in the same flush pass.
+No IO, no queries, no ``MissingGreenlet`` — just already-loaded attributes.
+"""
 
 from __future__ import annotations
 
@@ -9,12 +15,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy.orm.attributes import instance_state
 
 from fastapi_console.audit.context import get_audit_context
-from fastapi_console.audit.diff import compute_diff, serialize_value, snapshot
-from fastapi_console.audit.event_bus import AuditEventBus
+from fastapi_console.audit.diff import serialize_value
 from fastapi_console.audit.models import AuditLog
-from fastapi_console.audit.sqlalchemy_logger import SqlAlchemyAuditLogger
-
-_audit_logger: SqlAlchemyAuditLogger | None = None
 
 
 def is_registered_model(obj: Any, registry: Any) -> bool:
@@ -28,9 +30,9 @@ def is_registered_model(obj: Any, registry: Any) -> bool:
 def _snapshot_from_committed(obj: Any) -> dict[str, Any]:
     """Snapshot column values from the committed (pre-flush) state.
 
-    Uses the SQLAlchemy pending history to read the *old* values that
-    were in the database before the current pending changes, avoiding
-    any attribute access that would trigger lazy-load I/O.
+    Uses SQLAlchemy attribute history to read the *old* values that were
+    in the database before the current pending changes.  No attribute
+    access that could trigger lazy-load I/O.
     """
     if not hasattr(obj, "__table__"):
         return {}
@@ -38,125 +40,120 @@ def _snapshot_from_committed(obj: Any) -> dict[str, Any]:
     data: dict[str, Any] = {}
     for column in mapper.columns:
         attr = instance_state(obj).attrs[column.key]
-        # history.added / history.unchanged / history.deleted
-        # For a dirty attribute: deleted = old value, added = new value
         history = attr.history
         if history.deleted:
             data[column.key] = serialize_value(history.deleted[0])
         elif history.unchanged:
             data[column.key] = serialize_value(history.unchanged[0])
         else:
-            # No history — fall back to current value (e.g. server_default)
             data[column.key] = serialize_value(getattr(obj, column.key))
     return data
+
+
+def _snapshot_current(obj: Any) -> dict[str, Any]:
+    """Snapshot all mapped columns of a SQLAlchemy model instance."""
+    if not hasattr(obj, "__table__"):
+        return {}
+    from sqlalchemy.inspection import inspect as sa_inspect
+
+    mapper = sa_inspect(obj.__class__)
+    data: dict[str, Any] = {}
+    for column in mapper.columns:
+        data[column.key] = serialize_value(getattr(obj, column.key))
+    return data
+
+
+def _compute_diff(before: dict[str, Any], after: dict[str, Any]) -> dict[str, Any]:
+    """Compute changed fields between two snapshots.
+
+    Returns ``{"field": {"old": ..., "new": ...}}`` for each difference.
+    """
+    diff: dict[str, Any] = {}
+    all_keys = set(before.keys()) | set(after.keys())
+    for key in all_keys:
+        old_val = before.get(key)
+        new_val = after.get(key)
+        if old_val != new_val:
+            diff[key] = {"old": old_val, "new": new_val}
+    return diff
+
+
+def _build_audit_row(
+    obj: Any,
+    action: str,
+    context: dict[str, Any],
+    *,
+    changes: dict[str, Any] | None = None,
+    snapshot_data: dict[str, Any] | None = None,
+) -> AuditLog:
+    """Create an AuditLog row from an ORM object and audit context."""
+    snap = snapshot_data if snapshot_data is not None else _snapshot_current(obj)
+    return AuditLog(
+        action=action,
+        model_name=type(obj).__name__,
+        table_name=obj.__tablename__,
+        object_id=str(snap.get("id", getattr(obj, "id", ""))),
+        object_repr=str(obj)[:500],
+        changes=changes,
+        full_snapshot=snap,
+        user_id=context.get("user_id"),
+        user_email=context.get("user_email"),
+        ip_address=context.get("ip_address"),
+        user_agent=context.get("user_agent"),
+    )
 
 
 def attach_audit_listener(
     session_factory: Any,
     registry: Any,
-    bus: AuditEventBus | None = None,
-) -> AuditEventBus:
-    """Set up SQLAlchemy event listeners for audit logging.
+) -> None:
+    """Set up SQLAlchemy ``before_flush`` listener for audit logging.
 
     Args:
-        session_factory: The session factory (sync or async)
-        registry: The AdminRegistry instance
-        bus: Optional pre-configured AuditEventBus.
-
-    Returns:
-        The AuditEventBus instance
+        session_factory: The session factory (sync or async).
+        registry: The AdminRegistry instance.
     """
-    global _audit_logger
-
-    if bus is None:
-        bus = AuditEventBus()
-
-    if _audit_logger is None:
-        _audit_logger = SqlAlchemyAuditLogger()
-        bus.subscribe("CREATE", _audit_logger.log_create)
-        bus.subscribe("UPDATE", _audit_logger.log_update)
-        bus.subscribe("DELETE", _audit_logger.log_delete)
 
     @event.listens_for(Session, "before_flush")
     def before_flush(session: Session, flush_context: Any, instances: Any) -> None:
-        """Capture before/after states for all tracked objects.
+        """Create AuditLog rows for all tracked mutations.
 
-        Both snapshots are taken here — while attributes are still loaded
-        — so that ``after_flush`` never touches the (now-expired) objects.
-        """
-        # Dirty objects → snapshot both committed (before) and pending (after)
-        for obj in session.dirty:
-            if not is_registered_model(obj, registry):
-                continue
-            if obj.__tablename__ == AuditLog.__tablename__:
-                continue
-            obj._audit_before = _snapshot_from_committed(obj)
-            obj._audit_after = snapshot(obj)
-
-        # New objects → only an after-snapshot (no before state)
-        for obj in session.new:
-            if not is_registered_model(obj, registry):
-                continue
-            if obj.__tablename__ == AuditLog.__tablename__:
-                continue
-            obj._audit_after = snapshot(obj)
-
-    @event.listens_for(Session, "after_flush")
-    def after_flush(session: Session, flush_context: Any) -> None:
-        """Build AuditEvents using pre-computed snapshots.
-
-        No attribute access on the ORM objects here — all data was
-        captured in ``before_flush`` to avoid MissingGreenlet errors
-        with async sessions (expired attributes → greenlet_spawn).
+        Runs inside the same flush pass — ``session.add()`` puts the
+        AuditLog into the pending set and SQLAlchemy will re-run
+        ``before_flush`` until no new objects appear.  No queries, no
+        lazy-loads, only already-loaded attribute history.
         """
         context = get_audit_context()
 
-        # INSERT
-        for obj in session.new:
+        # ── INSERT ──────────────────────────────────────────────────
+        for obj in list(session.new):
             if not is_registered_model(obj, registry):
                 continue
             if obj.__tablename__ == AuditLog.__tablename__:
                 continue
-            after = getattr(obj, "_audit_after", None)
-            if after is None:
-                after = {}
-            bus.emit_for_object(obj, "CREATE", context, snapshot_data=after)
+            row = _build_audit_row(obj, "CREATE", context)
+            session.add(row)
 
-        # UPDATE
-        for obj in session.dirty:
+        # ── UPDATE ──────────────────────────────────────────────────
+        for obj in list(session.dirty):
             if not is_registered_model(obj, registry):
                 continue
             if obj.__tablename__ == AuditLog.__tablename__:
                 continue
-            before = getattr(obj, "_audit_before", None)
-            after = getattr(obj, "_audit_after", None)
-            if before is None or after is None:
-                continue
-            diff = compute_diff(before, after)
-            del obj._audit_before
-            del obj._audit_after
+            before = _snapshot_from_committed(obj)
+            after = _snapshot_current(obj)
+            diff = _compute_diff(before, after)
             if not diff:
                 continue
-            bus.emit_for_object(obj, "UPDATE", context, changes=diff)
+            row = _build_audit_row(obj, "UPDATE", context, changes=diff, snapshot_data=after)
+            session.add(row)
 
-        # DELETE
-        for obj in session.deleted:
+        # ── DELETE ──────────────────────────────────────────────────
+        for obj in list(session.deleted):
             if not is_registered_model(obj, registry):
                 continue
             if obj.__tablename__ == AuditLog.__tablename__:
                 continue
-            bus.emit_for_object(obj, "DELETE", context)
-
-    return bus
-
-
-async def flush_audit_entries(session: Any) -> None:
-    """Flush any buffered audit log entries to the database."""
-    if _audit_logger is not None:
-        await _audit_logger.flush_pending(session)
-
-
-def clear_audit_context_after_response() -> None:
-    """Clear the audit context (to be called after the response is sent)."""
-    from fastapi_console.audit.context import clear_audit_context
-    clear_audit_context()
+            snap = _snapshot_current(obj)
+            row = _build_audit_row(obj, "DELETE", context, snapshot_data=snap)
+            session.add(row)

@@ -81,7 +81,7 @@ async def login_post(
         _login_rate_limiter.reset(client_ip)
         user.last_login = datetime.now(UTC)
         await session.merge(user)
-        await session.commit()
+        await session.flush()
 
         session_backend = request.app.state.admin_session_backend
         session_data = {"user_id": user.id}

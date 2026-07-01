@@ -102,7 +102,7 @@ async def profile_update(
         user.email = email
 
     user.full_name = full_name
-    await session.commit()
+    await session.flush()
 
     return RedirectResponse(url="/admin/profile", status_code=302)
 
@@ -180,7 +180,7 @@ async def password_change_post(
 
     user.hashed_password = pwd_context.hash(new_password)
     user.password_changed_at = datetime.now(UTC)
-    await session.commit()
+    await session.flush()
 
     # Revoke all refresh tokens for this user
     from sqlalchemy import update
@@ -195,7 +195,7 @@ async def password_change_post(
         )
         .values(revoked_at=datetime.now(UTC))
     )
-    await session.commit()
+    await session.flush()
 
     # Clear session and redirect to login
     from fastapi_console.auth.csrf import CSRF_COOKIE_NAME

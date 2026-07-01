@@ -13,13 +13,11 @@ from fastapi_console.audit.event_bus import AuditEventBus
 from fastapi_console.audit.events import AuditEvent
 from fastapi_console.audit.listener import (
     attach_audit_listener,
-    flush_audit_entries,
     is_registered_model,
 )
 from fastapi_console.audit.logger import AuditLogger
 from fastapi_console.audit.middleware import audit_context_middleware
 from fastapi_console.audit.models import AuditLog
-from fastapi_console.audit.sqlalchemy_logger import SqlAlchemyAuditLogger
 
 __all__ = [
     "AuditContext",
@@ -27,12 +25,10 @@ __all__ = [
     "AuditEventBus",
     "AuditLog",
     "AuditLogger",
-    "SqlAlchemyAuditLogger",
     "attach_audit_listener",
     "audit_context_middleware",
     "clear_audit_context",
     "compute_diff",
-    "flush_audit_entries",
     "get_audit_context",
     "is_registered_model",
     "set_audit_context",

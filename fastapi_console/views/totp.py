@@ -54,7 +54,7 @@ async def totp_setup_view(
                 enabled=False,
             )
             session.add(totp_record)
-            await session.commit()
+            await session.flush()
         else:
             secret = totp_record.secret_key
 
@@ -115,7 +115,7 @@ async def totp_enable_post(
 
     totp_record.enabled = True
     totp_record.backup_codes = json.dumps(hashed_codes)
-    await session.commit()
+    await session.flush()
 
     templates = request.app.state.admin_jinja_env
     return templates.TemplateResponse(
@@ -187,7 +187,7 @@ async def totp_disable_post(
 
     totp_record.enabled = False
     totp_record.backup_codes = None
-    await session.commit()
+    await session.flush()
 
     return RedirectResponse(url="/admin/profile/2fa", status_code=302)
 
@@ -213,7 +213,7 @@ async def totp_regenerate_backup_codes(
     hashed_codes = [hash_backup_code(c) for c in backup_codes]
 
     totp_record.backup_codes = json.dumps(hashed_codes)
-    await session.commit()
+    await session.flush()
 
     templates = request.app.state.admin_jinja_env
     return templates.TemplateResponse(

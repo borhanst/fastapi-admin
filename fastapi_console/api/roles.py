@@ -69,7 +69,7 @@ async def create_role(
 
     role = AdminRole(name=body.name, description=body.description)
     db_session.add(role)
-    await db_session.commit()
+    await db_session.flush()
     await db_session.refresh(role)
 
     return RoleResponse(
@@ -95,7 +95,7 @@ async def update_role(
     if body.description is not None:
         role.description = body.description
 
-    await db_session.commit()
+    await db_session.flush()
     await db_session.refresh(role)
 
     return RoleResponse(
@@ -125,4 +125,4 @@ async def delete_role(
         )
 
     await db_session.delete(role)
-    await db_session.commit()
+    await db_session.flush()

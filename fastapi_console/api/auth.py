@@ -208,7 +208,7 @@ async def obtain_token(
         expires_at=refresh_expires,
     )
     db_session.add(refresh_record)
-    await db_session.commit()
+    await db_session.flush()
 
     return TokenResponse(
         access_token=access_token,
@@ -279,7 +279,7 @@ async def refresh_token(
         expires_at=datetime.now(UTC) + timedelta(seconds=_get_refresh_ttl()),
     )
     db_session.add(new_refresh_record)
-    await db_session.commit()
+    await db_session.flush()
 
     return RefreshResponse(
         access_token=new_access_token,
@@ -311,7 +311,7 @@ async def api_logout(
             refresh_record = result.scalar_one_or_none()
             if refresh_record:
                 refresh_record.revoked_at = datetime.now(UTC)
-                await db_session.commit()
+                await db_session.flush()
 
     return {"detail": "Logged out successfully."}
 
