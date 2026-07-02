@@ -90,6 +90,7 @@ def dashboard_view_factory(admin: Any):
 
             stat_cards.append({
                 "title": model.verbose_name_plural,
+                "icon": getattr(model.admin, "icon", None) or "cube",
                 "count": count,
                 "url": f"{admin_instance.admin_path}/{model.table_name}/",
                 "trend_pct": trend_pct,

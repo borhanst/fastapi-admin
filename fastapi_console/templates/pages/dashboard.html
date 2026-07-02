@@ -4,24 +4,6 @@
 {% block title %}{{ title | default("Admin") }} — Dashboard{% endblock %}
 
 {% block content %}
-{% set _icons = {
-  'Categories': 'folder',
-  'Products': 'shopping-bag',
-  'Users': 'users',
-  'Orders': 'shopping-cart',
-  'Order Items': 'list-bullet',
-  'Order Itemss': 'list-bullet',
-  'Admin Field Permissions': 'shield-check',
-  'Admin Field Permissionss': 'shield-check',
-  'Admin Permissions': 'key',
-  'Admin Permissionss': 'key',
-  'Admin Users': 'user-group',
-  'Admin Userss': 'user-group',
-  'Admin Audit Logs': 'document-text',
-  'Admin Roles': 'cog-6-tooth',
-  'Admin Roless': 'cog-6-tooth'
-} %}
-
 {% set _colors = {
   'Categories': 'teal',
   'Products': 'purple',
@@ -61,11 +43,10 @@
   <div class="stat-cards" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px;">
     {% for card in stat_cards %}
     {% set _color = _colors[card.title] | default('teal') %}
-    {% set _icon = _icons[card.title] | default('cube') %}
     <a href="{{ card.url }}" class="dashboard-stat-card">
       <div class="stat-header">
         <div class="stat-icon stat-icon--{{ _color }}">
-          {{ icon(_icon, size="20px") }}
+          {{ icon(card.icon, size="20px") }}
         </div>
         <span class="stat-label">{{ card.title }}</span>
       </div>
