@@ -219,6 +219,8 @@ class AdminRegistry:
     def auto_discover(self) -> list[RegisteredModel]:
         """Scan all subclasses of DeclarativeBase and register unregistered ones.
 
+        Also discovers SQLModel subclasses if SQLModel is installed.
+
         Returns:
             A list of newly registered models.
         """
@@ -226,6 +228,8 @@ class AdminRegistry:
 
         discovered: list[RegisteredModel] = []
         seen: set[type] = set()
+
+        # Discover SQLAlchemy DeclarativeBase subclasses
         for subclass in _all_declarative_subclasses(DeclarativeBase):
             if hasattr(subclass, "registry"):
                 for mapper in subclass.registry.mappers:
@@ -237,6 +241,25 @@ class AdminRegistry:
                             and cls.__tablename__ not in self._models
                         ):
                             discovered.append(self.register(cls))
+
+        # Discover SQLModel subclasses (if installed)
+        try:
+            from sqlmodel import SQLModel
+
+            for subclass in _all_declarative_subclasses(SQLModel):
+                if hasattr(subclass, "registry"):
+                    for mapper in subclass.registry.mappers:
+                        cls = mapper.class_
+                        if cls not in seen:
+                            seen.add(cls)
+                            if (
+                                hasattr(cls, "__tablename__")
+                                and cls.__tablename__ not in self._models
+                            ):
+                                discovered.append(self.register(cls))
+        except ImportError:
+            pass
+
         return discovered
 
     def clear(self) -> None:

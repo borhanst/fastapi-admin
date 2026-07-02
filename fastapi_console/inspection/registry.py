@@ -23,10 +23,10 @@ class ModelInspector:
     def inspect_model(
         self, model: type
     ) -> tuple[list[ColumnMeta], list[RelationMeta]]:
-        """Inspect a SQLAlchemy model and return column + relationship metadata.
+        """Inspect a SQLAlchemy or SQLModel model and return column + relationship metadata.
 
         Args:
-            model: A SQLAlchemy declarative model class.
+            model: A SQLAlchemy or SQLModel declarative model class.
 
         Returns:
             A tuple of (columns, relationships) metadata.
@@ -35,11 +35,19 @@ class ModelInspector:
         columns: list[ColumnMeta] = []
         relationships: list[RelationMeta] = []
 
+        # Check if this is a SQLModel
+        is_sqlmodel = self._is_sqlmodel(model)
+
         for col in mapper.columns:
+            # For SQLModel, we may need to extract type info from Pydantic fields
+            col_type = col.type
+            if is_sqlmodel:
+                col_type = self._resolve_sqlmodel_type(model, col.key, col.type)
+
             columns.append(
                 ColumnMeta(
                     name=col.key,
-                    type=col.type,
+                    type=col_type,
                     nullable=col.nullable,
                     primary_key=col.primary_key,
                     foreign_keys=list(col.foreign_keys),
@@ -51,18 +59,85 @@ class ModelInspector:
             )
 
         for rel in mapper.relationships:
-            relationships.append(
-                RelationMeta(
-                    name=rel.key,
-                    direction=rel.direction.name,
-                    target_model=rel.mapper.class_,
-                    uselist=rel.uselist,
-                    back_populates=rel.back_populates,
-                    secondary=rel.secondary,
+            try:
+                relationships.append(
+                    RelationMeta(
+                        name=rel.key,
+                        direction=rel.direction.name,
+                        target_model=rel.mapper.class_,
+                        uselist=rel.uselist,
+                        back_populates=rel.back_populates,
+                        secondary=rel.secondary,
+                    )
                 )
-            )
+            except Exception:
+                # Skip relationships that fail to configure (e.g. SQLModel
+                # relationships with incomplete FK resolution)
+                pass
 
         return columns, relationships
+
+    def _is_sqlmodel(self, model: type) -> bool:
+        """Check if a model is a SQLModel instance."""
+        try:
+            from sqlmodel import SQLModel
+
+            return isinstance(model, type) and issubclass(model, SQLModel)
+        except ImportError:
+            return False
+
+    def _resolve_sqlmodel_type(self, model: type, field_name: str, default_type: Any) -> Any:
+        """Resolve the column type for a SQLModel field.
+
+        SQLModel may expose Python types (int, str, etc.) instead of SQLAlchemy types.
+        This method maps them to equivalent SQLAlchemy types.
+        """
+        try:
+            from sqlmodel import SQLModel
+
+            if not (isinstance(model, type) and issubclass(model, SQLModel)):
+                return default_type
+
+            # Get SQLModel field info
+            sqlmodel_fields = getattr(model, "__sqlmodel_fields__", {})
+            if field_name not in sqlmodel_fields:
+                return default_type
+
+            field_info = sqlmodel_fields[field_name]
+            annotation = getattr(field_info, "annotation", None)
+
+            if annotation is None:
+                return default_type
+
+            # Map Python types to SQLAlchemy types
+            type_map = {
+                int: self._get_sa_type("Integer"),
+                str: self._get_sa_type("String"),
+                float: self._get_sa_type("Float"),
+                bool: self._get_sa_type("Boolean"),
+            }
+
+            # Handle Optional types
+            origin = getattr(annotation, "__origin__", None)
+            if origin is not None:
+                args = getattr(annotation, "__args__", ())
+                if args:
+                    inner = args[0]
+                    if inner in type_map:
+                        return type_map[inner]
+
+            if annotation in type_map:
+                return type_map[annotation]
+
+            return default_type
+        except Exception:
+            return default_type
+
+    def _get_sa_type(self, type_name: str) -> Any:
+        """Get a SQLAlchemy type by name."""
+        import sqlalchemy as sa
+
+        return getattr(sa, type_name, None)
 
     def validate_model(self, model: type) -> None:
         """Validate that a model is suitable for admin registration.
