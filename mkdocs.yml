@@ -1,7 +1,7 @@
 site_name: FastAPI Console
 site_description: Drop-in admin panel for FastAPI + SQLAlchemy apps
-site_url: https://borhan006.github.io/fastapi-console/
-repo_url: https://github.com/borhan006/fastapi-console
+site_url: https://borhanst.github.io/fastapi-console/
+repo_url: https://github.com/borhanst/fastapi-console
 repo_name: fastapi-console
 
 theme:
@@ -68,3 +68,4 @@ nav:
       - Widgets: api/widgets.md
       - Auth: api/auth.md
   - Contributing: contributing.md
+  - Upcoming Features: upcoming-features.md

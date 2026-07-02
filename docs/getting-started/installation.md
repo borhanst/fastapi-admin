@@ -21,7 +21,7 @@ uv add fastapi-console
 ## Install from source
 
 ```bash
-git clone https://github.com/borhan006/fastapi-console.git
+git clone https://github.com/borhanst/fastapi-console.git
 cd fastapi-console
 pip install -e .
 ```

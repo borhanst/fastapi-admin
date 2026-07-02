@@ -12,7 +12,7 @@ Thank you for your interest in contributing to FastAPI Console!
 ### Clone and Install
 
 ```bash
-git clone https://github.com/borhan006/fastapi-console.git
+git clone https://github.com/borhanst/fastapi-console.git
 cd fastapi-console
 uv sync
 ```

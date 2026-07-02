@@ -2,9 +2,11 @@
 
 [![PyPI version](https://img.shields.io/pypi/v/fastapi-console.svg)](https://pypi.org/project/fastapi-console/)
 [![Python versions](https://img.shields.io/pypi/pyversions/fastapi-console.svg)](https://pypi.org/project/fastapi-console/)
-[![License](https://img.shields.io/pypi/l/fastapi-console.svg)](https://github.com/borhan006/fastapi-console/blob/main/LICENSE)
+[![License](https://img.shields.io/pypi/l/fastapi-console.svg)](https://github.com/borhanst/fastapi-console/blob/main/LICENSE)
 
 A drop-in admin panel for FastAPI + SQLAlchemy apps, inspired by Django Unfold.
+
+📖 **[Documentation](https://borhanst.github.io/fastapi-console/)** | 🚀 **[Quick Start](#quick-start)** | 📦 **[PyPI](https://pypi.org/project/fastapi-console/)**
 
 ## Features
 
